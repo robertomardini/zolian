@@ -1,44 +1,38 @@
 // js/dashboard.js
+
 document.addEventListener('DOMContentLoaded', async () => {
-  // 1) Obtén el usuario
-  const { data: { user }, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !user) {
-    return window.location.href = 'login.html';
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return window.location.href = 'login.html?redirect=dashboard.html';
   }
+  document.getElementById('user-email').innerText = `Conectado como: ${user.email}`;
 
-  // 2) Muestra el email
-  document.getElementById('user-email').innerText = "Conectado como: " + user.email;
-
-  // 3) Consulta los TVs vinculados a este user_id
-  const { data: tvs, error: tvErr } = await supabase
+  const { data: tvs, error } = await supabase
     .from('tv')
-    .select('code, nombre')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
+    .select('*')
+    .eq('user_id', user.id);
 
-  const $list = document.getElementById('tv-list');
-  if (tvErr) {
-    $list.innerHTML = `<li class="text-red-500">Error cargando TVs: ${tvErr.message}</li>`;
+  const listEl = document.getElementById('tv-list');
+  if (error) {
+    listEl.innerHTML = '<li>Error al cargar TVs.</li>';
+    return;
+  }
+  if (!tvs.length) {
+    listEl.innerHTML = '<li>No tienes TVs vinculadas.</li>';
     return;
   }
 
-  if (!tvs || tvs.length === 0) {
-    $list.innerHTML = `<li>No tienes ningún TV vinculado aún.</li>`;
-    return;
-  }
-
-  // 4) Renderiza cada TV
-  $list.innerHTML = ''; // limpia el "Cargando…"
+  listEl.innerHTML = '';
   tvs.forEach(tv => {
-    const name = tv.nombre || '(sin nombre)';
-    const code = tv.code;
-    const item = document.createElement('li');
-    item.innerHTML = `<strong>${name}</strong> — <a href="tv.html?code=${code}" class="text-blue-600 hover:underline">${code}</a>`;
-    $list.appendChild(item);
+    const li = document.createElement('li');
+    li.innerHTML = `<a href="galeria.html?code=${tv.code}"
+                   class="text-blue-600 hover:underline">
+                     ${tv.nombre || tv.code}
+                   </a>`;
+    listEl.appendChild(li);
   });
 });
 
-// Función de logout queda igual
 async function logout() {
   await supabase.auth.signOut();
   window.location.href = 'login.html';
