@@ -12,62 +12,38 @@
   <p id="code" class="text-2xl font-mono mb-2"></p>
   <p id="status" class="text-yellow-400">Generando código…</p>
 
-  <!-- Librerías -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <!-- 1) Librería QRCode -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <!-- 2) Supabase UMD -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- 3) Cliente -->
   <script src="js/supabaseClient.js"></script>
-
+  <!-- 4) Tu script de QR -->
   <script>
   (async function() {
-    // 1) Generar un código único de TV
-    function generarCodigo(len = 6) {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      return Array.from({length: len}, () =>
-        chars[Math.floor(Math.random()*chars.length)]
-      ).join('');
-    }
-    const tvCode = generarCodigo();
+    // Genera un código, guarda en BD y luego…
+    const tvCode = Math.random().toString(36).slice(-6).toUpperCase();
     document.getElementById('code').innerText = tvCode;
 
-    // 2) Insertar en la tabla `tv`
-    const { error: insertErr } = await supabase
-      .from('tv')
-      .insert([{ code: tvCode, linked: false }]);
-    if (insertErr) {
-      document.getElementById('status').innerText = 'Error al registrar TV.';
-      console.error(insertErr);
-      return;
-    }
+    // Inserta en la tabla `tv`
+    let { error } = await supabase.from('tv').insert([{ code: tvCode, linked: false }]);
+    if (error) return document.getElementById('status').innerText = 'Error BD';
 
-    // 3) Renderizar QR que apunta a vincular.html
-    const urlQR = `${window.location.origin}/vincular.html?code=${tvCode}`;
+    // …genera el QR
+    const url = `${location.origin}/vincular.html?code=${tvCode}`;
     QRCode.toCanvas(
       document.getElementById('qrcode'),
-      urlQR,
+      url,
       { width: 200 },
       err => {
-        if (err) console.error(err);
+        if (err) {
+          console.error(err);
+          document.getElementById('status').innerText = 'Error QR';
+        } else {
+          document.getElementById('status').innerText = 'Escanea el QR';
+        }
       }
     );
-    document.getElementById('status').innerText = 'Escanea el QR para vincular';
-
-    // 4) Polling: cada 3s revisar si ya linked
-    const check = setInterval(async () => {
-      const { data, error } = await supabase
-        .from('tv')
-        .select('linked')
-        .eq('code', tvCode)
-        .single();
-      if (error) {
-        console.error(error);
-        return;
-      }
-      if (data.linked) {
-        clearInterval(check);
-        // 5) Redirigir automáticamente al viewer
-        window.location.href = `tv.html?code=${tvCode}`;
-      }
-    }, 3000);
   })();
   </script>
 
