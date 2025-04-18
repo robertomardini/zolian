@@ -11,15 +11,14 @@
   </style>
 </head>
 <body>
-  <div id="status">Cargando imágenes…</div>
 
-  <!-- Librerías -->
+  <div id="status" class="text-xl">Cargando imágenes…</div>
+
+  <!-- Supabase y tu cliente -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/supabaseClient.js"></script>
-
   <script>
   (async function() {
-    // 1) Leer código de TV de la URL
     const params = new URLSearchParams(window.location.search);
     const tvCode = params.get('code');
     if (!tvCode) {
@@ -27,33 +26,37 @@
       return;
     }
 
-    // 2) Recuperar sesión para tener user.id
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      document.getElementById('status').innerText = 'No estás autenticado.';
+    // 1) Consultar en la tabla `tv` para obtener el user_id
+    const { data: tvRow, error: tvErr } = await supabase
+      .from('tv')
+      .select('user_id')
+      .eq('code', tvCode)
+      .single();
+
+    if (tvErr || !tvRow?.user_id) {
+      console.error(tvErr);
+      document.getElementById('status').innerText = 'TV no encontrada o no vinculada.';
       return;
     }
-    const userId = session.user.id;
+    const userId = tvRow.user_id;
 
-    // 3) Construir prefijo en el bucket
+    // 2) Listar imágenes en el bucket
     const prefix = `${userId}/${tvCode}`;
-
-    // 4) Listar los objetos
     const { data: files, error } = await supabase
       .storage
       .from('tv-content')
       .list(prefix);
     if (error) {
       console.error(error);
-      document.getElementById('status').innerText = 'Error al listar imágenes.';
+      document.getElementById('status').innerText = 'Error listando imágenes.';
       return;
     }
-    if (files.length === 0) {
+    if (!files.length) {
       document.getElementById('status').innerText = 'No hay imágenes.';
       return;
     }
 
-    // 5) Crear array de URLs públicas
+    // 3) Generar URLs públicas
     const urls = files.map(f =>
       supabase
         .storage
@@ -63,18 +66,20 @@
         .publicUrl
     );
 
-    // 6) Mostrar slideshow
+    // 4) Arrancar slideshow
     document.getElementById('status').remove();
     const img = document.createElement('img');
     document.body.appendChild(img);
-
     let idx = 0;
     img.src = urls[0];
+
     setInterval(() => {
       idx = (idx + 1) % urls.length;
       img.src = urls[idx];
     }, 3000);
+
   })();
   </script>
+
 </body>
 </html>
