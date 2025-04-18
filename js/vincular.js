@@ -7,7 +7,7 @@ document.getElementById('tv-code').innerText = "Código del TV: " + tvCode;
 
 // Chequear sesión y mostrar formulario
 async function init() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
   if (!session) {
     // Redirigir al login, devolviendo a esta misma página
     const redirect = encodeURIComponent(`vincular.html?code=${tvCode}`);
@@ -20,7 +20,7 @@ init();
 
 // Función de vinculación
 async function vincularTV() {
-  const user = await supabase.auth.getUser();
+  const user = await supabaseClient.auth.getUser();
   if (!user.data.user) return;
 
   const tvName = document.getElementById('tvname').value.trim();
@@ -29,7 +29,7 @@ async function vincularTV() {
     return;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('tv')
     .update({ linked: true, user_id: user.data.user.id, nombre: tvName })
     .eq('code', tvCode);
