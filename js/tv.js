@@ -23,7 +23,7 @@
   }
 
   // 3) Generar el QR apuntando a vincular.html
-  const url = `${window.location.origin}/vincular.html?code=${tvCode}`;
+  const url = '${window.location.origin}/vincular.html?code=${tvCode}';
   new QRCode(document.getElementById('qrcode'), {
     text: url,
     width: 200,
@@ -63,7 +63,7 @@
 
     const userId = tvRow.user_id;
     const bucket = supabase.storage.from('tv-content');
-    const folder = `${userId}/${tvCode}`;  // SIN barra al final
+    const folder = '${userId}/${tvCode}';  // SIN barra al final
 
     // 5.2) Listar archivos
     const { data: files, error: listErr } = await bucket.list(folder);
@@ -76,7 +76,7 @@
 
     // 5.3) Construir URLs públicas
     const urls = files.map(f => {
-      const path = `${folder}/${f.name}`;
+      const path = '${folder}/${f.name}';
       return bucket.getPublicUrl(path).data.publicUrl;
     });
 
