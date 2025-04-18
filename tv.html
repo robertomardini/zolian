@@ -8,7 +8,7 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/umd/tailwind.min.css"
         rel="stylesheet" />
   <style>
-    body { background:#000; color:#fff; display:flex; flex-dir:column;
+    body { background:#000; color:#fff; display:flex; flex-direction:column;
            align-items:center; justify-content:center; height:100vh; margin:0; }
     #qrcode { background:#fff; padding:16px; }
     #code   { margin-top:1rem; font-size:1.5rem; font-family:monospace; }
@@ -25,5 +25,21 @@
   <script src="js/supabaseClient.js"></script>
   <!-- 2) Nuestra lógica de tv.js -->
   <script src="js/tv.js"></script>
+
+  <!-- 3) Pedir fullscreen al cargar -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const el = document.documentElement;
+      if (el.requestFullscreen) {
+        el.requestFullscreen().catch(err => {
+          console.warn('No se pudo activar fullscreen:', err);
+        });
+      } else if (el.webkitRequestFullscreen) {       // Safari
+        el.webkitRequestFullscreen();
+      } else if (el.msRequestFullscreen) {            // IE11
+        el.msRequestFullscreen();
+      }
+    });
+  </script>
 </body>
 </html>
