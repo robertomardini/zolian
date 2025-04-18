@@ -5,7 +5,7 @@
   <title>Emparejar TV</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/umd/tailwind.min.css"
         rel="stylesheet" />
   <style>
     body { background:#000; color:#fff; display:flex; flex-dir:column;
@@ -21,7 +21,9 @@
   <div id="code"></div>
   <p id="status">Inicializando…</p>
 
+  <!-- 1) Supabase Client -->
   <script src="js/supabaseClient.js"></script>
+  <!-- 2) Nuestra lógica de tv.js -->
   <script src="js/tv.js"></script>
 </body>
 </html>
