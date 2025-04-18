@@ -1,81 +1,82 @@
 // js/tv.js
 ;(async function() {
-  // 1) Generar un código aleatorio
-  function generarCodigo(len = 6) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return Array.from({ length: len }, () =>
-      chars[Math.floor(Math.random() * chars.length)]
-    ).join('');
+  // 1) Leer código de la URL
+  const params = new URLSearchParams(window.location.search);
+  const tvCode = params.get('code');
+  if (!tvCode) {
+    document.body.innerHTML = "<p style='color:red'>Falta ?code en la URL</p>";
+    return;
   }
-  const tvCode = generarCodigo();
   document.getElementById('code').innerText = tvCode;
 
-  // 2) Insertar registro en la tabla `tv`
-  const { error: insertErr } = await supabase
+  // 2) Comprobar que existe ese registro en la tabla `tv`
+  const { data: tvRec, error: fetchErr } = await supabase
     .from('tv')
-    .insert([{ code: tvCode, linked: false }]);
-  if (insertErr) {
-    document.getElementById('status').innerText = 'Error al registrar TV.';
-    console.error(insertErr);
+    .select('linked, user_id')
+    .eq('code', tvCode)
+    .single();
+  if (fetchErr || !tvRec) {
+    document.getElementById('status').innerText = 'Código de TV inválido';
+    console.error(fetchErr);
     return;
   }
 
-  // 3) Generar el QR apuntando a vincular.html
-  const url   = `${window.location.origin}/vincular.html?code=${tvCode}`;
+  // 3) Si ya está linked==true, arrancamos slideshow de inmediato
+  if (tvRec.linked) {
+    iniciarSlideshow(tvRec.user_id);
+    return;
+  }
+
+  // 4) Si no está linked, mostramos el QR para vincularlo
+  const urlVincular = `${window.location.origin}/vincular.html?code=${tvCode}`;
   const qrDiv = document.getElementById('qrcode');
-  qrDiv.innerHTML = ''; // limpiamos cualquier QR antiguo
+  qrDiv.innerHTML = '';
   new QRCode(qrDiv, {
-    text: url,
+    text: urlVincular,
     width: 200,
     height: 200,
-    colorDark:  '#000000',
-    colorLight: '#ffffff',
     correctLevel: QRCode.CorrectLevel.H,
   });
 
-  // 4) Polling cada 5s para detectar que el TV ya quedó linked
+  // 5) Polling cada 5s para detectar cuando un usuario haga sign‑up en vincular.html
   const intervalo = setInterval(async () => {
     const { data, error } = await supabase
       .from('tv')
       .select('linked, user_id')
       .eq('code', tvCode)
       .single();
-    if (error) {
-      console.error(error);
-      return;
-    }
+    if (error) return console.error(error);
     if (data.linked) {
       clearInterval(intervalo);
-      // Pasa el user_id a la función
       iniciarSlideshow(data.user_id);
     }
   }, 5000);
 
-  // 5) Arrancar el slideshow recibiendo el UUID del usuario
+  // 6) Función para arrancar el slideshow (recibe userId ya vinculado)
   async function iniciarSlideshow(userId) {
-    // Ocultar QR, código y estado
+    // ocultar QR, código y estado
     document.getElementById('qrcode').style.display = 'none';
     document.getElementById('code').style.display   = 'none';
     document.getElementById('status').style.display = 'none';
 
-    const prefix = `${userId}/${tvCode}`;  // construye el path correcto
+    // montar prefijo con userId y tvCode
+    const prefix = `${userId}/${tvCode}`;
 
-    // Listar archivos en Storage
+    // listar archivos
     const { data: files, error } = await supabase
       .storage
       .from('tv-content')
       .list(prefix);
-
     if (error) {
       console.error('Error listando archivos:', error);
       return;
     }
-    if (files.length === 0) {
+    if (!files.length) {
       console.warn('No hay ficheros en el bucket para', prefix);
       return;
     }
 
-    // Construir URLs públicas
+    // construir URLs públicas
     const urls = files.map(f =>
       supabase
         .storage
@@ -85,13 +86,12 @@
         .publicUrl
     );
 
-    // Mostrar slideshow
+    // mostrar slideshow
     let idx = 0;
     const img = document.createElement('img');
     img.style.maxWidth  = '100%';
     img.style.maxHeight = '100%';
     document.body.appendChild(img);
-
     setInterval(() => {
       img.src = urls[idx];
       idx = (idx + 1) % urls.length;
