@@ -33,7 +33,7 @@
     // Generamos el QR (apunta a tv.html?code=nuevoCode)
     qrDiv.innerHTML = '';
     new QRCode(qrDiv, {
-      text: `${window.location.origin}/tv.html?code=${nuevoCode}`,
+     text: `${window.location.origin}/vincular.html?code=${nuevoCode}`,
       width: 200, height: 200,
       colorDark: '#000', colorLight: '#fff',
       correctLevel: QRCode.CorrectLevel.H,
