@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     .from('tv')
     .select('code, nombre')
     .eq('user_id', user.id)
-    .eq('linked', true)                   // <— sólo los que ya estén vinculados
     .order('created_at', { ascending: false });
 
   const $list = document.getElementById('tv-list');
@@ -29,20 +28,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // 4) Renderiza cada TV
-  $list.innerHTML = '';
+  $list.innerHTML = ''; // limpia el "Cargando…"
   tvs.forEach(tv => {
     const name = tv.nombre || '(sin nombre)';
     const code = tv.code;
     const item = document.createElement('li');
-    item.innerHTML = `<strong>${name}</strong> — 
-      <a href="tv.html?code=${code}" class="text-blue-600 hover:underline">
-        ${code}
-      </a>`;
+    item.innerHTML = `<strong>${name}</strong> — <a href="tv.html?code=${code}" class="text-blue-600 hover:underline">${code}</a>`;
     $list.appendChild(item);
   });
 });
 
-// Función de logout
+// Función de logout queda igual
 async function logout() {
   await supabase.auth.signOut();
   window.location.href = 'login.html';
