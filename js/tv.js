@@ -46,53 +46,51 @@
     }
   }, 5000);
 
-    // 5) Ejemplo mínimo de slideshow (puedes personalizar)
+  // 5) Slideshow
   async function startSlideshow() {
-    // 5.1) buscamos el user_id desde la tabla tv
+    // 5.1) Obtener el user_id de la tabla tv
     const { data: tvRow, error: tvErr } = await supabase
       .from('tv')
       .select('user_id')
       .eq('code', tvCode)
       .single();
-    if (tvErr || !tvRow.user_id) {
+
+    if (tvErr || !tvRow?.user_id) {
       console.error(tvErr);
-      return document.getElementById('status').innerText = 'No se pudo obtener propietario.';
+      document.getElementById('status').innerText = 'No se pudo obtener el propietario.';
+      return;
     }
+
     const userId = tvRow.user_id;
+    const bucket = supabase.storage.from('tv-content');
+    const folder = `${userId}/${tvCode}`;  // SIN barra al final
 
-    // 5.2) listamos SIN la barra al final
-    const folder = `${userId}/${tvCode}`;  // <--- sin "/" al final
-    const { data: files, error: listErr } = await supabase
-      .storage
-      .from('tv-content')
-      .list(folder);  
-
+    // 5.2) Listar archivos
+    const { data: files, error: listErr } = await bucket.list(folder);
     if (listErr) {
       console.error(listErr);
-      return document.getElementById('status').innerText = 'Error cargando imágenes.';
+      document.getElementById('status').innerText = 'Error cargando imágenes.';
+      return;
     }
-    console.log('Archivos listados:', files); // para DEBUG
+    console.log('Archivos listados:', files);
 
-    // 5.3) montamos las URLs públicas
+    // 5.3) Construir URLs públicas
     const urls = files.map(f => {
-      const path = `${folder}/${f.name}`; 
-      return supabase
-        .storage
-        .from('tv-content')
-        .getPublicUrl(path)
-        .data
-        .publicUrl;
+      const path = `${folder}/${f.name}`;
+      return bucket.getPublicUrl(path).data.publicUrl;
     });
 
     if (urls.length === 0) {
-      return document.getElementById('status').innerText = 'No hay imágenes.';
+      document.getElementById('status').innerText = 'No hay imágenes.';
+      return;
     }
 
-    // 5.4) slideshow
+    // 5.4) Mostrar slideshow
     let idx = 0;
     const img = document.createElement('img');
-    img.style.maxWidth  = '100%';
+    img.style.maxWidth = '100%';
     img.style.maxHeight = '100%';
+    img.className = 'mt-4';
     document.body.appendChild(img);
 
     setInterval(() => {
@@ -101,3 +99,4 @@
     }, 3000);
   }
 
+})();  // <-- Cierre de la IIFE
