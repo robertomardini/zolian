@@ -36,7 +36,7 @@ async function vincularTV() {
       user_id: user.data.user.id,
       nombre: tvName      // <-- aquí agregamos el nombre
     })
-    .eq('code', code);
+    .eq('tvCode', tvCode);
 
   if (error) {
     document.getElementById('mensaje').innerText = "Error al vincular: " + error.message;
