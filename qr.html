@@ -8,12 +8,12 @@
 <body class="bg-black text-white flex flex-col items-center justify-center min-h-screen">
 
   <h1 class="text-4xl mb-8">Emparejar TV</h1>
-  <div id="qrcode" class="bg-white p-4 rounded mb-4"></div>
+  <canvas id="qrcode"></canvas>
   <p id="code" class="text-2xl font-mono mb-2"></p>
   <p id="status" class="text-yellow-400">Generando código…</p>
 
   <!-- 1) Librería QRCode -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/canvas.js"></script>
   <!-- 2) Supabase UMD -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <!-- 3) Cliente -->
