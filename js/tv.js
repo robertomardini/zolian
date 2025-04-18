@@ -3,7 +3,7 @@
   // 1) Generar un código aleatorio
   function generarCodigo(len = 6) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return Array.from({length: len}, () =>
+    return Array.from({ length: len }, () =>
       chars[Math.floor(Math.random() * chars.length)]
     ).join('');
   }
@@ -11,7 +11,7 @@
   document.getElementById('code').innerText = tvCode;
 
   // 2) Insertar registro en la tabla `tv`
-  let { error: insertErr } = await supabase
+  const { error: insertErr } = await supabase
     .from('tv')
     .insert([{ code: tvCode, linked: false }]);
   if (insertErr) {
@@ -21,88 +21,87 @@
   }
 
   // 3) Generar el QR apuntando a vincular.html
-const url = `${window.location.origin}/vincular.html?code=${tvCode}`;
-const qrContainer = document.getElementById('qrcode');
-// limpia cualquier contenido previo
-qrContainer.innerHTML = '';
-// crea un nuevo QRCode en el div
-new QRCode(qrContainer, {
-  text: url,
-  width: 200,
-  height: 200,
-  colorDark: "#000000",
-  colorLight: "#ffffff",
-  correctLevel: QRCode.CorrectLevel.H,
-});
+  const url       = `${window.location.origin}/vincular.html?code=${tvCode}`;
+  const qrDiv     = document.getElementById('qrcode');
+  qrDiv.innerHTML = ''; // limpiamos
+  new QRCode(qrDiv, {
+    text: url,
+    width: 200,
+    height: 200,
+    colorDark:  '#000',
+    colorLight: '#fff',
+    correctLevel: QRCode.CorrectLevel.H,
+  });
 
-
-  // 4) Polling cada 5s para detectar que el TV ya no está linked=false
+  // 4) Polling cada 5s para detectar que el TV ya quedó linked
   const intervalo = setInterval(async () => {
     const { data, error } = await supabase
       .from('tv')
-      .select('linked, user_id')      // <–– pedimos user_id
+      .select('linked, user_id')
       .eq('code', tvCode)
       .single();
     if (error) {
       console.error(error);
       return;
     }
-   if (data.linked) {
-  clearInterval(intervalo);
-  iniciarSlideshow(); // ya dentro lee la sesión
-}
-
+    if (data.linked) {
+      clearInterval(intervalo);
+      iniciarSlideshow(); // arranca slideshow
+    }
   }, 5000);
 
-  // 5) Arrancar el slideshow sin volver a pedir sesión
+  // 5) Arrancar el slideshow
   async function iniciarSlideshow() {
-  // 1) ocultar QR…
-  // 2) recuperar sesión y userId aquí mismo
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    console.error('Usuario no autenticado');
-    return;
-  }
-  const userId = session.user.id;
+    // 5.1) Ocultar QR, código y estado
+    document.getElementById('qrcode').style.display = 'none';
+    document.getElementById('code').style.display   = 'none';
+    document.getElementById('status').style.display = 'none';
 
-  // 3) montar prefijo correcto
-  const prefix = `${userId}/${tvCode}`;
+    // 5.2) Recuperar sesión / userId
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.error('Usuario no autenticado');
+      return;
+    }
+    const userId = session.user.id;
 
-  // 4) listar
-  const { data: files, error } = await supabase
-    .storage
-    .from('tv-content')
-    .list(prefix);
+    // 5.3) Montar prefix con slash final
+    const prefix = `${userId}/${tvCode}/`;
 
-  if (error) {
-    console.error('Error listando archivos:', error);
-    return;
-  }
-  if (files.length === 0) {
-    console.warn('No hay ficheros en el bucket');
-    return;
-  }
-
-  // 5) construir URLs y arrancar slideshow…
-  const urls = files.map(f =>
-    supabase
+    // 5.4) Listar archivos en Storage
+    const { data: files, error } = await supabase
       .storage
       .from('tv-content')
-      .getPublicUrl(`${prefix}/${f.name}`)
-      .data
-      .publicUrl
-  );
+      .list(prefix);
+    if (error) {
+      console.error('Error listando archivos:', error);
+      return;
+    }
+    if (files.length === 0) {
+      console.warn('No hay ficheros en el bucket para', prefix);
+      return;
+    }
 
-  let idx = 0;
-  const img = document.createElement('img');
-  img.style.maxWidth = '100%';
-  img.style.maxHeight = '100%';
-  document.body.appendChild(img);
+    // 5.5) Construir URLs públicas y arrancar slideshow
+    const urls = files.map(f =>
+      supabase
+        .storage
+        .from('tv-content')
+        .getPublicUrl(`${prefix}${f.name}`)
+        .data
+        .publicUrl
+    );
 
-  setInterval(() => {
-    img.src = urls[idx];
-    idx = (idx + 1) % urls.length;
-  }, 3000);
-}
+    let idx = 0;
+    const img = document.createElement('img');
+    img.style.maxWidth  = '100%';
+    img.style.maxHeight = '100%';
+    document.body.appendChild(img);
+
+    setInterval(() => {
+      img.src = urls[idx];
+      idx = (idx + 1) % urls.length;
+    }, 3000);
+  }
 
 })();
