@@ -3,49 +3,46 @@
 <head>
   <meta charset="UTF-8">
   <title>Emparejar TV</title>
+  <!-- CDN de qrcodejs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-black text-white flex flex-col items-center justify-center min-h-screen">
+<body>
+  <h1>Emparejar TV</h1>
+  <div id="qrcode"></div>
+  <p id="code"></p>
+  <p id="status">Generando código…</p>
 
-  <h1 class="text-4xl mb-8">Emparejar TV</h1>
-  <canvas id="qrcode"></canvas>
-  <p id="code" class="text-2xl font-mono mb-2"></p>
-  <p id="status" class="text-yellow-400">Generando código…</p>
-
-  <!-- 1) Librería QRCode -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/canvas.js"></script>
-  <!-- 2) Supabase UMD -->
+  <!-- 1) Carga Supabase UMD -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <!-- 3) Cliente -->
+  <!-- 2) Tu cliente -->
   <script src="js/supabaseClient.js"></script>
-  <!-- 4) Tu script de QR -->
+  <!-- 3) qrcodejs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- 4) Tu lógica -->
   <script>
   (async function() {
-    // Genera un código, guarda en BD y luego…
     const tvCode = Math.random().toString(36).slice(-6).toUpperCase();
     document.getElementById('code').innerText = tvCode;
+    // … inserta en la BD, controla errores, etc.
 
-    // Inserta en la tabla `tv`
-    let { error } = await supabase.from('tv').insert([{ code: tvCode, linked: false }]);
-    if (error) return document.getElementById('status').innerText = 'Error BD';
+    // Genera el QR en el DIV
+    const url   = `${location.origin}/vincular.html?code=${tvCode}`;
+    const qrDiv = document.getElementById('qrcode');
+    qrDiv.innerHTML = '';
+    new QRCode(qrDiv, {
+      text: url,
+      width: 200,
+      height: 200,
+      colorDark:  "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
 
-    // …genera el QR
-    const url = `${location.origin}/vincular.html?code=${tvCode}`;
-    QRCode.toCanvas(
-      document.getElementById('qrcode'),
-      url,
-      { width: 200 },
-      err => {
-        if (err) {
-          console.error(err);
-          document.getElementById('status').innerText = 'Error QR';
-        } else {
-          document.getElementById('status').innerText = 'Escanea el QR';
-        }
-      }
-    );
+    document.getElementById('status').innerText = 'Escanea el QR';
+    // … tu polling para linked, slideshow, etc.
   })();
   </script>
-
 </body>
+
 </html>
