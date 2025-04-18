@@ -1,19 +1,17 @@
 // js/tv.js
-
-(async function() {
+;(async function() {
   // 1) Generar un código aleatorio
   function generarCodigo(len = 6) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return Array.from({ length: len }, () =>
+    return Array.from({length: len}, () =>
       chars[Math.floor(Math.random() * chars.length)]
     ).join('');
   }
-
   const tvCode = generarCodigo();
   document.getElementById('code').innerText = tvCode;
 
-  // 2) Crear registro en la tabla `tv`
-  const { error: insertErr } = await supabase
+  // 2) Insertar registro en la tabla `tv`
+  let { error: insertErr } = await supabase
     .from('tv')
     .insert([{ code: tvCode, linked: false }]);
   if (insertErr) {
@@ -24,73 +22,86 @@
 
   // 3) Generar el QR apuntando a vincular.html
   const url = `${window.location.origin}/vincular.html?code=${tvCode}`;
-  new QRCode(document.getElementById('qrcode'), {
-    text: url,
-    width: 200,
-    colorDark: "#000000",
-    colorLight: "#ffffff"
-  });
+  QRCode.toCanvas(
+    document.getElementById('qrcode'),
+    url,
+    { width: 200 },
+    err => { if (err) console.error('QRErr', err); }
+  );
 
-  // 4) Polling cada 5s para detectar vinculación
-  const intervalId = setInterval(async () => {
+  // 4) Polling cada 5s para detectar que el TV ya no está linked=false
+  const intervalo = setInterval(async () => {
     const { data, error } = await supabase
       .from('tv')
       .select('linked')
       .eq('code', tvCode)
       .single();
 
-    if (!error && data.linked) {
-      clearInterval(intervalId);
-      document.getElementById('status').innerText = 'TV vinculada. Iniciando slideshow…';
-      startSlideshow();
+    if (error) {
+      console.error(error);
+      return;
+    }
+    if (data.linked) {
+      clearInterval(intervalo);
+      iniciarSlideshow();
     }
   }, 5000);
 
-  // 5) Slideshow
-  async function startSlideshow() {
-    const { data:{ session } } = await supabase.auth.getSession()
-    if (!session) return
-    
-    const userId = session.user.id
-    const tvCode = new URLSearchParams(window.location.search).get('code')
-    // prueba en consola cuál de estos dos te devuelve archivos
-    const prefixSinSlash = `${userId}/${tvCode}`
-    const prefixConSlash = `${userId}/${tvCode}/`
+  // 5) Función para arrancar el slideshow de imágenes
+  async function iniciarSlideshow() {
+    document.getElementById('qrcode').style.display = 'none';
+    document.getElementById('code').style.display   = 'none';
+    document.getElementById('status').style.display = 'none';
 
-    // Elige el que te funcione:
+    // 5.1) Recuperar sesión y userId
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.error('Usuario no autenticado');
+      return;
+    }
+    const userId = session.user.id;
+    const prefix = `${userId}/${tvCode}`;      // ¡sin slash al inicio!
+
+    // 5.2) Listar archivos en Storage
     const { data: files, error } = await supabase
       .storage
       .from('tv-content')
-      .list(prefixSinSlash)   // o prefixConSlash
+      .list(prefix);
 
-    console.log({ files, error })
-    if (error || files.length === 0) {
-      document.getElementById('status').innerText = 'No hay imágenes.'
-      return
+    if (error) {
+      console.error('Error listando:', error);
+      return;
+    }
+    if (!files.length) {
+      const s = document.createElement('p');
+      s.innerText = 'No hay imágenes para mostrar.';
+      s.style.color = '#fff';
+      document.getElementById('slideshow').appendChild(s);
+      document.getElementById('slideshow').style.display = 'block';
+      return;
     }
 
-    // Construir URLs públicos
+    // 5.3) Generar URLs públicas
     const urls = files.map(f =>
-      supabase.storage
+      supabase
+        .storage
         .from('tv-content')
-        .getPublicUrl(`${prefixSinSlash}/${f.name}`)
+        .getPublicUrl(`${prefix}/${f.name}`)
         .data
         .publicUrl
-    )
+    );
 
-    // Empezar slideshow
-    let idx = 0
-    const img = document.createElement('img')
-    img.style.maxWidth = '100%'
-    img.style.maxHeight = '100%'
-    document.body.appendChild(img)
+    // 5.4) Montar el <img> y ciclos
+    const slideDiv = document.getElementById('slideshow');
+    slideDiv.style.display = 'block';
+    const img = document.createElement('img');
+    slideDiv.appendChild(img);
 
+    let idx = 0;
+    img.src = urls[0];
     setInterval(() => {
-      img.src = urls[idx]
-      idx = (idx + 1) % urls.length
-    }, 3000)
+      idx = (idx + 1) % urls.length;
+      img.src = urls[idx];
+    }, 3000);
   }
-
-  // Simula tu polling en el paso donde detectas linked===true:
-  // clearInterval(intervalId)
-  // startSlideshow()
+})();
