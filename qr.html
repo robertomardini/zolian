@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Emparejar TV</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-black text-white flex flex-col items-center justify-center min-h-screen">
+
+  <h1 class="text-4xl mb-8">Emparejar TV</h1>
+  <div id="qrcode" class="bg-white p-4 rounded mb-4"></div>
+  <p id="code" class="text-2xl font-mono mb-2"></p>
+  <p id="status" class="text-yellow-400">Generando código…</p>
+
+  <!-- Librerías -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="js/supabaseClient.js"></script>
+
+  <script>
+  (async function() {
+    // 1) Generar un código único de TV
+    function generarCodigo(len = 6) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      return Array.from({length: len}, () =>
+        chars[Math.floor(Math.random()*chars.length)]
+      ).join('');
+    }
+    const tvCode = generarCodigo();
+    document.getElementById('code').innerText = tvCode;
+
+    // 2) Insertar en la tabla `tv`
+    const { error: insertErr } = await supabase
+      .from('tv')
+      .insert([{ code: tvCode, linked: false }]);
+    if (insertErr) {
+      document.getElementById('status').innerText = 'Error al registrar TV.';
+      console.error(insertErr);
+      return;
+    }
+
+    // 3) Renderizar QR que apunta a vincular.html
+    const urlQR = `${window.location.origin}/vincular.html?code=${tvCode}`;
+    QRCode.toCanvas(
+      document.getElementById('qrcode'),
+      urlQR,
+      { width: 200 },
+      err => {
+        if (err) console.error(err);
+      }
+    );
+    document.getElementById('status').innerText = 'Escanea el QR para vincular';
+
+    // 4) Polling: cada 3s revisar si ya linked
+    const check = setInterval(async () => {
+      const { data, error } = await supabase
+        .from('tv')
+        .select('linked')
+        .eq('code', tvCode)
+        .single();
+      if (error) {
+        console.error(error);
+        return;
+      }
+      if (data.linked) {
+        clearInterval(check);
+        // 5) Redirigir automáticamente al viewer
+        window.location.href = `tv.html?code=${tvCode}`;
+      }
+    }, 3000);
+  })();
+  </script>
+
+</body>
+</html>
