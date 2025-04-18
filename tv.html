@@ -22,7 +22,14 @@
   <p id="status" class="mt-4"></p>
 
   <!-- Supabase client y lógica -->
+    <!-- 1) Carga la librería UMD de supabase-js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.js"></script>
+  
+  <!-- 2) Tu cliente que sobrescribe window.supabase -->
   <script src="js/supabaseClient.js"></script>
-  <script src="js/tv.js"></script>
+  
+  <!-- 3) Tu lógica propia que hace supabase.auth y supabase.from(...) -->
+  <script src="js/vincular.js"></script>
+
 </body>
 </html>
