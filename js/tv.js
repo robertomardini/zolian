@@ -48,55 +48,49 @@
 
   // 5) Slideshow
   async function startSlideshow() {
-    // 5.1) Obtener el user_id de la tabla tv
-    const { data: tvRow, error: tvErr } = await supabase
-      .from('tv')
-      .select('user_id')
-      .eq('code', tvCode)
-      .single();
+    const { data:{ session } } = await supabase.auth.getSession()
+    if (!session) return
+    
+    const userId = session.user.id
+    const tvCode = new URLSearchParams(window.location.search).get('code')
+    // prueba en consola cuál de estos dos te devuelve archivos
+    const prefixSinSlash = `${userId}/${tvCode}`
+    const prefixConSlash = `${userId}/${tvCode}/`
 
-    if (tvErr || !tvRow?.user_id) {
-      console.error(tvErr);
-      document.getElementById('status').innerText = 'No se pudo obtener el propietario.';
-      return;
+    // Elige el que te funcione:
+    const { data: files, error } = await supabase
+      .storage
+      .from('tv-content')
+      .list(prefixSinSlash)   // o prefixConSlash
+
+    console.log({ files, error })
+    if (error || files.length === 0) {
+      document.getElementById('status').innerText = 'No hay imágenes.'
+      return
     }
 
-    const userId = tvRow.user_id;
-    const bucket = supabase.storage.from('tv-content');
-    const folder = `${userId}/${tvCode}`;  // SIN barra al final
+    // Construir URLs públicos
+    const urls = files.map(f =>
+      supabase.storage
+        .from('tv-content')
+        .getPublicUrl(`${prefixSinSlash}/${f.name}`)
+        .data
+        .publicUrl
+    )
 
-    // 5.2) Listar archivos
-    const { data: files, error: listErr } = await bucket.list(folder);
-    if (listErr) {
-      console.error(listErr);
-      document.getElementById('status').innerText = 'Error cargando imágenes.';
-      return;
-    }
-    console.log('Archivos listados:', files);
-
-    // 5.3) Construir URLs públicas
-    const urls = files.map(f => {
-      const path = `${folder}/${f.name}`;
-      return bucket.getPublicUrl(path).data.publicUrl;
-    });
-
-    if (urls.length === 0) {
-      document.getElementById('status').innerText = 'No hay imágenes.';
-      return;
-    }
-
-    // 5.4) Mostrar slideshow
-    let idx = 0;
-    const img = document.createElement('img');
-    img.style.maxWidth = '100%';
-    img.style.maxHeight = '100%';
-    img.className = 'mt-4';
-    document.body.appendChild(img);
+    // Empezar slideshow
+    let idx = 0
+    const img = document.createElement('img')
+    img.style.maxWidth = '100%'
+    img.style.maxHeight = '100%'
+    document.body.appendChild(img)
 
     setInterval(() => {
-      img.src = urls[idx];
-      idx = (idx + 1) % urls.length;
-    }, 3000);
+      img.src = urls[idx]
+      idx = (idx + 1) % urls.length
+    }, 3000)
   }
 
-})();  // <-- Cierre de la IIFE
+  // Simula tu polling en el paso donde detectas linked===true:
+  // clearInterval(intervalId)
+  // startSlideshow()
