@@ -5,14 +5,36 @@
   <title>Emparejar TV</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/umd/tailwind.min.css"
-        rel="stylesheet" />
+  <link
+    href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/umd/tailwind.min.css"
+    rel="stylesheet"
+  />
   <style>
-    body { background:#000; color:#fff; display:flex; flex-direction:column;
-           align-items:center; justify-content:center; height:100vh; margin:0; }
-    #qrcode { background:#fff; padding:16px; }
-    #code   { margin-top:1rem; font-size:1.5rem; font-family:monospace; }
-    #status { margin-top:1rem; color:#facc15; }
+    body {
+      background: #000;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    #qrcode { background: #fff; padding: 16px; }
+    #code   { margin-top: 1rem; font-size: 1.5rem; font-family: monospace; }
+    #status { margin-top: 1rem; color: #facc15; }
+    #btn-fullscreen {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 0.25rem;
+      cursor: pointer;
+    }
+    #btn-fullscreen:hover {
+      background: #1e40af;
+    }
   </style>
 </head>
 <body>
@@ -21,22 +43,23 @@
   <div id="code"></div>
   <p id="status">Inicializando…</p>
 
+  <!-- Botón para fullscreen -->
+  <button id="btn-fullscreen">Pantalla completa</button>
+
   <!-- 1) Supabase Client -->
   <script src="js/supabaseClient.js"></script>
   <!-- 2) Nuestra lógica de tv.js -->
   <script src="js/tv.js"></script>
 
-  <!-- 3) Pedir fullscreen al cargar -->
+  <!-- 3) Script para fullscreen -->
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btn-fullscreen').addEventListener('click', () => {
       const el = document.documentElement;
       if (el.requestFullscreen) {
-        el.requestFullscreen().catch(err => {
-          console.warn('No se pudo activar fullscreen:', err);
-        });
-      } else if (el.webkitRequestFullscreen) {       // Safari
+        el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
         el.webkitRequestFullscreen();
-      } else if (el.msRequestFullscreen) {            // IE11
+      } else if (el.msRequestFullscreen) {
         el.msRequestFullscreen();
       }
     });
