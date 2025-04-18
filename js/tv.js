@@ -1,71 +1,82 @@
 // js/tv.js
 ;(async function() {
-  // 1) Leer código de la URL
   const params = new URLSearchParams(window.location.search);
-  const tvCode = params.get('code');
+  let tvCode = params.get('code');
+
   if (!tvCode) {
-    document.getElementById('status').innerText = 'Falta el parámetro code en la URL';
-    return;
-  }
-  document.getElementById('code').innerText = tvCode;
+    // —————— Estoy en modo GENERAR ——————
+    function generarCodigo(len = 6) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      return Array.from({length: len}, () =>
+        chars[Math.floor(Math.random()*chars.length)]
+      ).join('');
+    }
+    tvCode = generarCodigo();
+    document.getElementById('code').innerText = tvCode;
 
-  // 2) Comprobar que exista un registro en la tabla `tv`
-  const { data: tvRec, error: fetchErr } = await supabase
-    .from('tv')
-    .select('linked, user_id')
-    .eq('code', tvCode)
-    .single();
-  if (fetchErr || !tvRec) {
-    document.getElementById('status').innerText = 'Código de TV inválido';
-    console.error(fetchErr);
-    return;
-  }
+    // Inserto en la tabla
+    const { error } = await supabase
+      .from('tv')
+      .insert([{ code: tvCode, linked: false }]);
+    if (error) {
+      document.getElementById('status').innerText = 'Error al registrar TV.';
+      console.error(error);
+      return;
+    }
 
-  // 3) Si ya está vinculado, arrancar slideshow ya mismo
-  if (tvRec.linked) {
-    iniciarSlideshow(tvRec.user_id);
-    return;
-  }
+    // Pinto QR para vincular
+    const urlVincular = `${window.location.origin}/tv.html?code=${tvCode}`;
+    const qrDiv = document.getElementById('qrcode');
+    qrDiv.innerHTML = '';
+    new QRCode(qrDiv, {
+      text: urlVincular,
+      width: 200,
+      height: 200,
+      colorDark: '#000',
+      colorLight: '#fff',
+      correctLevel: QRCode.CorrectLevel.H,
+    });
+    document.getElementById('status').innerText = 'Escanea el QR para vincular';
 
-  // 4) Si NO está vinculado, mostrar QR para vincular
-  const urlVincular = `${window.location.origin}/vincular.html?code=${tvCode}`;
-  const qrDiv = document.getElementById('qrcode');
-  qrDiv.innerHTML = '';
-  new QRCode(qrDiv, {
-    text: urlVincular,
-    width: 200,
-    height: 200,
-    colorDark: '#000000',
-    colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.H,
-  });
-  document.getElementById('status').innerText = 'Escanea el QR para vincular';
+    // Luego polling para enlace…
+    const intervalo = setInterval(async () => {
+      const { data, error } = await supabase
+        .from('tv')
+        .select('linked, user_id')
+        .eq('code', tvCode)
+        .single();
+      if (error) return console.error(error);
+      if (data.linked) {
+        clearInterval(intervalo);
+        iniciarSlideshow(data.user_id);
+      }
+    }, 5000);
 
-  // 5) Polling: cada 5s chequeamos si ya quedó `linked = true`
-  const intervalo = setInterval(async () => {
-    const { data, error } = await supabase
+  } else {
+    // —————— Estoy en modo SLIDESHOW DIRECTO ——————
+    document.getElementById('code').innerText = tvCode;
+    document.getElementById('status').innerText = 'Cargando slideshow…';
+
+    // Compruebo el registro y si está vinculado arranco.
+    const { data: tvRec, error: fetchErr } = await supabase
       .from('tv')
       .select('linked, user_id')
       .eq('code', tvCode)
       .single();
-    if (error) return console.error(error);
-    if (data.linked) {
-      clearInterval(intervalo);
-      iniciarSlideshow(data.user_id);
+    if (fetchErr || !tvRec.linked) {
+      document.getElementById('status').innerText = 'TV no vinculada aún';
+      return;
     }
-  }, 5000);
+    iniciarSlideshow(tvRec.user_id);
+  }
 
-  // 6) Función para arrancar el slideshow (recibe userId)
+  // —————— Función común ——————
   async function iniciarSlideshow(userId) {
-    // ocultar QR/código/estado
     document.getElementById('qrcode').style.display = 'none';
     document.getElementById('code').style.display   = 'none';
     document.getElementById('status').style.display = 'none';
 
-    // montar carpeta: userId/tvCode
     const prefix = `${userId}/${tvCode}`;
-
-    // listar archivos en Storage
     const { data: files, error } = await supabase
       .storage
       .from('tv-content')
@@ -79,7 +90,6 @@
       return;
     }
 
-    // construir URLs públicas
     const urls = files.map(f =>
       supabase
         .storage
@@ -89,7 +99,6 @@
         .publicUrl
     );
 
-    // arrancar slideshow
     let idx = 0;
     const img = document.createElement('img');
     img.style.maxWidth  = '100%';
@@ -101,4 +110,5 @@
       idx = (idx + 1) % urls.length;
     }, 3000);
   }
+
 })();
