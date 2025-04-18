@@ -3,7 +3,7 @@
   // 1) Generar un código aleatorio
   function generarCodigo(len = 6) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return Array.from({ length: len }, () =>
+    return Array.from({length: len}, () =>
       chars[Math.floor(Math.random() * chars.length)]
     ).join('');
   }
@@ -11,7 +11,7 @@
   document.getElementById('code').innerText = tvCode;
 
   // 2) Insertar registro en la tabla `tv`
-  const { error: insertErr } = await supabase
+  let { error: insertErr } = await supabase
     .from('tv')
     .insert([{ code: tvCode, linked: false }]);
   if (insertErr) {
@@ -21,23 +21,26 @@
   }
 
   // 3) Generar el QR apuntando a vincular.html
-  const url   = `${window.location.origin}/vincular.html?code=${tvCode}`;
-  const qrDiv = document.getElementById('qrcode');
-  qrDiv.innerHTML = ''; // limpiamos cualquier QR antiguo
-  new QRCode(qrDiv, {
-    text: url,
-    width: 200,
-    height: 200,
-    colorDark:  '#000000',
-    colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.H,
-  });
+const url = `${window.location.origin}/vincular.html?code=${tvCode}`;
+const qrContainer = document.getElementById('qrcode');
+// limpia cualquier contenido previo
+qrContainer.innerHTML = '';
+// crea un nuevo QRCode en el div
+new QRCode(qrContainer, {
+  text: url,
+  width: 200,
+  height: 200,
+  colorDark: "#000000",
+  colorLight: "#ffffff",
+  correctLevel: QRCode.CorrectLevel.H,
+});
 
-  // 4) Hacer polling cada 5s hasta que linked === true
+
+  // 4) Polling cada 5s para detectar que el TV ya no está linked=false
   const intervalo = setInterval(async () => {
     const { data, error } = await supabase
       .from('tv')
-      .select('linked, user_id')
+      .select('linked, user_id')      // <–– pedimos user_id
       .eq('code', tvCode)
       .single();
     if (error) {
@@ -46,19 +49,19 @@
     }
     if (data.linked) {
       clearInterval(intervalo);
-      iniciarSlideshow(data.user_id);
+      iniciarSlideshow(data.user_id);  // <–– pasamos el user_id
     }
   }, 5000);
 
-  // 5) Arrancar el slideshow
+  // 5) Arrancar el slideshow sin volver a pedir sesión
   async function iniciarSlideshow(userId) {
-    // Ocultar QR, código y estado
+    // ocultar QR y texto
     document.getElementById('qrcode').style.display = 'none';
     document.getElementById('code').style.display   = 'none';
     document.getElementById('status').style.display = 'none';
 
-    // 5.1) Montar prefix **sin** barra final
-    const prefix = `${userId}/${tvCode}`;  // <<-- ¡NO slash "/ " al final!
+    // 5.1) Montamos el prefijo con el userId que recibimos
+    const prefix = `${userId}/${tvCode}`;
 
     // 5.2) Listar archivos en Storage
     const { data: files, error } = await supabase
@@ -66,11 +69,11 @@
       .from('tv-content')
       .list(prefix);
     if (error) {
-      console.error('Error listando archivos:', error.message);
+      console.error('Error listando:', error);
       return;
     }
     if (files.length === 0) {
-      console.warn('No hay ficheros en el bucket para', prefix);
+      console.warn('No hay ficheros en el bucket');
       return;
     }
 
