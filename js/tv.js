@@ -1,29 +1,34 @@
 // js/tv.js
 (async function() {
   // 1) Generar un código aleatorio
-  const tvCode = Array.from({ length: 6 }, () =>
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-      .charAt(Math.floor(Math.random() * 36))
-  ).join('');
+  function generarCodigo(len = 6) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    return Array.from({length: len}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+  }
+  const tvCode = generarCodigo();
   document.getElementById('code').innerText = tvCode;
 
-  // 2) Insertar registro en Supabase
+  // 2) Crear registro en la tabla `tv`
   const { error: insertErr } = await supabase
     .from('tv')
     .insert([{ code: tvCode, linked: false }]);
   if (insertErr) {
-    document.getElementById('status').innerText = '❌ Error al registrar TV.';
+    document.getElementById('status').innerText = 'Error al registrar TV.';
     console.error(insertErr);
     return;
   }
 
-  // 3) Dibujar QR
+  // 3) Generar el QR apuntando a vincular.html
   const url = `${window.location.origin}/vincular.html?code=${tvCode}`;
-  QRCode.toCanvas(document.getElementById('qrcode'), url, { width: 200 }, err => {
-    if (err) console.error('Error generando QR', err);
+  // según tu qrcode.min.js:
+  new QRCode(document.getElementById('qrcode'), {
+    text: url,
+    width: 200,
+    colorDark: "#000000",
+    colorLight: "#ffffff"
   });
 
-  // 4) Polling para detectar vinculación
+  // 4) Polling cada 5s para detectar vinculación
   const intervalId = setInterval(async () => {
     const { data, error } = await supabase
       .from('tv')
@@ -32,44 +37,55 @@
       .single();
     if (!error && data.linked) {
       clearInterval(intervalId);
-      document.getElementById('status').innerText = '✅ TV vinculada. Iniciando slideshow…';
+      document.getElementById('status').innerText = 'TV vinculada. Iniciando slideshow…';
       startSlideshow();
     }
-  }, 3000);
+  }, 5000);
 
-  // 5) Slideshow de imágenes (cada 5 s)
+  // 5) Slideshow usando el bucket público (sin sesión)
   async function startSlideshow() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      document.getElementById('status').innerText = 'Usuario no autenticado.';
-      return;
-    }
-    const userId = session.user.id;
-    const prefix = `${userId}/${tvCode}/`;
-    const { data: files, error } = await supabase.storage
-      .from('tv-content')
-      .list(prefix);
-    if (error) return console.error(error);
-    if (!files.length) {
-      document.getElementById('status').innerText = 'No hay imágenes/videos aún.';
-      return;
+    // Obtener user_id desde la misma tabla
+    const { data: tvRow, error: tvErr } = await supabase
+      .from('tv')
+      .select('user_id')
+      .eq('code', tvCode)
+      .single();
+    if (tvErr || !tvRow.user_id) {
+      console.error(tvErr);
+      return document.getElementById('status').innerText = 'No se pudo obtener propietario.';
     }
 
-    // Prepara array de URLs
+    const userId = tvRow.user_id;
+    const bucket = supabase.storage.from('tv-content');
+    const prefix = `${userId}/${tvCode}/`;
+
+    // Listar archivos
+    const { data: files, error: listErr } = await bucket.list(prefix);
+    if (listErr) {
+      console.error(listErr);
+      return document.getElementById('status').innerText = 'Error cargando imágenes.';
+    }
+
+    // Preparar URLs públicas y montar slideshow
     const urls = files.map(f =>
-      supabase.storage.from('tv-content').getPublicUrl(prefix + f.name).data.publicUrl
+      bucket.getPublicUrl(prefix + f.name).data.publicUrl
     );
 
-    // Mostrar en un <img> y cambiar fuente
-    const img = document.createElement('img');
-    img.style.maxWidth = '100%';
-    img.style.maxHeight = '100%';
-    document.body.appendChild(img);
+    if (urls.length === 0) {
+      return document.getElementById('status').innerText = 'No hay imágenes.';
+    }
 
     let idx = 0;
+    const img = document.createElement('img');
+    img.style.maxWidth  = '100%';
+    img.style.maxHeight = '100%';
+    img.className = 'mt-4';
+    document.body.appendChild(img);
+
+    // Ciclo de imágenes
     setInterval(() => {
       img.src = urls[idx];
       idx = (idx + 1) % urls.length;
-    }, 5000);
+    }, 3000);
   }
 })();
