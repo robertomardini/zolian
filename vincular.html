@@ -3,28 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <title>Vincular TV</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/supabase.min.js"></script>
-  <style>
-    body { font-family: sans-serif; background: #f5f5f5; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-    .card { background:white; padding:20px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); width:320px; }
-    input { width:100%; padding:8px; margin-top:10px; font-size:1rem; }
-    button { margin-top:15px; padding:10px; width:100%; font-size:1rem; background:#38a169; color:white; border:none; border-radius:4px; }
-    #mensaje { color: red; margin-top:10px; text-align:center; }
-  </style>
+  <!-- Supabase UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body>
-  <div class="card">
-    <h2>Vincular TV</h2>
-    <p id="tv-code">Código del TV: ...</p>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
 
-    <!-- Formulario oculto hasta que haya sesión -->
+  <div class="bg-white p-8 rounded shadow-md w-full max-w-sm text-center">
+    <h1 class="text-2xl font-bold mb-4">Vincular TV</h1>
+    <p id="tv-code" class="mb-4"></p>
+
     <div id="form" style="display:none;">
-      <input type="text" id="tvname" placeholder="Nombre para esta TV">
-      <button onclick="vincularTV()">Vincular TV</button>
+      <input type="text"
+      id="tvname"
+      placeholder="Nombre para esta TV" 
+             class="w-full p-2 mb-4 border rounded" />
+      <button onclick="vincularTV()" 
+              class="w-full bg-green-500 text-white p-2 rounded">
+        Vincular TV
+      </button>
     </div>
 
-    <!-- Mensajes de error o éxito -->
-    <p id="mensaje"></p>
+    <p id="message" class="text-red-500 mt-4"></p>
   </div>
 
   <script src="js/supabaseClient.js"></script>
