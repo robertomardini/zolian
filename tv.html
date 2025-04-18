@@ -9,21 +9,25 @@
            align-items: center; justify-content: center; height: 100vh; margin: 0; }
     #qrcode { background: #fff; padding: 16px; }
     #code { margin-top: 1rem; font-size: 1.5rem; font-family: monospace; }
+    #slideshow { display: none; }          /* oculto hasta que empiece */
+    #slideshow img {                       /* imágenes adaptables */
+      max-width: 100%; max-height: 100%;
+    }
   </style>
 </head>
 <body>
+
   <h1 class="text-3xl mb-6">Emparejar TV</h1>
   <div id="qrcode"></div>
-  <div id="code" class="font-mono"></div>
-  <p id="status" class="mt-4 text-yellow-300"></p>
+  <div id="code" class="mb-4"></div>
+  <p id="status" class="mt-4"></p>
 
-  <!-- 1) UMD de Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.js"></script>
-  <!-- 2) Cliente -->
+  <!-- contenedor donde irá el slideshow -->
+  <div id="slideshow"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/supabaseClient.js"></script>
-  <!-- 3) Librería QR -->
   <script src="js/qrcode.min.js"></script>
-  <!-- 4) Lógica TV -->
   <script src="js/tv.js"></script>
 </body>
 </html>
