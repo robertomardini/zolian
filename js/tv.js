@@ -99,3 +99,4 @@ new QRCode(qrContainer, {
       idx = (idx + 1) % urls.length;
     }, 3000);
   }
+})();
