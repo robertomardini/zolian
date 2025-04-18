@@ -3,26 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
+<body class="bg-gray-100">
 
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-  <div class="bg-white p-8 rounded shadow-md w-full max-w-md text-center">
-    <h1 class="text-2xl font-bold mb-6">Bienvenido</h1>
+  <div class="max-w-3xl mx-auto mt-10 p-6 bg-white rounded shadow">
+    <h1 class="text-2xl font-bold mb-4">Mis TVs</h1>
     <p id="user-email" class="mb-4"></p>
-
-    <!-- Aquí listaremos los TVs vinculados -->
-    <h2 class="text-xl font-semibold mb-2">Tus TVs vinculadas</h2>
-    <ul id="tv-list" class="text-left list-disc pl-5 mb-6">
-      <li>Cargando TVs…</li>
+    <ul id="tv-list" class="list-disc pl-5 text-gray-700 mb-6">
+      <li>Cargando TVs...</li>
     </ul>
-
-    <button onclick="logout()" class="bg-red-500 text-white p-2 rounded">
+    <button onclick="logout()"
+            class="bg-red-500 text-white px-4 py-2 rounded">
       Cerrar Sesión
     </button>
   </div>
 
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.js"></script>
   <script src="js/supabaseClient.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
