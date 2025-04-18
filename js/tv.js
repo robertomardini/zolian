@@ -47,56 +47,62 @@ new QRCode(qrContainer, {
       console.error(error);
       return;
     }
-    if (data.linked) {
-      clearInterval(intervalo);
-      iniciarSlideshow(data.user_id);  // <–– pasamos el user_id
-    }
+   if (data.linked) {
+  clearInterval(intervalo);
+  iniciarSlideshow(); // ya dentro lee la sesión
+}
+
   }, 5000);
 
   // 5) Arrancar el slideshow sin volver a pedir sesión
-  async function iniciarSlideshow(userId) {
-    // ocultar QR y texto
-    document.getElementById('qrcode').style.display = 'none';
-    document.getElementById('code').style.display   = 'none';
-    document.getElementById('status').style.display = 'none';
+  async function iniciarSlideshow() {
+  // 1) ocultar QR…
+  // 2) recuperar sesión y userId aquí mismo
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    console.error('Usuario no autenticado');
+    return;
+  }
+  const userId = session.user.id;
 
-    // 5.1) Montamos el prefijo con el userId que recibimos
-    const prefix = `${userId}/${tvCode}`;
+  // 3) montar prefijo correcto
+  const prefix = `${userId}/${tvCode}`;
 
-    // 5.2) Listar archivos en Storage
-    const { data: files, error } = await supabase
+  // 4) listar
+  const { data: files, error } = await supabase
+    .storage
+    .from('tv-content')
+    .list(prefix);
+
+  if (error) {
+    console.error('Error listando archivos:', error);
+    return;
+  }
+  if (files.length === 0) {
+    console.warn('No hay ficheros en el bucket');
+    return;
+  }
+
+  // 5) construir URLs y arrancar slideshow…
+  const urls = files.map(f =>
+    supabase
       .storage
       .from('tv-content')
-      .list(prefix);
-    if (error) {
-      console.error('Error listando:', error);
-      return;
-    }
-    if (files.length === 0) {
-      console.warn('No hay ficheros en el bucket');
-      return;
-    }
+      .getPublicUrl(`${prefix}/${f.name}`)
+      .data
+      .publicUrl
+  );
 
-    // 5.3) Construir URLs públicas
-    const urls = files.map(f =>
-      supabase
-        .storage
-        .from('tv-content')
-        .getPublicUrl(`${prefix}/${f.name}`)
-        .data
-        .publicUrl
-    );
+  let idx = 0;
+  const img = document.createElement('img');
+  img.style.maxWidth = '100%';
+  img.style.maxHeight = '100%';
+  document.body.appendChild(img);
 
-    // 5.4) Mostrar slideshow
-    let idx = 0;
-    const img = document.createElement('img');
-    img.style.maxWidth  = '100%';
-    img.style.maxHeight = '100%';
-    document.body.appendChild(img);
+  setInterval(() => {
+    img.src = urls[idx];
+    idx = (idx + 1) % urls.length;
+  }, 3000);
+}
 
-    setInterval(() => {
-      img.src = urls[idx];
-      idx = (idx + 1) % urls.length;
-    }, 3000);
-  }
 })();
