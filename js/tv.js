@@ -33,7 +33,7 @@
     correctLevel: QRCode.CorrectLevel.H,
   });
 
-  // 4) Hacer polling cada 5s hasta que linked === true
+  // 4) Polling cada 5s para detectar que el TV ya quedó linked
   const intervalo = setInterval(async () => {
     const { data, error } = await supabase
       .from('tv')
@@ -46,27 +46,28 @@
     }
     if (data.linked) {
       clearInterval(intervalo);
+      // Pasa el user_id a la función
       iniciarSlideshow(data.user_id);
     }
   }, 5000);
 
-  // 5) Arrancar el slideshow
+  // 5) Arrancar el slideshow recibiendo el UUID del usuario
   async function iniciarSlideshow(userId) {
     // Ocultar QR, código y estado
     document.getElementById('qrcode').style.display = 'none';
     document.getElementById('code').style.display   = 'none';
     document.getElementById('status').style.display = 'none';
 
-    // 5.1) Montar prefix **sin** barra final
-    const prefix = `${userId}/${tvCode}`;  // <<-- ¡NO slash "/ " al final!
+    const prefix = `${userId}/${tvCode}`;  // construye el path correcto
 
-    // 5.2) Listar archivos en Storage
+    // Listar archivos en Storage
     const { data: files, error } = await supabase
       .storage
       .from('tv-content')
       .list(prefix);
+
     if (error) {
-      console.error('Error listando archivos:', error.message);
+      console.error('Error listando archivos:', error);
       return;
     }
     if (files.length === 0) {
@@ -74,7 +75,7 @@
       return;
     }
 
-    // 5.3) Construir URLs públicas
+    // Construir URLs públicas
     const urls = files.map(f =>
       supabase
         .storage
@@ -84,7 +85,7 @@
         .publicUrl
     );
 
-    // 5.4) Mostrar slideshow
+    // Mostrar slideshow
     let idx = 0;
     const img = document.createElement('img');
     img.style.maxWidth  = '100%';
@@ -96,4 +97,5 @@
       idx = (idx + 1) % urls.length;
     }, 3000);
   }
+
 })();
