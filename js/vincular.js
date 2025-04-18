@@ -31,12 +31,8 @@ async function vincularTV() {
 
   const { data, error } = await supabase
     .from('tv')
-    .update({ 
-      linked: true, 
-      user_id: user.data.user.id,
-      nombre: tvName      // <-- aquí agregamos el nombre
-    })
-    .eq('Code', tvCode);
+    .update({ linked: true, user_id: user.data.user.id, nombre: tvName })
+    .eq('code', tvCode);
 
   if (error) {
     document.getElementById('mensaje').innerText = "Error al vincular: " + error.message;
