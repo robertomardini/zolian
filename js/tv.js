@@ -40,55 +40,44 @@ new QRCode(qrContainer, {
   const intervalo = setInterval(async () => {
     const { data, error } = await supabase
       .from('tv')
-      .select('linked')
+      .select('linked, user_id')      // <–– pedimos user_id
       .eq('code', tvCode)
       .single();
-
     if (error) {
       console.error(error);
       return;
     }
     if (data.linked) {
       clearInterval(intervalo);
-      iniciarSlideshow();
+      iniciarSlideshow(data.user_id);  // <–– pasamos el user_id
     }
   }, 5000);
 
-  // 5) Función para arrancar el slideshow de imágenes
-  async function iniciarSlideshow() {
+  // 5) Arrancar el slideshow sin volver a pedir sesión
+  async function iniciarSlideshow(userId) {
+    // ocultar QR y texto
     document.getElementById('qrcode').style.display = 'none';
     document.getElementById('code').style.display   = 'none';
     document.getElementById('status').style.display = 'none';
 
-    // 5.1) Recuperar sesión y userId
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      console.error('Usuario no autenticado');
-      return;
-    }
-    const userId = session.user.id;
-    const prefix = `${userId}/${tvCode}`;      // ¡sin slash al inicio!
+    // 5.1) Montamos el prefijo con el userId que recibimos
+    const prefix = `${userId}/${tvCode}`;
 
     // 5.2) Listar archivos en Storage
     const { data: files, error } = await supabase
       .storage
       .from('tv-content')
       .list(prefix);
-
     if (error) {
       console.error('Error listando:', error);
       return;
     }
-    if (!files.length) {
-      const s = document.createElement('p');
-      s.innerText = 'No hay imágenes para mostrar.';
-      s.style.color = '#fff';
-      document.getElementById('slideshow').appendChild(s);
-      document.getElementById('slideshow').style.display = 'block';
+    if (files.length === 0) {
+      console.warn('No hay ficheros en el bucket');
       return;
     }
 
-    // 5.3) Generar URLs públicas
+    // 5.3) Construir URLs públicas
     const urls = files.map(f =>
       supabase
         .storage
@@ -98,17 +87,15 @@ new QRCode(qrContainer, {
         .publicUrl
     );
 
-    // 5.4) Montar el <img> y ciclos
-    const slideDiv = document.getElementById('slideshow');
-    slideDiv.style.display = 'block';
-    const img = document.createElement('img');
-    slideDiv.appendChild(img);
-
+    // 5.4) Mostrar slideshow
     let idx = 0;
-    img.src = urls[0];
+    const img = document.createElement('img');
+    img.style.maxWidth  = '100%';
+    img.style.maxHeight = '100%';
+    document.body.appendChild(img);
+
     setInterval(() => {
-      idx = (idx + 1) % urls.length;
       img.src = urls[idx];
+      idx = (idx + 1) % urls.length;
     }, 3000);
   }
-})();
