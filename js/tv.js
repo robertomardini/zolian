@@ -4,12 +4,12 @@
   const params = new URLSearchParams(window.location.search);
   const tvCode = params.get('code');
   if (!tvCode) {
-    document.body.innerHTML = "<p style='color:red'>Falta ?code en la URL</p>";
+    document.getElementById('status').innerText = 'Falta el parámetro code en la URL';
     return;
   }
   document.getElementById('code').innerText = tvCode;
 
-  // 2) Comprobar que existe ese registro en la tabla `tv`
+  // 2) Comprobar que exista un registro en la tabla `tv`
   const { data: tvRec, error: fetchErr } = await supabase
     .from('tv')
     .select('linked, user_id')
@@ -21,13 +21,13 @@
     return;
   }
 
-  // 3) Si ya está linked==true, arrancamos slideshow de inmediato
+  // 3) Si ya está vinculado, arrancar slideshow ya mismo
   if (tvRec.linked) {
     iniciarSlideshow(tvRec.user_id);
     return;
   }
 
-  // 4) Si no está linked, mostramos el QR para vincularlo
+  // 4) Si NO está vinculado, mostrar QR para vincular
   const urlVincular = `${window.location.origin}/vincular.html?code=${tvCode}`;
   const qrDiv = document.getElementById('qrcode');
   qrDiv.innerHTML = '';
@@ -35,10 +35,13 @@
     text: urlVincular,
     width: 200,
     height: 200,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
     correctLevel: QRCode.CorrectLevel.H,
   });
+  document.getElementById('status').innerText = 'Escanea el QR para vincular';
 
-  // 5) Polling cada 5s para detectar cuando un usuario haga sign‑up en vincular.html
+  // 5) Polling: cada 5s chequeamos si ya quedó `linked = true`
   const intervalo = setInterval(async () => {
     const { data, error } = await supabase
       .from('tv')
@@ -52,17 +55,17 @@
     }
   }, 5000);
 
-  // 6) Función para arrancar el slideshow (recibe userId ya vinculado)
+  // 6) Función para arrancar el slideshow (recibe userId)
   async function iniciarSlideshow(userId) {
-    // ocultar QR, código y estado
+    // ocultar QR/código/estado
     document.getElementById('qrcode').style.display = 'none';
     document.getElementById('code').style.display   = 'none';
     document.getElementById('status').style.display = 'none';
 
-    // montar prefijo con userId y tvCode
+    // montar carpeta: userId/tvCode
     const prefix = `${userId}/${tvCode}`;
 
-    // listar archivos
+    // listar archivos en Storage
     const { data: files, error } = await supabase
       .storage
       .from('tv-content')
@@ -86,16 +89,16 @@
         .publicUrl
     );
 
-    // mostrar slideshow
+    // arrancar slideshow
     let idx = 0;
     const img = document.createElement('img');
     img.style.maxWidth  = '100%';
     img.style.maxHeight = '100%';
     document.body.appendChild(img);
+
     setInterval(() => {
       img.src = urls[idx];
       idx = (idx + 1) % urls.length;
     }, 3000);
   }
-
 })();
