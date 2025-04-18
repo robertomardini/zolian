@@ -112,7 +112,7 @@
 
     const userId = tvRow.user_id;
     const bucket = supabase.storage.from('tv-content');
-    const folder = `${userId}/${tvCode}/`;  // SIN barra al final
+    const folder = `${userId}/${tvCode}`;  // SIN barra al final
 
     // 5.2) Listar archivos
     const { data: files, error: listErr } = await bucket.list(folder);
