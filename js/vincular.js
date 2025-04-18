@@ -3,7 +3,7 @@
 // Leer código de TV de la URL
 const params = new URLSearchParams(window.location.search);
 const tvCode = params.get('code');
-document.getElementById('tv-code').innerText = "Código del TV: " + tvCode;
+document.getElementById('tvcode').innerText = "Código del TV: " + tvCode;
 
 // Chequear sesión y mostrar formulario
 async function init() {
