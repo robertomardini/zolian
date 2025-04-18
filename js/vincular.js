@@ -30,8 +30,11 @@ async function vincularTV() {
     .update({ linked: true, user_id: user.id, nombre: tvName })
     .eq('code', tvCode);
 
-  if (!error) {
-  // Un pequeño retardo para que el UPDATE llegue al servidor
+ if (error) {
+  document.getElementById('message').innerText = "Error al vincular: " + error.message;
+} else {
+  // Dale 300ms para que la base grabe el cambio, 
+  // luego redirigimos al dashboard
   setTimeout(() => {
     window.location.href = 'dashboard.html';
   }, 300);
