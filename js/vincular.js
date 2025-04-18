@@ -1,14 +1,12 @@
-// js/vincular.js
-
 const params = new URLSearchParams(window.location.search);
 const tvCode = params.get('code');
-document.getElementById('tv-code').innerText = `Código del TV: ${tvCode}`;
+document.getElementById('tv-code').innerText = Código del TV: ${tvCode};
 
 async function init() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
-    const redirect = encodeURIComponent(`vincular.html?code=${tvCode}`);
-    window.location.href = `login.html?redirect=${redirect}`;
+    const redirect = encodeURIComponent(vincular.html?code=${tvCode});
+    window.location.href = login.html?redirect=${redirect};
     return;
   }
   document.getElementById('form').style.display = 'block';
