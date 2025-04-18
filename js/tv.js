@@ -21,13 +21,20 @@
   }
 
   // 3) Generar el QR apuntando a vincular.html
-  const url = `${window.location.origin}/vincular.html?code=${tvCode}`;
-  QRCode.toCanvas(
-    document.getElementById('qrcode'),
-    url,
-    { width: 200 },
-    err => { if (err) console.error('QRErr', err); }
-  );
+const url = `${window.location.origin}/vincular.html?code=${tvCode}`;
+const qrContainer = document.getElementById('qrcode');
+// limpia cualquier contenido previo
+qrContainer.innerHTML = '';
+// crea un nuevo QRCode en el div
+new QRCode(qrContainer, {
+  text: url,
+  width: 200,
+  height: 200,
+  colorDark: "#000000",
+  colorLight: "#ffffff",
+  correctLevel: QRCode.CorrectLevel.H,
+});
+
 
   // 4) Polling cada 5s para detectar que el TV ya no está linked=false
   const intervalo = setInterval(async () => {
