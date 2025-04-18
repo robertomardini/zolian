@@ -3,8 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Galería de TV</title>
-  <!-- Supabase UMD -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 p-8">
@@ -15,7 +13,8 @@
 
     <div class="mb-4">
       <input type="file" id="file-input" class="border p-2" />
-      <button onclick="uploadFile()" class="bg-blue-500 text-white px-4 py-2 rounded ml-2">
+      <button onclick="uploadFile()"
+              class="bg-blue-500 text-white px-4 py-2 rounded ml-2">
         Subir Archivo
       </button>
     </div>
@@ -25,14 +24,9 @@
     </ul>
   </div>
 
-    <!-- 1) Carga la librería UMD de supabase-js -->
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.js"></script>
-  
-  <!-- 2) Tu cliente que sobrescribe window.supabase -->
   <script src="js/supabaseClient.js"></script>
-  
-  <!-- 3) Tu lógica propia que hace supabase.auth y supabase.from(...) -->
-  <script src="js/vincular.js"></script>
-
+  <script src="js/galeria.js"></script>
 </body>
 </html>
