@@ -54,14 +54,13 @@ new QRCode(qrContainer, {
   }, 5000);
 
   // 5) Arrancar el slideshow sin volver a pedir sesión
-  async function iniciarSlideshow(userId) {
-    // ocultar QR y texto
-    document.getElementById('qrcode').style.display = 'none';
-    document.getElementById('code').style.display   = 'none';
-    document.getElementById('status').style.display = 'none';
-
-    // 5.1) Montamos el prefijo con el userId que recibimos
-    const prefix = `${userId}/${tvCode}`;
+ async function iniciarSlideshow() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Usuario no autenticado');
+  const userId = session.user.id;
+  const prefix = `${userId}/${tvCode}`;
+  /* … */
+}
 
     // 5.2) Listar archivos en Storage
     const { data: files, error } = await supabase
