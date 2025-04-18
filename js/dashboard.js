@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     .from('tv')
     .select('code, nombre')
     .eq('user_id', user.id)
+    .eq('linked', true)
     .order('created_at', { ascending: false });
 
   const $list = document.getElementById('tv-list');
