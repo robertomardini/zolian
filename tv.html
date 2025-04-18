@@ -3,23 +3,38 @@
 <head>
   <meta charset="UTF-8" />
   <title>Emparejar TV</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
   <link
     href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
     rel="stylesheet"
   />
-  <!-- 1) Supabase UMD -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <!-- 2) Tu cliente -->
-  <script src="js/supabaseClient.js"></script>
-  <!-- 3) QRCode library -->
-  <script src="js/qrcode.min.js"></script>
-  <!-- 4) Lógica principal de TV -->
-  <script defer src="js/tv.js"></script>
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    #qrcode { background: #fff; padding: 16px; }
+    #code { margin-top: 1rem; font-size: 1.5rem; font-family: monospace; }
+    #status { margin-top: 1rem; color: #facc15; }
+  </style>
 </head>
-<body class="bg-black text-white flex flex-col items-center justify-center min-h-screen">
-  <h1 class="text-4xl mb-6">Emparejar TV</h1>
-  <div id="qrcode" class="bg-white p-4"></div>
-  <p id="code" class="mt-4 text-2xl font-mono"></p>
-  <p id="status" class="mt-4 text-yellow-300"></p>
+<body>
+
+  <h1 class="text-3xl mb-6">Emparejar TV</h1>
+  <div id="qrcode"></div>
+  <div id="code" class="font-mono"></div>
+  <p id="status">Comprobando estado…</p>
+
+  <!-- Tu cliente Supabase -->
+  <script src="js/supabaseClient.js"></script>
+  <!-- Lógica de la TV -->
+  <script src="js/tv.js"></script>
 </body>
 </html>
