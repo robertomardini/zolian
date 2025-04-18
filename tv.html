@@ -1,85 +1,29 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Slideshow TV</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <title>Emparejar TV</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/umd/tailwind.min.css"
+        rel="stylesheet" />
   <style>
-    body { background: #000; color: #fff; margin:0; display:flex;
-           justify-content:center; align-items:center; height:100vh; }
-    img { max-width:100%; max-height:100%; }
+    body { background:#000; color:#fff; display:flex; flex-dir:column;
+           align-items:center; justify-content:center; height:100vh; margin:0; }
+    #qrcode { background:#fff; padding:16px; }
+    #code   { margin-top:1rem; font-size:1.5rem; font-family:monospace; }
+    #status { margin-top:1rem; color:#facc15; }
   </style>
 </head>
 <body>
+  <h1 class="text-3xl mb-6">Emparejar TV</h1>
+  <div id="qrcode"></div>
+  <div id="code"></div>
+  <p id="status">Inicializando…</p>
 
-  <div id="status" class="text-xl">Cargando imágenes…</div>
-
-  <!-- Supabase y tu cliente -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- 1) Supabase Client -->
   <script src="js/supabaseClient.js"></script>
-  <script>
-  (async function() {
-    const params = new URLSearchParams(window.location.search);
-    const tvCode = params.get('code');
-    if (!tvCode) {
-      document.getElementById('status').innerText = 'Falta el parámetro code en la URL';
-      return;
-    }
-
-    // 1) Consultar en la tabla `tv` para obtener el user_id
-    const { data: tvRow, error: tvErr } = await supabase
-      .from('tv')
-      .select('user_id')
-      .eq('code', tvCode)
-      .single();
-
-    if (tvErr || !tvRow?.user_id) {
-      console.error(tvErr);
-      document.getElementById('status').innerText = 'TV no encontrada o no vinculada.';
-      return;
-    }
-    const userId = tvRow.user_id;
-
-    // 2) Listar imágenes en el bucket
-    const prefix = `${userId}/${tvCode}`;
-    const { data: files, error } = await supabase
-      .storage
-      .from('tv-content')
-      .list(prefix);
-    if (error) {
-      console.error(error);
-      document.getElementById('status').innerText = 'Error listando imágenes.';
-      return;
-    }
-    if (!files.length) {
-      document.getElementById('status').innerText = 'No hay imágenes.';
-      return;
-    }
-
-    // 3) Generar URLs públicas
-    const urls = files.map(f =>
-      supabase
-        .storage
-        .from('tv-content')
-        .getPublicUrl(`${prefix}/${f.name}`)
-        .data
-        .publicUrl
-    );
-
-    // 4) Arrancar slideshow
-    document.getElementById('status').remove();
-    const img = document.createElement('img');
-    document.body.appendChild(img);
-    let idx = 0;
-    img.src = urls[0];
-
-    setInterval(() => {
-      idx = (idx + 1) % urls.length;
-      img.src = urls[idx];
-    }, 3000);
-
-  })();
-  </script>
-
+  <!-- 2) Nuestra lógica de tv.js -->
+  <script src="js/tv.js"></script>
 </body>
 </html>
