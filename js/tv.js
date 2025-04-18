@@ -47,7 +47,7 @@
   }, 5000);
 
   // 5) Slideshow
-  function startSlideshow() {
+  async function startSlideshow() {
     // 5.1) Obtener el user_id de la tabla tv
     const { data: tvRow, error: tvErr } = await supabase
       .from('tv')
