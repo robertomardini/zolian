@@ -42,9 +42,9 @@
     }
   }, 5000);
 
-  // 5) Slideshow usando el bucket público (sin sesión)
+    // 5) Ejemplo mínimo de slideshow (puedes personalizar)
   async function startSlideshow() {
-    // Obtener user_id desde la misma tabla
+    // 5.1) buscamos el user_id desde la tabla tv
     const { data: tvRow, error: tvErr } = await supabase
       .from('tv')
       .select('user_id')
@@ -54,38 +54,46 @@
       console.error(tvErr);
       return document.getElementById('status').innerText = 'No se pudo obtener propietario.';
     }
-
     const userId = tvRow.user_id;
-    const bucket = supabase.storage.from('tv-content');
-    const prefix = `${userId}/${tvCode}/`;
 
-    // Listar archivos
-    const { data: files, error: listErr } = await bucket.list(prefix);
+    // 5.2) listamos SIN la barra al final
+    const folder = `${userId}/${tvCode}`;  // <--- sin "/" al final
+    const { data: files, error: listErr } = await supabase
+      .storage
+      .from('tv-content')
+      .list(folder);  
+
     if (listErr) {
       console.error(listErr);
       return document.getElementById('status').innerText = 'Error cargando imágenes.';
     }
+    console.log('Archivos listados:', files); // para DEBUG
 
-    // Preparar URLs públicas y montar slideshow
-    const urls = files.map(f =>
-      bucket.getPublicUrl(prefix + f.name).data.publicUrl
-    );
+    // 5.3) montamos las URLs públicas
+    const urls = files.map(f => {
+      const path = `${folder}/${f.name}`; 
+      return supabase
+        .storage
+        .from('tv-content')
+        .getPublicUrl(path)
+        .data
+        .publicUrl;
+    });
 
     if (urls.length === 0) {
       return document.getElementById('status').innerText = 'No hay imágenes.';
     }
 
+    // 5.4) slideshow
     let idx = 0;
     const img = document.createElement('img');
     img.style.maxWidth  = '100%';
     img.style.maxHeight = '100%';
-    img.className = 'mt-4';
     document.body.appendChild(img);
 
-    // Ciclo de imágenes
     setInterval(() => {
       img.src = urls[idx];
       idx = (idx + 1) % urls.length;
     }, 3000);
   }
-})();
+
