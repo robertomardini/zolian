@@ -30,18 +30,22 @@
     return
   }
 
-  // 2) Generar QR → vincular.html?code=XYZ
-  const vincularUrl = `${location.origin}/vincular.html?code=${tvCode}`
-  document.getElementById('qrcode').innerHTML = ''
-  QRCode.toCanvas(
-    document.getElementById('qrcode'),
-    vincularUrl,
-    { width: 200 },
-    err => { if (err) console.error(err) }
-  )
+  // 3) Generar el QR apuntando a vincular.html
+const url    = `${window.location.origin}/vincular.html?code=${tvCode}`;
+const canvas = document.getElementById('qrcode');
+QRCode.toCanvas(
+  canvas,
+  url,
+  { width: 200 },
+  err => {
+    if (err) {
+      console.error('QRErr', err);
+      document.getElementById('status').innerText = 'Error QR';
+    } else {
+      document.getElementById('status').innerText = 'Escanea el QR';
+    }
 
-  document.getElementById('status').innerText =
-    'Escanea el QR con tu móvil para vincular'
+
 
   // 3) Polling: en cuanto linked=true, redirijo a tv.html?code=XYZ
   const intervalo = setInterval(async () => {
