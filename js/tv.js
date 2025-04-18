@@ -66,7 +66,7 @@
     const userId = session.user.id;
 
     // 5.3) Montar prefix con slash final
-    const prefix = `${userId}/${tvCode}/`;
+    const prefix = `${userId}/${tvCode}`;
 
     // 5.4) Listar archivos en Storage
     const { data: files, error } = await supabase
@@ -87,7 +87,7 @@
       supabase
         .storage
         .from('tv-content')
-        .getPublicUrl(`${prefix}${f.name}`)
+        .getPublicUrl(`${prefix}/${f.name}`)
         .data
         .publicUrl
     );
