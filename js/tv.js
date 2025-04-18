@@ -1,104 +1,106 @@
 // js/tv.js
 ;(async function() {
   const params = new URLSearchParams(window.location.search);
-  let tvCode = params.get('code');
+  const tvCode = params.get('code');
+  const qrDiv   = document.getElementById('qrcode');
+  const codeDiv = document.getElementById('code');
+  const statusP = document.getElementById('status');
+
+  // Instancia supabase ya cargada por supabaseClient.js
 
   if (!tvCode) {
-    // —————— Estoy en modo GENERAR ——————
+    // —————— MODO GENERACIÓN ——————
     function generarCodigo(len = 6) {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
       return Array.from({length: len}, () =>
         chars[Math.floor(Math.random()*chars.length)]
       ).join('');
     }
-    tvCode = generarCodigo();
-    document.getElementById('code').innerText = tvCode;
+    const nuevoCode = generarCodigo();
+    codeDiv.innerText = nuevoCode;
+    statusP.innerText = 'Escanea el QR para vincular';
 
-    // Inserto en la tabla
-    const { error } = await supabase
+    // Insertamos en la tabla `tv`
+    let { error } = await supabase
       .from('tv')
-      .insert([{ code: tvCode, linked: false }]);
+      .insert([{ code: nuevoCode, linked: false }]);
     if (error) {
-      document.getElementById('status').innerText = 'Error al registrar TV.';
+      statusP.innerText = 'Error registrando TV.';
       console.error(error);
       return;
     }
 
-    // Pinto QR para vincular
-    const urlVincular = `${window.location.origin}/tv.html?code=${tvCode}`;
-    const qrDiv = document.getElementById('qrcode');
+    // Generamos el QR (apunta a tv.html?code=nuevoCode)
     qrDiv.innerHTML = '';
     new QRCode(qrDiv, {
-      text: urlVincular,
-      width: 200,
-      height: 200,
-      colorDark: '#000',
-      colorLight: '#fff',
+      text: `${window.location.origin}/tv.html?code=${nuevoCode}`,
+      width: 200, height: 200,
+      colorDark: '#000', colorLight: '#fff',
       correctLevel: QRCode.CorrectLevel.H,
     });
-    document.getElementById('status').innerText = 'Escanea el QR para vincular';
 
-    // Luego polling para enlace…
+    // Polling cada 5 s para ver si el user ya vinculó
     const intervalo = setInterval(async () => {
       const { data, error } = await supabase
         .from('tv')
-        .select('linked, user_id')
-        .eq('code', tvCode)
+        .select('linked')
+        .eq('code', nuevoCode)
         .single();
       if (error) return console.error(error);
       if (data.linked) {
         clearInterval(intervalo);
-        iniciarSlideshow(data.user_id);
+        // REDIRIGIMOS el TV para que pase a modo slideshow:
+        window.location.href = `${window.location.pathname}?code=${nuevoCode}`;
       }
     }, 5000);
 
   } else {
-    // —————— Estoy en modo SLIDESHOW DIRECTO ——————
-    document.getElementById('code').innerText = tvCode;
-    document.getElementById('status').innerText = 'Cargando slideshow…';
+    // —————— MODO SLIDESHOW ——————
+    codeDiv.innerText = tvCode;
+    statusP.innerText = 'Cargando imágenes…';
 
-    // Compruebo el registro y si está vinculado arranco.
-    const { data: tvRec, error: fetchErr } = await supabase
+    // Recuperamos user_id para montar prefijo
+    const { data: tvRec, error: tvErr } = await supabase
       .from('tv')
-      .select('linked, user_id')
+      .select('user_id, linked')
       .eq('code', tvCode)
       .single();
-    if (fetchErr || !tvRec.linked) {
-      document.getElementById('status').innerText = 'TV no vinculada aún';
+    if (tvErr || !tvRec.linked) {
+      statusP.innerText = 'TV no vinculada aún';
       return;
     }
-    iniciarSlideshow(tvRec.user_id);
-  }
 
-  // —————— Función común ——————
-  async function iniciarSlideshow(userId) {
-    document.getElementById('qrcode').style.display = 'none';
-    document.getElementById('code').style.display   = 'none';
-    document.getElementById('status').style.display = 'none';
-
-    const prefix = `${userId}/${tvCode}`;
-    const { data: files, error } = await supabase
+    // Listamos del bucket
+    const prefix = `${tvRec.user_id}/${tvCode}`;
+    const { data: files, error: listErr } = await supabase
       .storage
       .from('tv-content')
       .list(prefix);
-    if (error) {
-      console.error('Error listando archivos:', error);
+    if (listErr) {
+      console.error('Error listando:', listErr);
+      statusP.innerText = 'Error cargando slideshow';
       return;
     }
     if (!files.length) {
-      console.warn('No hay ficheros en el bucket para', prefix);
+      statusP.innerText = 'No hay imágenes';
       return;
     }
 
+    // Construimos URLs y arrancamos
     const urls = files.map(f =>
       supabase
         .storage
         .from('tv-content')
         .getPublicUrl(`${prefix}/${f.name}`)
-        .data
-        .publicUrl
+        .data.publicUrl
     );
 
+    // Ocultamos QR y status
+    qrDiv.style.display     = 'none';
+    codeDiv.style.display   = 'none';
+    statusP.style.display   = 'none';
+
+    // Insertamos <img> y arrancamos slideshow
     let idx = 0;
     const img = document.createElement('img');
     img.style.maxWidth  = '100%';
