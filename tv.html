@@ -1,40 +1,114 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Emparejar TV</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
-  <link
-    href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-    rel="stylesheet"
-  />
-  <style>
-    body {
-      background: #000;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
+// js/tv.js
+;(async function() {
+  const params = new URLSearchParams(window.location.search);
+  let tvCode = params.get('code');
+
+  if (!tvCode) {
+    // —————— Estoy en modo GENERAR ——————
+    function generarCodigo(len = 6) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      return Array.from({length: len}, () =>
+        chars[Math.floor(Math.random()*chars.length)]
+      ).join('');
     }
-    #qrcode { background: #fff; padding: 16px; }
-    #code { margin-top: 1rem; font-size: 1.5rem; font-family: monospace; }
-    #status { margin-top: 1rem; color: #facc15; }
-  </style>
-</head>
-<body>
+    tvCode = generarCodigo();
+    document.getElementById('code').innerText = tvCode;
 
-  <h1 class="text-3xl mb-6">Emparejar TV</h1>
-  <div id="qrcode"></div>
-  <div id="code" class="font-mono"></div>
-  <p id="status">Comprobando estado…</p>
+    // Inserto en la tabla
+    const { error } = await supabase
+      .from('tv')
+      .insert([{ code: tvCode, linked: false }]);
+    if (error) {
+      document.getElementById('status').innerText = 'Error al registrar TV.';
+      console.error(error);
+      return;
+    }
 
-  <!-- Tu cliente Supabase -->
-  <script src="js/supabaseClient.js"></script>
-  <!-- Lógica de la TV -->
-  <script src="js/tv.js"></script>
-</body>
-</html>
+    // Pinto QR para vincular
+    const urlVincular = `${window.location.origin}/tv.html?code=${tvCode}`;
+    const qrDiv = document.getElementById('qrcode');
+    qrDiv.innerHTML = '';
+    new QRCode(qrDiv, {
+      text: urlVincular,
+      width: 200,
+      height: 200,
+      colorDark: '#000',
+      colorLight: '#fff',
+      correctLevel: QRCode.CorrectLevel.H,
+    });
+    document.getElementById('status').innerText = 'Escanea el QR para vincular';
+
+    // Luego polling para enlace…
+    const intervalo = setInterval(async () => {
+      const { data, error } = await supabase
+        .from('tv')
+        .select('linked, user_id')
+        .eq('code', tvCode)
+        .single();
+      if (error) return console.error(error);
+      if (data.linked) {
+        clearInterval(intervalo);
+        iniciarSlideshow(data.user_id);
+      }
+    }, 5000);
+
+  } else {
+    // —————— Estoy en modo SLIDESHOW DIRECTO ——————
+    document.getElementById('code').innerText = tvCode;
+    document.getElementById('status').innerText = 'Cargando slideshow…';
+
+    // Compruebo el registro y si está vinculado arranco.
+    const { data: tvRec, error: fetchErr } = await supabase
+      .from('tv')
+      .select('linked, user_id')
+      .eq('code', tvCode)
+      .single();
+    if (fetchErr || !tvRec.linked) {
+      document.getElementById('status').innerText = 'TV no vinculada aún';
+      return;
+    }
+    iniciarSlideshow(tvRec.user_id);
+  }
+
+  // —————— Función común ——————
+  async function iniciarSlideshow(userId) {
+    document.getElementById('qrcode').style.display = 'none';
+    document.getElementById('code').style.display   = 'none';
+    document.getElementById('status').style.display = 'none';
+
+    const prefix = `${userId}/${tvCode}`;
+    const { data: files, error } = await supabase
+      .storage
+      .from('tv-content')
+      .list(prefix);
+    if (error) {
+      console.error('Error listando archivos:', error);
+      return;
+    }
+    if (!files.length) {
+      console.warn('No hay ficheros en el bucket para', prefix);
+      return;
+    }
+
+    const urls = files.map(f =>
+      supabase
+        .storage
+        .from('tv-content')
+        .getPublicUrl(`${prefix}/${f.name}`)
+        .data
+        .publicUrl
+    );
+
+    let idx = 0;
+    const img = document.createElement('img');
+    img.style.maxWidth  = '100%';
+    img.style.maxHeight = '100%';
+    document.body.appendChild(img);
+
+    setInterval(() => {
+      img.src = urls[idx];
+      idx = (idx + 1) % urls.length;
+    }, 3000);
+  }
+
+})();
