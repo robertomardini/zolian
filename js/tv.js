@@ -8,9 +8,7 @@
   document.getElementById('code').innerText = tvCode;
 
   // 2) Crear registro en la tabla `tv`
-  const { error: insertErr } = await supabase
-    .from('tv')
-    .insert([{ code: tvCode, linked: false }]);
+  const { error: insertErr } = await supabase.from('tv').insert([{ code: tvCode, linked: false }]);
   if (insertErr) {
     document.getElementById('status').innerText = 'Error al registrar TV.';
     console.error(insertErr);
