@@ -69,8 +69,14 @@ async function vincularTV() {
 }
 
 // ——— Definimos la función y la exponemos globalmente ———
-function mostrarSlideshow(code) {
-  // Redirige la TV al modo slideshow con ?code=… 
-  window.location.href = `tv.html?code=${code}`;
+async function mostrarSlideshow(code) {
+  // En lugar de redirigir aquí, enviamos un broadcast al canal de la TV:
+  const channel = supabase.channel(`tv-${code}`);
+  await channel.send({
+    type:    'broadcast',
+    event:   'show',
+    payload: {}
+  });
+  alert(`Se ha enviado la orden de mostrar la sesión ${code} en la TV.`);
 }
 window.mostrarSlideshow = mostrarSlideshow;
