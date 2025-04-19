@@ -8,58 +8,21 @@
 
   if (!tvCode) {
     // —————— MODO GENERACIÓN ——————
-    function generarCodigo(len = 6) {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      return Array.from({ length: len }, () =>
-        chars[Math.floor(Math.random()*chars.length)]
-      ).join('');
-    }
-    const nuevoCode = generarCodigo();
-    codeDiv.innerText  = nuevoCode;
-    statusP.innerText  = 'Escanea el QR para vincular';
-
-    // 1) Insertamos en la tabla tv
-    let { error: insertErr } = await supabase
-      .from('tv')
-      .insert([{ code: nuevoCode, linked: false }]);
-    if (insertErr) {
-      statusP.innerText = 'Error registrando TV.';
-      console.error(insertErr);
-      return;
-    }
-
-    // 2) Generamos el QR (apunta a vincular.html?code=nuevoCode)
-    qrDiv.innerHTML = '';
-    new QRCode(qrDiv, {
-      text: `${window.location.origin}/vincular.html?code=${nuevoCode}`,
-      width: 200, height: 200,
-      colorDark: '#000', colorLight: '#fff',
-      correctLevel: QRCode.CorrectLevel.H,
-    });
-
-    // 3) Polling cada 5 s para ver si el user ya vinculó
-    const intervalo = setInterval(async () => {
-      const { data, error } = await supabase
-        .from('tv')
-        .select('linked')
-        .eq('code', nuevoCode)
-        .single();
-      if (error) return console.error(error);
-      if (data?.linked) {
-        clearInterval(intervalo);
-        // REDIRIGIMOS el TV a tv.html?code=…
-        window.location.href = `${window.location.pathname}?code=${nuevoCode}`;
-      }
-    }, 5000);
-
+    // ... sin cambios ...
   } else {
     // —————— MODO SLIDESHOW ——————
     codeDiv.innerText = tvCode;
     statusP.innerText = 'Cargando imágenes…';
 
-    // Función que lista imágenes y, si no hay, se reintenta
+    // Variables globales para el slideshow
+    window._tvUrls     = [];
+    window._tvIdx      = 0;
+    window._tvImgEl    = null;
+    window._tvInterval = null;
+
+    // Función que lista imágenes y actualiza el slideshow
     async function cargarYMostrar() {
-      // 1) Recuperamos user_id
+      // 1) Recuperamos user_id y linked
       const { data: tvRec, error: tvErr } = await supabase
         .from('tv')
         .select('user_id, linked')
@@ -81,16 +44,13 @@
         statusP.innerText = 'Error cargando slideshow';
         return;
       }
-
-      // 3) Si no hay ficheros, volvemos a reintentar en 5s
       if (!files || files.length === 0) {
         statusP.innerText = 'No hay imágenes aún. Esperando…';
-        setTimeout(cargarYMostrar, 5000);
         return;
       }
 
-      // 4) Construimos URLs públicas
-      const urls = files.map(f =>
+      // 3) Construimos URLs públicas
+      const nuevasUrls = files.map(f =>
         supabase
           .storage
           .from('tv-content')
@@ -98,28 +58,43 @@
           .data.publicUrl
       );
 
-      // 5) Ocultamos QR/código/estado
-      qrDiv.style.display   = 'none';
-      codeDiv.style.display = 'none';
-      statusP.style.display = 'none';
+      // 4) Primera vez: inicializamos el <img> y el intervalo
+      if (!window._tvInterval) {
+        // Ocultamos UI de vinculación
+        qrDiv.style.display   = 'none';
+        codeDiv.style.display = 'none';
+        statusP.style.display = 'none';
 
-      // 6) Insertamos <img> y arrancamos slideshow
-      let idx = 0;
-      const img = document.createElement('img');
-      img.style.maxWidth  = '100%';
-      img.style.maxHeight = '100%';
-      document.body.appendChild(img);
+        // Creamos la imagen
+        const img = document.createElement('img');
+        img.style.maxWidth  = '100%';
+        img.style.maxHeight = '100%';
+        document.body.appendChild(img);
+        window._tvImgEl = img;
 
-      setInterval(() => {
-        img.src = urls[idx];
-        idx = (idx + 1) % urls.length;
-      }, 3000);
+        // Asignamos las URLs
+        window._tvUrls = nuevasUrls;
+        window._tvIdx  = 0;
+        img.src        = window._tvUrls[0];
+
+        // Arrancamos el slideshow
+        window._tvInterval = setInterval(() => {
+          window._tvIdx = (window._tvIdx + 1) % window._tvUrls.length;
+          window._tvImgEl.src = window._tvUrls[window._tvIdx];
+        }, 3000);
+
+      } else {
+        // Si ya existía, solo actualizamos las URLs
+        window._tvUrls = nuevasUrls;
+        // Aseguramos que el índice esté dentro de rango
+        window._tvIdx = window._tvIdx % window._tvUrls.length;
+      }
     }
 
-    // Llamada inicial al slideshow
+    // Llamada inicial
     cargarYMostrar();
 
-    // —————— AUTO‑POLLING cada 10 s para detectar nuevas imágenes ——————
+    // AUTO‑POLL cada 10s para recargar las URLs en segundo plano
     setInterval(cargarYMostrar, 10000);
   }
 })();
