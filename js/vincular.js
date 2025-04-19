@@ -10,6 +10,7 @@ async function init() {
     window.location.href = `login.html?redirect=${redirect}`;
     return;
   }
+  // Mostrar formulario de nombrar TV
   document.getElementById('form').style.display = 'block';
 
   // ——— Carga de sesiones existentes ———
@@ -33,19 +34,20 @@ async function init() {
         <span class="font-semibold">${s.nombre || s.code}</span>
         <!-- Enlace a la galería -->
         <a href="galeria.html?code=${s.code}" 
-          class="text-blue-600 hover:underline ml-2">
+           class="text-blue-600 hover:underline ml-2">
           Galería
         </a>
         <!-- Botón para mostrar en TV -->
         <button onclick="mostrarSlideshow('${s.code}')" 
                 class="ml-2 bg-green-500 text-white px-2 py-1 rounded">
-         Mostrar en TV
+          Mostrar en TV
         </button>`;
       listEl.appendChild(li);
     });
   }
   // ————————————————————————————————
 }
+
 init();
 
 async function vincularTV() {
@@ -65,3 +67,10 @@ async function vincularTV() {
     window.location.href = 'dashboard.html';
   }
 }
+
+// ——— Definimos la función y la exponemos globalmente ———
+function mostrarSlideshow(code) {
+  // Redirige la TV al modo slideshow con ?code=… 
+  window.location.href = `tv.html?code=${code}`;
+}
+window.mostrarSlideshow = mostrarSlideshow;
