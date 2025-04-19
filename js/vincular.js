@@ -11,6 +11,33 @@ async function init() {
     return;
   }
   document.getElementById('form').style.display = 'block';
+
+  // ——— Carga de sesiones existentes ———
+  const { data: sesiones, error: sesionesErr } = await supabase
+    .from('tv')
+    .select('code, nombre')
+    .eq('user_id', session.user.id)
+    .eq('linked', true)
+    .order('created_at', { ascending: false });
+
+  const listEl = document.getElementById('session-list');
+  if (sesionesErr) {
+    listEl.innerHTML = `<li class="text-red-500">Error cargando sesiones</li>`;
+  } else if (!sesiones || sesiones.length === 0) {
+    listEl.innerHTML = `<li>No tienes sesiones vinculadas aún.</li>`;
+  } else {
+    listEl.innerHTML = '';
+    sesiones.forEach(s => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <a href="galeria.html?code=${s.code}" 
+           class="text-blue-600 hover:underline">
+          ${s.nombre || s.code}
+        </a>`;
+      listEl.appendChild(li);
+    });
+  }
+  // ————————————————————————————————
 }
 init();
 
