@@ -19,7 +19,6 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
-      /* cursor por defecto visible */
       cursor: default;
     }
     #qrcode { background: #fff; padding: 16px; }
@@ -40,22 +39,22 @@
   </style>
 </head>
 <body>
-  <h1 class="text-3xl mb-6">Emparejar TV</h1>
+  <!-- Añadimos id al título -->
+  <h1 id="titulo" class="text-3xl mb-6">Emparejar TV</h1>
+
   <div id="qrcode"></div>
   <div id="code"></div>
   <p id="status">Inicializando…</p>
 
-  <!-- Botón para fullscreen -->
   <button id="btn-fullscreen">Pantalla completa</button>
 
-  <!-- 1) Supabase Client -->
   <script src="js/supabaseClient.js"></script>
-  <!-- 2) Nuestra lógica de tv.js -->
   <script src="js/tv.js"></script>
 
-  <!-- 3) Script para fullscreen + ocultar botón y cursor -->
   <script>
-    const btn = document.getElementById('btn-fullscreen');
+    const btn    = document.getElementById('btn-fullscreen');
+    const titulo = document.getElementById('titulo');
+
     btn.addEventListener('click', () => {
       const el = document.documentElement;
       if (el.requestFullscreen) {
@@ -69,12 +68,14 @@
 
     document.addEventListener('fullscreenchange', () => {
       if (document.fullscreenElement) {
-        // En full screen: ocultar el botón y el cursor
-        btn.style.display = 'none';
+        // En full screen: ocultar el botón, título y el cursor
+        btn.style.display    = 'none';
+        titulo.style.display = 'none';
         document.body.style.cursor = 'none';
       } else {
         // Al salir de full screen: restaurar
-        btn.style.display = '';
+        btn.style.display    = '';
+        titulo.style.display = '';
         document.body.style.cursor = 'default';
       }
     });
