@@ -100,4 +100,20 @@ async function deleteFile(name) {
   // ————————————————————————————————————————————————————————————
 
   loadFiles();
+document.getElementById('btn-refresh-tv').addEventListener('click', async () => {
+  try {
+    await supabase
+      .channel(`tv-${tvCode}`)
+      .send({
+        type: 'broadcast',
+        event: 'refresh',
+        payload: {}
+      });
+    alert('Se ha enviado la orden de refrescar el slideshow en la TV.');
+  } catch (err) {
+    console.error('Error enviando refresh al TV:', err);
+    alert('No se pudo enviar la orden de refresco.');
+  }
+});
+  
 }
