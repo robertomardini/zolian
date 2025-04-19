@@ -19,6 +19,8 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
+      /* cursor por defecto visible */
+      cursor: default;
     }
     #qrcode { background: #fff; padding: 16px; }
     #code   { margin-top: 1rem; font-size: 1.5rem; font-family: monospace; }
@@ -51,9 +53,10 @@
   <!-- 2) Nuestra lógica de tv.js -->
   <script src="js/tv.js"></script>
 
-  <!-- 3) Script para fullscreen -->
+  <!-- 3) Script para fullscreen + ocultar botón y cursor -->
   <script>
-    document.getElementById('btn-fullscreen').addEventListener('click', () => {
+    const btn = document.getElementById('btn-fullscreen');
+    btn.addEventListener('click', () => {
       const el = document.documentElement;
       if (el.requestFullscreen) {
         el.requestFullscreen();
@@ -61,6 +64,18 @@
         el.webkitRequestFullscreen();
       } else if (el.msRequestFullscreen) {
         el.msRequestFullscreen();
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement) {
+        // En full screen: ocultar el botón y el cursor
+        btn.style.display = 'none';
+        document.body.style.cursor = 'none';
+      } else {
+        // Al salir de full screen: restaurar
+        btn.style.display = '';
+        document.body.style.cursor = 'default';
       }
     });
   </script>
