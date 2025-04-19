@@ -127,15 +127,11 @@
       }
     }
 
-    // --- Suscripción Realtime: escucha los eventos ---
+    // --- Suscripción Realtime: escucha el evento 'refresh' ---
     const channel = supabase
       .channel(`tv-${tvCode}`)
       .on('broadcast', { event: 'refresh' }, () => {
         console.log('🔄 Refresh recibido en TV, recargando imágenes');
-        cargarYMostrar();
-      })
-      .on('broadcast', { event: 'show' }, () => {
-        console.log('📺 Show recibido en TV, lanzando slideshow');
         cargarYMostrar();
       });
     await channel.subscribe();
