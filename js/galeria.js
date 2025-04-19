@@ -35,7 +35,7 @@ async function uploadFile() {
     .upload(path, file, { upsert: true });
   if (error) return alert("Error subiendo: " + error.message);
 
-  // —————— NUEVO: emitir evento de "refresh" al canal de la TV ——————
+  // —————— Emite 'refresh' al canal de la TV ——————
   await supabase
     .channel(`tv-${tvCode}`)
     .send({
@@ -43,7 +43,7 @@ async function uploadFile() {
       event: 'refresh',
       payload: {}
     });
-  // ——————————————————————————————————————————————————————————————
+  // ————————————————————————————————————————————
 
   loadFiles();
 }
@@ -89,7 +89,7 @@ async function deleteFile(name) {
     .remove([filePath]);
   if (error) return alert("Error borrando: " + error.message);
 
-  // —————— OPCIONAL: también notificar al TV tras borrar ——————
+  // —————— Notificar al TV tras borrar ——————
   await supabase
     .channel(`tv-${tvCode}`)
     .send({
@@ -97,9 +97,12 @@ async function deleteFile(name) {
       event: 'refresh',
       payload: {}
     });
-  // ————————————————————————————————————————————————————————————
+  // ————————————————————————————————————
 
-  loadFiles();
+  loadFiles();  
+}
+
+// —————— NUEVO: botón para refrescar manualmente el slideshow en la TV ——————
 document.getElementById('btn-refresh-tv').addEventListener('click', async () => {
   try {
     await supabase
@@ -115,5 +118,4 @@ document.getElementById('btn-refresh-tv').addEventListener('click', async () => 
     alert('No se pudo enviar la orden de refresco.');
   }
 });
-  
-}
+// ——————————————————————————————————————————————————————————————
