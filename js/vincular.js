@@ -30,10 +30,17 @@ async function init() {
     sesiones.forEach(s => {
       const li = document.createElement('li');
       li.innerHTML = `
+        <span class="font-semibold">${s.nombre || s.code}</span>
+        <!-- Enlace a la galería -->
         <a href="galeria.html?code=${s.code}" 
-           class="text-blue-600 hover:underline">
-          ${s.nombre || s.code}
-        </a>`;
+          class="text-blue-600 hover:underline ml-2">
+          Galería
+        </a>
+        <!-- Botón para mostrar en TV -->
+        <button onclick="mostrarSlideshow('${s.code}')" 
+                class="ml-2 bg-green-500 text-white px-2 py-1 rounded">
+         Mostrar en TV
+        </button>`;
       listEl.appendChild(li);
     });
   }
