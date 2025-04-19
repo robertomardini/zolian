@@ -31,7 +31,7 @@
     // 2) Generamos el QR (apunta a vincular.html?code=nuevoCode)
     qrDiv.innerHTML = '';
     new QRCode(qrDiv, {
-      text: `${window.location.origin}/vincular.html?code=${nuevoCode}`,
+      text: ${window.location.origin}/vincular.html?code=${nuevoCode},
       width: 200, height: 200,
       colorDark: '#000', colorLight: '#fff',
       correctLevel: QRCode.CorrectLevel.H,
@@ -48,7 +48,7 @@
       if (data?.linked) {
         clearInterval(intervalo);
         // REDIRIGIMOS el TV a tv.html?code=…
-        window.location.href = `${window.location.pathname}?code=${nuevoCode}`;
+        window.location.href = ${window.location.pathname}?code=${nuevoCode};
       }
     }, 5000);
 
@@ -71,7 +71,7 @@
       }
 
       // 2) Listamos del bucket
-      const prefix = `${tvRec.user_id}/${tvCode}`;
+      const prefix = ${tvRec.user_id}/${tvCode};
       const { data: files, error: listErr } = await supabase
         .storage
         .from('tv-content')
@@ -94,7 +94,7 @@
         supabase
           .storage
           .from('tv-content')
-          .getPublicUrl(`${prefix}/${f.name}`)
+          .getPublicUrl(${prefix}/${f.name})
           .data.publicUrl
       );
 
@@ -115,11 +115,3 @@
         idx = (idx + 1) % urls.length;
       }, 3000);
     }
-
-    // Llamada inicial al slideshow
-    cargarYMostrar();
-
-    // —————— AUTO‑POLLING cada 10 s para detectar nuevas imágenes ——————
-    setInterval(cargarYMostrar, 10000);
-  }
-})();
