@@ -57,7 +57,7 @@
     codeDiv.innerText = tvCode;
     statusP.innerText = 'Cargando imágenes…';
 
-    // Función que lista imágenes y, si no hay, se reintenta
+    // --- Función que lista imágenes y, si no hay, se reintenta ---
     async function cargarYMostrar() {
       // 1) Recuperamos user_id
       const { data: tvRec, error: tvErr } = await supabase
@@ -103,15 +103,41 @@
       codeDiv.style.display = 'none';
       statusP.style.display = 'none';
 
-      // 6) Insertamos <img> y arrancamos slideshow
-      let idx = 0;
-      const img = document.createElement('img');
-      img.style.maxWidth  = '100%';
-      img.style.maxHeight = '100%';
-      document.body.appendChild(img);
+      // 6) Insertamos <img> y arrancamos o actualizamos slideshow
+      if (!window._tvInterval) {
+        // Primera vez: creamos img y el interval
+        let idx = 0;
+        const img = document.createElement('img');
+        img.style.maxWidth  = '100%';
+        img.style.maxHeight = '100%';
+        document.body.appendChild(img);
 
-      setInterval(() => {
-        img.src = urls[idx];
-        idx = (idx + 1) % urls.length;
-      }, 3000);
+        window._tvInterval = setInterval(() => {
+          img.src = urls[idx];
+          idx = (idx + 1) % urls.length;
+        }, 3000);
+
+        // Guardamos la referencia al img para actualizaciones
+        window._tvImgEl = img;
+        window._tvIdx   = 0;
+        window._tvUrls  = urls;
+      } else {
+        // Ya teníamos el slideshow corriendo: actualizamos las URLs
+        window._tvUrls = urls;
+      }
     }
+
+    // --- Suscripción Realtime: escucha el evento 'refresh' ---
+    const channel = supabase
+      .channel(`tv-${tvCode}`)
+      .on('broadcast', { event: 'refresh' }, () => {
+        console.log('🔄 Refresh recibido en TV, recargando imágenes');
+        cargarYMostrar();
+      });
+    await channel.subscribe();
+
+    // 7) Primera carga de imágenes
+    cargarYMostrar();
+  }
+
+})();
