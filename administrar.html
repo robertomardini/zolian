@@ -2,45 +2,109 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Administrar TV</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <link
     href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
     rel="stylesheet"
   />
   <style>
-    body { background:#f3f4f6; color:#111; font-family:sans-serif; }
-    .container { max-width:480px; margin:2rem auto; padding:1rem; background:#fff; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
-    button { cursor:pointer; }
+    body { background: #f4f4f4; color: #202020; }
+    #navbar {
+      background: linear-gradient(to right, #05F2C7, #4E0FA6);
+    }
+    #mobile-menu a, #mobile-menu button {
+      display: block; padding: .5rem 1rem; color: #202020;
+    }
+    #mobile-menu { background: #f4f4f4; position:fixed; top:3rem; left:0; width:12rem; }
+    #main { margin-top: 4rem; padding: 1rem; text-align: center; }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .gallery-item {
+      cursor: pointer;
+      padding: 1rem;
+      border: 1px solid #202020;
+      border-radius: .5rem;
+    }
+    #btn-full, #btn-save-duration {
+      background: #4E0FA6;
+      color: #f4f4f4;
+      border:none;
+      padding: .75rem 1.5rem;
+      border-radius: .375rem;
+      margin-top: .5rem;
+    }
+    #btn-desv {
+      color: #e3342f;
+      margin-top: 1rem;
+      display: block;
+      cursor: pointer;
+    }
+    #duration { width: 4rem; text-align: center; border:1px solid #202020; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1 class="text-2xl font-bold mb-4">Administrar Pantalla</h1>
-    <p class="mb-2">Código de TV: <span id="tv-code" class="font-mono"></span></p>
+
+  <!-- NAVBAR -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 h-12 flex items-center px-4 z-10">
+    <button id="btn-menu" class="text-white focus:outline-none">
+      <svg width="24" height="24" fill="none" stroke="white" stroke-width="2">
+        <path d="M3 6h18M3 12h18M3 18h18"/>
+      </svg>
+    </button>
+    <div class="flex-1"></div>
+    <span id="user-email" class="text-white font-medium"></span>
+  </nav>
+
+  <!-- MENÚ LATERAL -->
+  <div id="mobile-menu" class="hidden">
+    <a href="pantallas.html">Pantallas</a>
+    <a href="galerias.html">Galerías</a>
+    <button id="btn-logout" class="text-red-600">Cerrar sesión</button>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main id="main">
+    <h2 id="screen-name" class="text-2xl font-bold mb-2"></h2>
+    <!-- Icono TV -->
+    <svg width="48" height="48" fill="none" stroke="#202020" stroke-width="2" class="mb-2">
+      <rect x="4" y="8" width="40" height="28" rx="4"/>
+      <path d="M14 40l8-8 8 8"/>
+    </svg>
+    <p class="font-mono mb-4">Selecciona una galería</p>
+
+    <!-- GRID DE GALERÍAS -->
+    <div id="gallery-list" class="gallery-grid">
+      <!-- JS inyecta: primer card “Crear galería” + las existentes -->
+    </div>
 
     <hr class="my-4" />
 
-    <button id="btn-new" class="w-full bg-blue-500 text-white py-2 rounded mb-4">
-      ➕ Crear nueva galería
-    </button>
+    <!-- Pantalla completa -->
+    <button id="btn-full">Pantalla completa en TV</button>
 
-    <h2 class="text-xl font-semibold mb-2">Tus galerías</h2>
-    <ul id="gallery-list" class="list-disc pl-5 mb-4">
-      <li>Cargando galerías…</li>
-    </ul>
+    <hr class="my-4" />
 
-    <div class="flex justify-between">
-      <button id="btn-full" class="bg-green-500 text-white px-4 py-2 rounded">
-        ▶ Pantalla completa en TV
-      </button>
-      <button id="btn-unlink" class="bg-red-500 text-white px-4 py-2 rounded">
-        ✖ Desvincular TV
-      </button>
+    <!-- Duración -->
+    <div>
+      <label class="font-semibold mr-2">Duración imagen (s)</label>
+      <input type="number" id="duration" min="1" />
+      <button id="btn-save-duration">Guardar</button>
     </div>
-  </div>
 
+    <hr class="my-4" />
+
+    <!-- Desvincular -->
+    <span id="btn-desv">Desvincular pantalla</span>
+  </main>
+
+  <!-- SUPABASE + JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/supabaseClient.js"></script>
-  <script src="js/administracion.js"></script>
+  <script src="js/administrar.js"></script>
 </body>
 </html>
