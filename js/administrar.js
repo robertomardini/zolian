@@ -2,14 +2,14 @@
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-  // ——— 0) Parámetro TV code ———
+  // 0) Leer parámetro code de la TV
   const params = new URLSearchParams(location.search);
   const tvCode = params.get('code');
   if (!tvCode) {
     return window.location.href = 'pantallas.html';
   }
 
-  // ——— 1) Elementos del DOM ———
+  // 1) Referencias al DOM
   const userEmailEl = document.getElementById('user-email');
   const tvCodeEl    = document.getElementById('tv-code');
   const tvNombreEl  = document.getElementById('tv-nombre');
@@ -18,7 +18,7 @@ async function init() {
   const inputDur    = document.getElementById('duration');
   const btnUnlink   = document.getElementById('btn-unlink');
 
-  // ——— 2) Sesión ———
+  // 2) Sesión
   const { data: { session }, error: sesErr } = await supabase.auth.getSession();
   if (sesErr || !session) {
     const redirect = encodeURIComponent(`administrar.html?code=${tvCode}`);
@@ -27,9 +27,9 @@ async function init() {
   const userId = session.user.id;
   userEmailEl.innerText = session.user.email;
 
-  // ——— 3) Datos de la TV ———
+  // 3) Datos de la TV
   const { data: tvRec, error: tvErr } = await supabase
-    .from('tv')                           // <<– tabla correcta
+    .from('tv')
     .select('nombre, user_id, gallery_code, duration')
     .eq('code', tvCode)
     .single();
@@ -39,15 +39,21 @@ async function init() {
     return;
   }
 
-  // Pongo en pantalla los datos
+  // Mostrar datos
   tvCodeEl.innerText   = tvCode;
   tvNombreEl.innerText = tvRec.nombre || '—';
   if (tvRec.duration != null) inputDur.value = tvRec.duration;
+  let assignedGallery = tvRec.gallery_code;
 
-  // ——— 4) Cargo galerías y renderizo ———
-  await loadGalerias(tvRec.gallery_code);
+  // 4) Configuro canal Realtime para broadcasts
+  const channel = supabase
+    .channel(`tv-${tvCode}`)
+    .subscribe(); // nos suscribimos, la TV recibe el broadcast
 
-  // ——— 5) Fullscreen guarda sólo duración y redirige ———
+  // 5) Cargo y renderizo galerías
+  await loadGalerias();
+
+  // 6) Botón Pantalla completa (solo guarda duración)
   if (btnFull) {
     btnFull.onclick = async () => {
       await supabase
@@ -58,7 +64,7 @@ async function init() {
     };
   }
 
-  // ——— 6) Desvincular TV ———
+  // 7) Botón Desvincular
   if (btnUnlink) {
     btnUnlink.onclick = async () => {
       if (!confirm('¿Desvincular esta TV de tu cuenta?')) return;
@@ -75,10 +81,10 @@ async function init() {
     };
   }
 
-  // ——— Función para listar y “activar” cada galería ———
-  async function loadGalerias(currentGallery) {
+  // ——— Función para listar galerías ———
+  async function loadGalerias() {
     const { data: sesiones, error } = await supabase
-      .from('tv')                       // <<– tabla correcta
+      .from('tv')
       .select('code, nombre')
       .eq('user_id', userId)
       .eq('linked', true);
@@ -88,10 +94,9 @@ async function init() {
       console.error(error);
       return;
     }
-
     galleryArea.innerHTML = '';
 
-    // Botón “+ Nueva galería”
+    // Botón para crear nueva
     const btnNew = document.createElement('button');
     btnNew.className = 'flex flex-col items-center p-4 border rounded hover:bg-gray-50';
     btnNew.innerHTML = `
@@ -104,7 +109,7 @@ async function init() {
     btnNew.onclick = () => window.location.href = `galeria.html?code=${tvCode}`;
     galleryArea.appendChild(btnNew);
 
-    // Botones de cada sesión (galería)
+    // Botones de cada sesión/galería
     sesiones
       .filter(s => s.code !== tvCode)
       .forEach(s => {
@@ -118,18 +123,33 @@ async function init() {
           <span>${s.nombre || s.code}</span>
         `;
         btn.onclick = async () => {
-          // 1) guardo asignación en la BD
-          await supabase
+          // 1) Actualizo gallery_code en la tabla
+          const { error: updErr } = await supabase
             .from('tv')
             .update({ gallery_code: s.code })
             .eq('code', tvCode);
-          // 2) redirect inmediato al slideshow
-          window.location.href = `index.html?code=${tvCode}`;
+          if (updErr) {
+            return alert('Error al asignar galería: ' + updErr.message);
+          }
+          assignedGallery = s.code;
+
+          // 2) Resalto selección
+          document
+            .querySelectorAll('#gallery-options button')
+            .forEach(b => b.classList.remove('ring','ring-2','ring-[#05F2C7]'));
+          btn.classList.add('ring','ring-2','ring-[#05F2C7]');
+
+          // 3) Mando broadcast al TV para que recargue
+          channel.send({ type: 'broadcast', event: 'refresh' });
         };
         galleryArea.appendChild(btn);
+
+        // Si ya era la galería asignada, marco al cargar
+        if (s.code === assignedGallery) {
+          btn.click();
+        }
       });
 
-    // Si no hay otras galerías
     if (sesiones.filter(s => s.code !== tvCode).length === 0) {
       galleryArea.innerHTML +=
         '<p class="italic text-gray-500 mt-4">No hay otras galerías vinculadas.</p>';
