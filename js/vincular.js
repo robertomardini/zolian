@@ -37,11 +37,7 @@ async function init() {
            class="text-blue-600 hover:underline ml-2">
           Galería
         </a>
-        <!-- Botón para mostrar en TV -->
-        <button onclick="mostrarSlideshow('${s.code}')" 
-                class="ml-2 bg-green-500 text-white px-2 py-1 rounded">
-          Mostrar en TV
-        </button>`;
+       
       listEl.appendChild(li);
     });
   }
