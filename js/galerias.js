@@ -47,7 +47,7 @@ async function loadGalerias() {
         <div class="text-sm text-gray-600 mt-1">Creada: ${new Date(tv.created_at).toLocaleDateString()}</div>
       </div>
       <div class="mt-3 sm:mt-0 space-x-2">
-        <a href="galeria.html?code=${tv.code}"
+        <a href="galerias.html?code=${tv.code}"
            class="bg-[#4E0FA6] text-[#f4f4f4] px-3 py-1 rounded">
           Editar
         </a>
