@@ -6,6 +6,7 @@ async function init() {
   const params = new URLSearchParams(location.search);
   const tvCode = params.get('code');
   if (!tvCode) {
+    // Si falta el código, volvemos al listado de pantallas
     return window.location.href = 'pantallas.html';
   }
 
@@ -18,7 +19,7 @@ async function init() {
   const inputDur    = document.getElementById('duration');
   const btnUnlink   = document.getElementById('btn-unlink');
 
-  // 2) Sesión
+  // 2) Comprobamos la sesión
   const { data: { session }, error: sesErr } = await supabase.auth.getSession();
   if (sesErr || !session) {
     const redirect = encodeURIComponent(`administrar.html?code=${tvCode}`);
@@ -27,7 +28,7 @@ async function init() {
   const userId = session.user.id;
   userEmailEl.innerText = session.user.email;
 
-  // 3) Datos de la TV
+  // 3) Cargamos datos de la TV
   const { data: tvRec, error: tvErr } = await supabase
     .from('tv')
     .select('nombre, user_id, gallery_code, duration')
@@ -39,21 +40,21 @@ async function init() {
     return;
   }
 
-  // Mostrar datos
+  // Mostramos datos
   tvCodeEl.innerText   = tvCode;
   tvNombreEl.innerText = tvRec.nombre || '—';
   if (tvRec.duration != null) inputDur.value = tvRec.duration;
   let assignedGallery = tvRec.gallery_code;
 
-  // 4) Configuro canal Realtime para broadcasts
+  // 4) Creamos un canal Realtime para emitir 'refresh'
   const channel = supabase
     .channel(`tv-${tvCode}`)
-    .subscribe(); // nos suscribimos, la TV recibe el broadcast
+    .subscribe();
 
-  // 5) Cargo y renderizo galerías
+  // 5) Renderizamos el listado de galerías
   await loadGalerias();
 
-  // 6) Botón Pantalla completa (solo guarda duración)
+  // 6) Botón "Pantalla completa": guardamos duración y volvemos a la TV
   if (btnFull) {
     btnFull.onclick = async () => {
       await supabase
@@ -64,7 +65,7 @@ async function init() {
     };
   }
 
-  // 7) Botón Desvincular
+  // 7) Botón "Desvincular TV"
   if (btnUnlink) {
     btnUnlink.onclick = async () => {
       if (!confirm('¿Desvincular esta TV de tu cuenta?')) return;
@@ -81,7 +82,7 @@ async function init() {
     };
   }
 
-  // ——— Función para listar galerías ———
+  // ——— Función para listar y mostrar galerías ———
   async function loadGalerias() {
     const { data: sesiones, error } = await supabase
       .from('tv')
@@ -96,7 +97,7 @@ async function init() {
     }
     galleryArea.innerHTML = '';
 
-    // Botón para crear nueva
+    // 5.1) Botón para crear nueva galería
     const btnNew = document.createElement('button');
     btnNew.className = 'flex flex-col items-center p-4 border rounded hover:bg-gray-50';
     btnNew.innerHTML = `
@@ -109,7 +110,7 @@ async function init() {
     btnNew.onclick = () => window.location.href = `galerias.html?code=${tvCode}`;
     galleryArea.appendChild(btnNew);
 
-    // Botones de cada sesión/galería
+    // 5.2) Botones para cada galería existente
     sesiones
       .filter(s => s.code !== tvCode)
       .forEach(s => {
@@ -123,7 +124,7 @@ async function init() {
           <span>${s.nombre || s.code}</span>
         `;
         btn.onclick = async () => {
-          // 1) Actualizo gallery_code en la tabla
+          // 1) Guardamos en la tabla tv
           const { error: updErr } = await supabase
             .from('tv')
             .update({ gallery_code: s.code })
@@ -133,23 +134,24 @@ async function init() {
           }
           assignedGallery = s.code;
 
-          // 2) Resalto selección
+          // 2) Resaltamos la selección
           document
             .querySelectorAll('#gallery-options button')
             .forEach(b => b.classList.remove('ring','ring-2','ring-[#05F2C7]'));
           btn.classList.add('ring','ring-2','ring-[#05F2C7]');
 
-          // 3) Mando broadcast al TV para que recargue
+          // 3) Enviamos broadcast para refrescar la TV
           channel.send({ type: 'broadcast', event: 'refresh' });
         };
         galleryArea.appendChild(btn);
 
-        // Si ya era la galería asignada, marco al cargar
+        // Si ya estaba asignada, la marcamos
         if (s.code === assignedGallery) {
           btn.click();
         }
       });
 
+    // Si no hay otras galerías
     if (sesiones.filter(s => s.code !== tvCode).length === 0) {
       galleryArea.innerHTML +=
         '<p class="italic text-gray-500 mt-4">No hay otras galerías vinculadas.</p>';
