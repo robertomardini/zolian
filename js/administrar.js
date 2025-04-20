@@ -1,132 +1,117 @@
 // js/administrar.js
-const params = new URLSearchParams(location.search);
-const screenCode = params.get('code');
+const params       = new URLSearchParams(location.search);
+const tvCode       = params.get('code');
+const btnMenu      = document.getElementById('btn-menu');
+const btnClose     = document.getElementById('btn-close');
+const sidebar      = document.getElementById('sidebar');
+const userEmailEl  = document.getElementById('user-email');
+const tvCodeEl     = document.getElementById('tv-code');
+const tvNombreEl   = document.getElementById('tv-nombre');
+const galleryArea  = document.getElementById('gallery-options');
+const btnNew       = document.getElementById('btn-new');
+const btnFull      = document.getElementById('btn-fullscreen');
+const inputDur     = document.getElementById('duration');
+const btnUnlink    = document.getElementById('btn-unlink');
 
-// Elementos
-const screenNameEl    = document.getElementById('screen-name');
-const galleryListEl   = document.getElementById('gallery-list');
-const btnFull         = document.getElementById('btn-full');
-const durationInput   = document.getElementById('duration');
-const btnSaveDuration = document.getElementById('btn-save-duration');
-const btnDesv         = document.getElementById('btn-desv');
-const menuEl          = document.getElementById('mobile-menu');
-const btnMenu         = document.getElementById('btn-menu');
-const btnLogout       = document.getElementById('btn-logout');
-const emailEl         = document.getElementById('user-email');
+let userId, assignedGallery;
+
+// Menú hamburguesa
+btnMenu.onclick  = () => sidebar.classList.remove('hidden');
+btnClose.onclick = () => sidebar.classList.add('hidden');
 
 async function init() {
-  if (!screenCode) {
-    alert('Falta parámetro code');
-    return;
+  // 1) Usuario
+  const { data: { session }, error: sesErr } = await supabase.auth.getSession();
+  if (sesErr || !session) {
+    return window.location.href = `login.html?redirect=administrar.html?code=${tvCode}`;
   }
+  const user = session.user;
+  userEmailEl.innerText = user.email;
+  userId = user.id;
 
-  // 1) Sesión
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    const redir = encodeURIComponent(`administrar.html?code=${screenCode}`);
-    return window.location.href = `login.html?redirect=${redir}`;
-  }
-  emailEl.innerText = session.user.email;
-
-  // 2) Control menú
-  btnMenu.addEventListener('click', () => menuEl.classList.toggle('hidden'));
-  btnLogout.addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.href = 'login.html';
-  });
-
-  // 3) Cargo datos de la TV
+  // 2) Info TV
   const { data: tvRec, error: tvErr } = await supabase
-    .from('tv')
-    .select('user_id, linked, nombre, gallery_code, duration')
-    .eq('code', screenCode)
+    .from('tv').select('nombre,user_id,assigned_gallery,duration')
+    .eq('code', tvCode)
     .single();
-  if (tvErr || !tvRec || !tvRec.linked) {
-    screenNameEl.innerText = 'TV no vinculada';
+  if (tvErr || tvRec.user_id !== userId) {
+    alert('No tienes permiso para administrar esta TV.');
     return;
   }
-  screenNameEl.innerText = `${tvRec.nombre} 📺`;
-  durationInput.value = tvRec.duration || 5;
+  tvCodeEl.innerText   = tvCode;
+  tvNombreEl.innerText = tvRec.nombre;
+  if (tvRec.duration) inputDur.value = tvRec.duration;
+  assignedGallery = tvRec.assigned_gallery;
 
-  // 4) Cargo “sesiones” del usuario como galerías
-  const { data: sessions, error: sessErr } = await supabase
-    .from('tv')
-    .select('code, nombre')
-    .eq('user_id', tvRec.user_id)
-    .eq('linked', true)
-    .order('created_at', { ascending: false });
-  if (sessErr) return console.error(sessErr);
+  // 3) Cargar galerías existentes
+  loadGalerias();
 
-  //  -- Primero: botón “Crear galería” --
-  galleryListEl.innerHTML = '';
-  const createCard = document.createElement('div');
-  createCard.className = 'gallery-item';
-  createCard.innerHTML = `
-    <div style="font-size:2rem;">➕</div>
-    <div>Crear galería</div>
-  `;
-  createCard.onclick = () => {
-    // rediriges a tu flujo de creación
-    window.location.href = `galeria.html?code=${screenCode}&newGallery=true`;
+  // 4) Crear nueva
+  btnNew.onclick = () => window.location.href = `galerias.html`;
+
+  // 5) Fullscreen
+  btnFull.onclick = () => {
+    // guardar configuración antes de cambiar
+    guardarConfig().then(() => {
+      window.location.href = `index.html?code=${tvCode}`;
+    });
   };
-  galleryListEl.appendChild(createCard);
 
-  //  -- Luego cada sesión existente --
-  sessions.forEach(s => {
-    const card = document.createElement('div');
-    card.className = 'gallery-item';
-    card.innerHTML = `
-      <div style="font-size:2rem;">🖼️</div>
-      <div>${s.nombre || s.code}</div>
-    `;
-    card.onclick = () => asignarGaleria(s.code);
-    if (tvRec.gallery_code === s.code) {
-      card.style.borderColor = '#05F2C7';  // marca la seleccionada
-    }
-    galleryListEl.appendChild(card);
-  });
-
-  // 5) Botón pantalla completa
-  btnFull.addEventListener('click', () => {
-    window.open(`index.html?code=${screenCode}`, '_blank');
-  });
-
-  // 6) Guardar duración
-  btnSaveDuration.addEventListener('click', async () => {
-    const dur = parseInt(durationInput.value, 10);
-    if (isNaN(dur) || dur < 1) return alert('Duración inválida');
-    const { error } = await supabase
+  // 6) Desvincular
+  btnUnlink.onclick = async () => {
+    if (!confirm('¿Desvincular esta TV de tu cuenta?')) return;
+    await supabase
       .from('tv')
-      .update({ duration: dur })
-      .eq('code', screenCode);
-    if (error) console.error(error);
-    else alert('Duración actualizada');
-  });
-
-  // 7) Desvincular
-  btnDesv.addEventListener('click', async () => {
-    if (!confirm('¿Desvincular esta pantalla?')) return;
-    const { error } = await supabase
-      .from('tv')
-      .update({ linked: false, gallery_code: null, duration: null })
-      .eq('code', screenCode);
-    if (error) return console.error(error);
+      .update({ linked: false, user_id: null, assigned_gallery: null, duration: null })
+      .eq('code', tvCode);
     window.location.href = 'pantallas.html';
-  });
+  };
 }
 
-// Función para asignar galería a la TV
-async function asignarGaleria(galleryCode) {
-  const { error } = await supabase
+async function loadGalerias() {
+  // traigo las "galerías" que son registros tv con linked=true
+  const { data: sesiones } = await supabase
     .from('tv')
-    .update({ gallery_code: galleryCode })
-    .eq('code', screenCode);
-  if (error) {
-    console.error(error);
-  } else {
-    // refresco la página para indicar selección
-    location.reload();
-  }
+    .select('code,nombre')
+    .eq('user_id', userId)
+    .eq('linked', true);
+
+  // inyectar botones
+  sesiones
+    .filter(s => s.code !== tvCode)
+    .forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'flex flex-col items-center p-4 border rounded hover:bg-gray-50';
+      btn.innerHTML = `
+        <svg class="w-8 h-8 mb-2" fill="none" stroke="#202020" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 7h18M3 12h18M3 17h18"/>
+        </svg>
+        <span>${s.nombre || s.code}</span>
+      `;
+      btn.onclick = () => {
+        assignedGallery = s.code;
+        // resalta selección
+        document.querySelectorAll('#gallery-options button').forEach(b => b.classList.remove('ring'));
+        btn.classList.add('ring','ring-2','ring-[#05F2C7]');
+      };
+      galleryArea.appendChild(btn);
+      // si ya está asignada, marcarla
+      if (s.code === assignedGallery) {
+        btn.click();
+      }
+    });
 }
 
-init();
+// guarda assigned_gallery y duration en la tabla tv
+async function guardarConfig() {
+  await supabase
+    .from('tv')
+    .update({
+      assigned_gallery: assignedGallery,
+      duration: Number(inputDur.value)
+    })
+    .eq('code', tvCode);
+}
+
+document.addEventListener('DOMContentLoaded', init);
