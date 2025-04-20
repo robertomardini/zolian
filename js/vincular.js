@@ -21,7 +21,7 @@ async function init() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
     // Si no hay, redirigimos a login con retorno aquí
-    const redirect = encodeURIComponent(`vincular.html?code=${tvCode}`);
+    const redirect = encodeURIComponent(`administrar.html?code=${tvCode}`);
     return window.location.href = `login.html?redirect=${redirect}`;
   }
 
