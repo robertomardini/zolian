@@ -36,10 +36,6 @@ async function loadTVs() {
          class="text-blue-600 hover:underline ml-2">
         Editar Galería
       </a>
-      <button onclick="mostrarSlideshow('${tv.code}')"
-              class="ml-2 bg-green-500 text-white px-2 py-1 rounded">
-        Mostrar en TV
-      </button>
       <button onclick="eliminarTV('${tv.code}', '${user.id}')"
               class="ml-2 bg-red-500 text-white px-2 py-1 rounded">
         Eliminar
