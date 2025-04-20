@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Administrar TV</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body { background:#f3f4f6; color:#111; margin:0; font-family:sans-serif; }
+    .container { max-width:600px; margin:2rem auto; background:white; padding:1.5rem; border-radius:0.5rem; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .card { cursor:pointer; padding:1rem; text-align:center; border:1px solid #ddd; border-radius:0.5rem; }
+    .card:hover { background:#f9fafb; }
+    .full-btn { margin-top:1rem; width:100%; }
+    .unbind { margin-top:0.5rem; color:red; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="text-2xl font-bold mb-4">TV <span id="tv-code" class="font-mono"></span></h1>
+    <div class="grid mb-4">
+      <div id="create-card" class="card bg-green-100">➕<br>Crear galería nueva</div>
+      <div id="existing-wrap">
+        <h2 class="font-semibold mb-2">Tus galerías</h2>
+        <div id="existing-list" class="space-y-2"></div>
+      </div>
+    </div>
+    <button id="full-btn" class="full-btn bg-blue-600 text-white p-2 rounded">Pantalla completa en TV</button>
+    <div id="unbind" class="unbind text-center">Desvincular TV</div>
+  </div>
+  <script src="js/administracion.js"></script>
+</body>
+</html>
