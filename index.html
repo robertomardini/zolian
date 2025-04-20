@@ -2,36 +2,83 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mi App Zolian</title>
+  <title>Emparejar TV</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
   <link
-    href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/umd/tailwind.min.css"
     rel="stylesheet"
   />
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      cursor: default;
+    }
+    #qrcode { background: #fff; padding: 16px; }
+    #code   { margin-top: 1rem; font-size: 1.5rem; font-family: monospace; }
+    #status { margin-top: 1rem; color: #facc15; }
+    #btn-fullscreen {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 0.25rem;
+      cursor: pointer;
+    }
+    #btn-fullscreen:hover {
+      background: #1e40af;
+    }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col bg-[#f4f4f4] text-[#202020]">
+<body>
+  <!-- Añadimos id al título -->
+  <h1 id="titulo" class="text-3xl mb-6">Emparejar TV</h1>
 
-  <!-- Barra superior con tabs -->
-  <header
-    class="flex items-center justify-between p-4 bg-gradient-to-r from-[#05F2C7] to-[#4E0FA6] text-[#f4f4f4]"
-  >
-    <nav class="flex space-x-4">
-      <button id="tab-pantallas" class="font-semibold">Pantallas</button>
-      <button id="tab-galerias"  class="font-semibold">Galerías</button>
-      <button id="tab-cuenta"    class="font-semibold">Cuenta</button>
-    </nav>
-    <div id="user-email-bar" class="font-medium"></div>
-  </header>
+  <div id="qrcode"></div>
+  <div id="code"></div>
+  <p id="status">Inicializando…</p>
 
-  <!-- Contenedor principal -->
-  <main id="app" class="flex-1 p-4"></main>
+  <button id="btn-fullscreen">Pantalla completa</button>
 
-  <!-- Scripts -->
-  <!-- 1) Librería UMD de Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <!-- 2) Tu cliente global (define window.supabase) -->
   <script src="js/supabaseClient.js"></script>
-  <!-- 3) Lógica de tu app -->
   <script src="js/index.js"></script>
+
+  <script>
+    const btn    = document.getElementById('btn-fullscreen');
+    const titulo = document.getElementById('titulo');
+
+    btn.addEventListener('click', () => {
+      const el = document.documentElement;
+      if (el.requestFullscreen) {
+        el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+      } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement) {
+        // En full screen: ocultar el botón, título y el cursor
+        btn.style.display    = 'none';
+        titulo.style.display = 'none';
+        document.body.style.cursor = 'none';
+      } else {
+        // Al salir de full screen: restaurar
+        btn.style.display    = '';
+        titulo.style.display = '';
+        document.body.style.cursor = 'default';
+      }
+    });
+  </script>
 </body>
 </html>
