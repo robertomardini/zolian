@@ -32,9 +32,9 @@ async function loadTVs() {
 
     li.innerHTML = `
       <span class="font-semibold">${tv.nombre || tv.code}</span>
-      <a href="galeria.html?code=${tv.code}"
+      <a href="upload.html?code=${tv.code}"
          class="text-blue-600 hover:underline ml-2">
-        Galería
+        Editar Galería
       </a>
       <button onclick="mostrarSlideshow('${tv.code}')"
               class="ml-2 bg-green-500 text-white px-2 py-1 rounded">
