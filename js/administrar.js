@@ -1,5 +1,4 @@
 // js/administrar.js
-
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
@@ -35,7 +34,6 @@ async function init() {
   // ——— 3) Sesión y usuario ———
   const { data: { session }, error: sesErr } = await supabase.auth.getSession();
   if (sesErr || !session) {
-    // Si no hay sesión, redirijo a login preservando el código
     const redirect = encodeURIComponent(`administrar.html?code=${tvCode}`);
     return window.location.href = `login.html?redirect=${redirect}`;
   }
@@ -45,7 +43,7 @@ async function init() {
   // ——— 4) Cargo datos de la TV ———
   const { data: tvRec, error: tvErr } = await supabase
     .from('tv')
-    .select('nombre,user_id,gallery_code,duration')
+    .select('nombre, user_id, gallery_code, duration')
     .eq('code', tvCode)
     .single();
 
@@ -66,7 +64,6 @@ async function init() {
   // ——— 6) Botón "Nueva galería" ———
   if (btnNew) {
     btnNew.onclick = () => {
-      // paso el código de la TV a galeria.html
       window.location.href = `galeria.html?code=${tvCode}`;
     };
   }
@@ -74,7 +71,11 @@ async function init() {
   // ——— 7) Botón "Pantalla completa" ———
   if (btnFull) {
     btnFull.onclick = async () => {
-      await guardarConfig();
+      // guardar duración también
+      await supabase
+        .from('tv')
+        .update({ duration: Number(inputDur.value) })
+        .eq('code', tvCode);
       window.location.href = `index.html?code=${tvCode}`;
     };
   }
@@ -100,7 +101,7 @@ async function init() {
   async function loadGalerias() {
     const { data: sesiones, error } = await supabase
       .from('tv')
-      .select('code,nombre')
+      .select('code, nombre')
       .eq('user_id', userId)
       .eq('linked', true);
 
@@ -112,6 +113,21 @@ async function init() {
 
     galleryArea.innerHTML = ''; // limpio antes
 
+    // botón para nueva galería
+    const newBtn = document.createElement('button');
+    newBtn.id = 'btn-new';
+    newBtn.className = 'flex flex-col items-center p-4 border rounded hover:bg-gray-50';
+    newBtn.innerHTML = `
+      <svg class="w-8 h-8 mb-2" fill="none" stroke="#202020" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 4v16m8-8H4"/>
+      </svg>
+      <span>+ Nueva galería</span>
+    `;
+    newBtn.onclick = () => window.location.href = `galeria.html?code=${tvCode}`;
+    galleryArea.appendChild(newBtn);
+
+    // resto de sesiones/galerías
     sesiones
       .filter(s => s.code !== tvCode)
       .forEach(s => {
@@ -124,35 +140,33 @@ async function init() {
           </svg>
           <span>${s.nombre || s.code}</span>
         `;
-        btn.onclick = () => {
+        btn.onclick = async () => {
           assignedGallery = s.code;
-          // resalto la selección
+          // persistir selección
+          await supabase
+            .from('tv')
+            .update({ gallery_code: assignedGallery })
+            .eq('code', tvCode);
+
+          // resalto visualmente
           document.querySelectorAll('#gallery-options button')
             .forEach(b => b.classList.remove('ring','ring-2','ring-[#05F2C7]'));
           btn.classList.add('ring','ring-2','ring-[#05F2C7]');
         };
         galleryArea.appendChild(btn);
 
-        // si ya estaba asignada, la clickeo de entrada
+        // si era la seleccionada, simulo clic
         if (s.code === assignedGallery) {
           btn.click();
         }
       });
 
-    // Si no hay otras sesiones
+    // Si no hay otras galerías
     if (sesiones.filter(s => s.code !== tvCode).length === 0) {
-      galleryArea.innerHTML = '<p class="italic text-gray-500">No hay otras galerías vinculadas.</p>';
+      const p = document.createElement('p');
+      p.className = 'italic text-gray-500';
+      p.innerText = 'No hay otras galerías vinculadas.';
+      galleryArea.appendChild(p);
     }
-  }
-
-  // ——— Función para guardar galería seleccionada + duración ———
-  async function guardarConfig() {
-    await supabase
-      .from('tv')
-      .update({
-        gallery_code: assignedGallery,
-        duration: Number(inputDur.value)
-      })
-      .eq('code', tvCode);
   }
 }
