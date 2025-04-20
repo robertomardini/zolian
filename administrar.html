@@ -1,33 +1,46 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Administrar TV</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link
+    href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    rel="stylesheet"
+  />
   <style>
-    body { background:#f3f4f6; color:#111; margin:0; font-family:sans-serif; }
-    .container { max-width:600px; margin:2rem auto; background:white; padding:1.5rem; border-radius:0.5rem; }
-    .grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
-    .card { cursor:pointer; padding:1rem; text-align:center; border:1px solid #ddd; border-radius:0.5rem; }
-    .card:hover { background:#f9fafb; }
-    .full-btn { margin-top:1rem; width:100%; }
-    .unbind { margin-top:0.5rem; color:red; cursor:pointer; }
+    body { background:#f3f4f6; color:#111; font-family:sans-serif; }
+    .container { max-width:480px; margin:2rem auto; padding:1rem; background:#fff; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+    button { cursor:pointer; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1 class="text-2xl font-bold mb-4">TV <span id="tv-code" class="font-mono"></span></h1>
-    <div class="grid mb-4">
-      <div id="create-card" class="card bg-green-100">➕<br>Crear galería nueva</div>
-      <div id="existing-wrap">
-        <h2 class="font-semibold mb-2">Tus galerías</h2>
-        <div id="existing-list" class="space-y-2"></div>
-      </div>
+    <h1 class="text-2xl font-bold mb-4">Administrar Pantalla</h1>
+    <p class="mb-2">Código de TV: <span id="tv-code" class="font-mono"></span></p>
+
+    <hr class="my-4" />
+
+    <button id="btn-new" class="w-full bg-blue-500 text-white py-2 rounded mb-4">
+      ➕ Crear nueva galería
+    </button>
+
+    <h2 class="text-xl font-semibold mb-2">Tus galerías</h2>
+    <ul id="gallery-list" class="list-disc pl-5 mb-4">
+      <li>Cargando galerías…</li>
+    </ul>
+
+    <div class="flex justify-between">
+      <button id="btn-full" class="bg-green-500 text-white px-4 py-2 rounded">
+        ▶ Pantalla completa en TV
+      </button>
+      <button id="btn-unlink" class="bg-red-500 text-white px-4 py-2 rounded">
+        ✖ Desvincular TV
+      </button>
     </div>
-    <button id="full-btn" class="full-btn bg-blue-600 text-white p-2 rounded">Pantalla completa en TV</button>
-    <div id="unbind" class="unbind text-center">Desvincular TV</div>
   </div>
+
+  <script src="js/supabaseClient.js"></script>
   <script src="js/administracion.js"></script>
 </body>
 </html>
