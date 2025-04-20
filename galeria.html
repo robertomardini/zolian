@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Galería</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <!-- Incrustamos el menú común -->
+  <div id="menu-container"></div>
+
+  <main class="flex-1 max-w-3xl mx-auto p-6 bg-white mt-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-2">Galería</h1>
+    <p id="tv-code" class="mb-4 font-mono text-gray-700">TV: …</p>
+
+    <div class="mb-4 flex items-center">
+      <input type="file" id="file-input" accept="image/*"
+             class="border p-2 flex-1" />
+      <button id="upload-btn"
+              class="ml-2 bg-[#4E0FA6] text-[#f4f4f4] px-4 py-2 rounded">
+        Subir Imagen
+      </button>
+    </div>
+
+    <ul id="file-list" class="list-disc pl-5 text-gray-700">
+      <li>Cargando archivos…</li>
+    </ul>
+  </main>
+
+  <!-- Supabase y menú -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script>
+    // Cargamos el menú compartido
+    fetch('includes/menu.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('menu-container').innerHTML = html;
+        // asumimos que menu.js expone initMenu()
+        import('./js/menu.js').then(mod => mod.initMenu());
+      });
+  </script>
+  <script src="js/galeria.js"></script>
+</body>
+</html>
