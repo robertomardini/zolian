@@ -51,7 +51,7 @@ async function loadPantallas() {
            class="bg-[#4E0FA6] text-[#f4f4f4] px-3 py-1 rounded">
           Galería
         </a>
-        <a href="administrar.html?code=${tv.code}"
+        <a href="dashboard.html?code=${tv.code}"
            class="bg-[#4E0FA6] text-[#f4f4f4] px-3 py-1 rounded">
           Administrar
         </a>
