@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zolian Mobile</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <style>
+    body { margin:0; font-family:sans-serif; }
+    header { display:flex; align-items:center; padding:1rem; background:#2563eb; color:#fff; }
+    .hamburger { cursor:pointer; margin-right:1rem; }
+    nav { position:fixed; top:0; left:-100%; width:75%; height:100%; background:#fff; box-shadow:2px 0 8px rgba(0,0,0,0.2); transition:left 0.3s; z-index:100; }
+    nav.open { left:0; }
+    nav ul { list-style:none; padding:1rem; }
+    nav li { margin-bottom:1rem; }
+    .overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:50; }
+    .overlay.show { display:block; }
+    .content { padding:1rem; margin-top:4rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hamburger" id="btn-menu">
+      &#9776;
+    </div>
+    <h1 class="text-lg font-bold">Zolian</h1>
+  </header>
+
+  <div class="overlay" id="overlay"></div>
+  <nav id="sidebar">
+    <ul>
+      <li><a href="#" id="link-pantallas" class="text-blue-600">Pantallas</a></li>
+      <li><a href="#" id="link-galerias" class="text-blue-600">Galerías</a></li>
+      <li><a href="#" id="link-cuenta" class="text-blue-600">Cuenta</a></li>
+    </ul>
+  </nav>
+
+  <main class="content" id="app">
+    <!-- Aquí carga la sección activa -->
+  </main>
+
+  <script src="js/mobile.js"></script>
+</body>
+</html>
