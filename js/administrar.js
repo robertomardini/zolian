@@ -8,7 +8,7 @@ async function init() {
   const tvCode = params.get('code');
   if (!tvCode) {
     // Si no viene código, vuelvo a la lista de pantallas
-    return window.location.href = 'administrar.html';
+    return window.location.href = 'pantallas.html';
   }
 
   // ——— 1) Referencias a elementos del DOM ———
