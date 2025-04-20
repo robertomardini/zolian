@@ -7,18 +7,31 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
   <style>
-    body { margin:0; font-family:sans-serif; background:#202020; color:#f4f4f4; }
-    header { display:flex; align-items:center; padding:1rem; background:#4E0FA6; color:#f4f4f4; }
+    /* Colores según nueva paleta */
+    body { margin:0; font-family:sans-serif; background:#f4f4f4; color:#202020; }
+    header { display:flex; align-items:center; padding:1rem;
+              /* Gradiente de #05F2C7 a #4E0FA6 */
+              background: linear-gradient(90deg, #05F2C7 0%, #4E0FA6 100%);
+              color:#f4f4f4; }
     .hamburger { cursor:pointer; margin-right:1rem; font-size:1.5rem; }
-    nav { position:fixed; top:0; left:-100%; width:75%; height:100%; background:#f4f4f4; box-shadow:2px 0 8px rgba(0,0,0,0.2); transition:left 0.3s; z-index:100; }
+    nav { position:fixed; top:0; left:-100%; width:75%; height:100%;
+          background:#f4f4f4; box-shadow:2px 0 8px rgba(0,0,0,0.2);
+          transition:left 0.3s; z-index:100; }
     nav.open { left:0; }
     nav ul { list-style:none; padding:1rem; }
     nav li { margin-bottom:1rem; }
     nav a { text-decoration:none; color:#202020; font-weight:600; }
     nav a:hover, nav a.active { color:#05F2C7; }
-    .overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:50; }
+    .overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+               background:rgba(0,0,0,0.5); z-index:50; }
     .overlay.show { display:block; }
-    .content { padding:1rem; margin-top:4rem; background:#202020; color:#f4f4f4; min-height:calc(100vh - 4rem); }
+    .content { padding:1rem; margin-top:4rem;
+               background:#f4f4f4; color:#202020;
+               min-height:calc(100vh - 4rem); }
+    /* Botones: fondo #4E0FA6 con texto blanco */
+    button { background:#4E0FA6; color:#f4f4f4; border:none; padding:0.5rem 1rem;
+             border-radius:0.25rem; cursor:pointer; font-weight:600; }
+    button:hover { opacity:0.9; }
   </style>
 </head>
 <body>
@@ -32,9 +45,9 @@
   <div class="overlay" id="overlay"></div>
   <nav id="sidebar">
     <ul>
-      <li><a href="#" id="link-pantallas" class="text-blue-600">Pantallas</a></li>
-      <li><a href="#" id="link-galerias" class="text-blue-600">Galerías</a></li>
-      <li><a href="#" id="link-cuenta" class="text-blue-600">Cuenta</a></li>
+      <li><a href="#" id="link-pantallas">Pantallas</a></li>
+      <li><a href="#" id="link-galerias">Galerías</a></li>
+      <li><a href="#" id="link-cuenta">Cuenta</a></li>
     </ul>
   </nav>
 
