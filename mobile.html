@@ -2,59 +2,100 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zolian Mobile</title>
+  <title>Emparejar TV</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
+  <link
+    href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/umd/tailwind.min.css"
+    rel="stylesheet"
+  />
   <style>
-    /* Colores según nueva paleta */
-    body { margin:0; font-family:sans-serif; background:#f4f4f4; color:#202020; }
-    header { display:flex; align-items:center; padding:1rem;
-              /* Gradiente de #05F2C7 a #4E0FA6 */
-              background: linear-gradient(90deg, #4E0FA6 0%, #05F2C7 100%);
-              color:#f4f4f4; }
-    .hamburger { cursor:pointer; margin-right:1rem; font-size:1.5rem; }
-    nav { position:fixed; top:0; left:-100%; width:75%; height:100%;
-          background:#f4f4f4; box-shadow:2px 0 8px rgba(0,0,0,0.2);
-          transition:left 0.3s; z-index:100; }
-    nav.open { left:0; }
-    nav ul { list-style:none; padding:1rem; }
-    nav li { margin-bottom:1rem; }
-    nav a { text-decoration:none; color:#202020; font-weight:600; }
-    nav a:hover, nav a.active { color:#424242; }
-    .overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-               background:rgba(0,0,0,0.5); z-index:50; }
-    .overlay.show { display:block; }
-    .content { padding:1rem; margin-top:4rem;
-               background:#f4f4f4; color:#202020;
-               min-height:calc(100vh - 4rem); }
-    /* Botones: fondo #4E0FA6 con texto blanco */
-    button { background:#4E0FA6; color:#f4f4f4; border:none; padding:0.5rem 1rem;
-             border-radius:0.25rem; cursor:pointer; font-weight:600; }
-    button:hover { opacity:0.9; }
+    body {
+      background: #f4f4f4;
+      color: #202020;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: linear-gradient(90deg, #05F2C7, #4E0FA6);
+      color: #f4f4f4;
+    }
+    #qrcode { background: #fff; padding: 16px; margin-top: 2rem; }
+    #code   { margin-top: 1rem; font-size: 1.5rem; font-family: monospace; }
+    #status { margin-top: 1rem; color: #4E0FA6; }
+    #btn-menu {
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      color: inherit;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Barra superior responsive -->
   <header>
-    <div class="hamburger" id="btn-menu">
-      &#9776;
-    </div>
-    <h1 class="text-lg font-bold">Zolian</h1>
+    <button id="btn-menu">☰</button>
+    <span id="user-email">Cargando…</span>
   </header>
 
-  <div class="overlay" id="overlay"></div>
-  <nav id="sidebar">
-    <ul>
-      <li><a href="#" id="link-pantallas">Pantallas</a></li>
-      <li><a href="#" id="link-galerias">Galerías</a></li>
-      <li><a href="#" id="link-cuenta">Cuenta</a></li>
-    </ul>
-  </nav>
+  <!-- Contenido principal (QR / Slideshow) -->
+  <div id="main" class="flex-1 flex flex-col items-center justify-center">
+    <h1 id="titulo" class="text-3xl mb-4">Emparejar TV</h1>
+    <div id="qrcode"></div>
+    <div id="code"></div>
+    <p id="status">Inicializando…</p>
+    <button id="btn-fullscreen"
+            class="mt-4 px-4 py-2 bg-[#4E0FA6] text-[#f4f4f4] rounded">
+      Pantalla completa
+    </button>
+  </div>
 
-  <main class="content" id="app">
-    <!-- Aquí carga la sección activa -->
-  </main>
+  <!-- Cliente Supabase -->
+  <script src="js/supabaseClient.js"></script>
+  <!-- Mostrar email -->
+  <script>
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const emailEl = document.getElementById('user-email');
+      if (session?.user?.email) {
+        emailEl.innerText = session.user.email;
+      } else {
+        emailEl.innerHTML = `<a href="login.html?redirect=mobile.html"
+                             class="underline text-[#f4f4f4]">Entrar</a>`;
+      }
+    })();
+  </script>
+  <!-- Tu lógica QR / slideshow -->
+  <script src="js/tv.js"></script>
 
-  <script src="js/mobile.js"></script>
+  <!-- Botón fullscreen -->
+  <script>
+    const btnFs    = document.getElementById('btn-fullscreen');
+    const titulo   = document.getElementById('titulo');
+    btnFs.addEventListener('click', () => {
+      const el = document.documentElement;
+      const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      fn && fn.call(el);
+    });
+    document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement) {
+        btnFs.style.display    = 'none';
+        titulo.style.display   = 'none';
+        document.body.style.cursor = 'none';
+      } else {
+        btnFs.style.display    = '';
+        titulo.style.display   = '';
+        document.body.style.cursor = 'default';
+      }
+    });
+  </script>
 </body>
 </html>
