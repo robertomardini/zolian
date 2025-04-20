@@ -2,7 +2,7 @@
 
 // Obtener redirect o usar dashboard.html
 const urlParams  = new URLSearchParams(window.location.search);
-const redirectTo = urlParams.get('redirect') || 'pantallas.html';
+const redirectTo = urlParams.get('redirect') || 'dashboard.html';
 
 async function login() {
   const email    = document.getElementById('email').value;

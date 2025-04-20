@@ -1,60 +1,76 @@
 // js/vincular.js
 const params = new URLSearchParams(window.location.search);
 const tvCode = params.get('code');
-const tvCodeEl = document.getElementById('tv-code');
-const tvnameEl = document.getElementById('tvname');
-const msgEl    = document.getElementById('message');
-const menuEl   = document.getElementById('mobile-menu');
-const btnMenu  = document.getElementById('btn-menu');
-const btnLogout = document.getElementById('btn-logout');
-const btnOk    = document.getElementById('btn-ok');
-const emailEl  = document.getElementById('user-email');
+document.getElementById('tv-code').innerText = `Código: ${tvCode}`;
 
 async function init() {
-  if (!tvCode) {
-    alert('Falta el parámetro code en la URL');
-    return;
-  }
-  tvCodeEl.innerText = tvCode;
-
-  // 1) Sesión
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
-    // Si no hay, redirigimos a login con retorno aquí
-    const redirect = encodeURIComponent(`administrar.html?code=${tvCode}`);
-    return window.location.href = `login.html?redirect=${redirect}`;
+    const redirect = encodeURIComponent(`vincular.html?code=${tvCode}`);
+    window.location.href = `login.html?redirect=${redirect}`;
+    return;
   }
+  // Mostrar formulario de nombrar TV
+  document.getElementById('form').style.display = 'block';
 
-  // 2) Mostramos email
-  emailEl.innerText = session.user.email;
+  // ——— Carga de sesiones existentes ———
+  const { data: sesiones, error: sesionesErr } = await supabase
+    .from('tv')
+    .select('code, nombre')
+    .eq('user_id', session.user.id)
+    .eq('linked', true)
+    .order('created_at', { ascending: false });
 
-  // 3) Control menú lateral
-  btnMenu.addEventListener('click', () => {
-    menuEl.classList.toggle('hidden');
-  });
-  btnLogout.addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.href = 'login.html';
-  });
-
-  // 4) Cuando le den OK, actualizamos la tabla
-  btnOk.addEventListener('click', async () => {
-    const nombre = tvnameEl.value.trim();
-    if (!nombre) {
-      msgEl.innerText = 'Ingresa un nombre.';
-      return;
-    }
-    const { error } = await supabase
-      .from('tv')
-      .update({ linked: true, user_id: session.user.id, nombre })
-      .eq('code', tvCode);
-    if (error) {
-      msgEl.innerText = error.message;
-    } else {
-      // Una vez vinculado, podrías redirigir a "administrar.html?code=…"
-      window.location.href = `administrar.html?code=${tvCode}`;
-    }
-  });
+  const listEl = document.getElementById('session-list');
+  if (sesionesErr) {
+    listEl.innerHTML = `<li class="text-red-500">Error cargando sesiones</li>`;
+  } else if (!sesiones || sesiones.length === 0) {
+    listEl.innerHTML = `<li>No tienes sesiones vinculadas aún.</li>`;
+  } else {
+    listEl.innerHTML = '';
+    sesiones.forEach(s => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span class="font-semibold">${s.nombre || s.code}</span>
+        <!-- Enlace a la galería -->
+        <a href="galeria.html?code=${s.code}" 
+           class="text-blue-600 hover:underline ml-2">
+          Galería
+        </a>
+        <!-- Botón para mostrar en TV -->
+        <button onclick="mostrarSlideshow('${s.code}')" 
+                class="ml-2 bg-green-500 text-white px-2 py-1 rounded">
+          Mostrar en TV
+        </button>`;
+      listEl.appendChild(li);
+    });
+  }
+  // ————————————————————————————————
 }
 
 init();
+
+async function vincularTV() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const nombre = document.getElementById('tvname').value.trim();
+  if (!nombre) {
+    document.getElementById('message').innerText = 'Ingresa un nombre.';
+    return;
+  }
+  const { error } = await supabase
+    .from('tv')
+    .update({ linked: true, user_id: user.id, nombre })
+    .eq('code', tvCode);
+  if (error) {
+    document.getElementById('message').innerText = error.message;
+  } else {
+    window.location.href = 'dashboard.html';
+  }
+}
+
+// ——— Definimos la función y la exponemos globalmente ———
+function mostrarSlideshow(code) {
+  // Redirige la TV al modo slideshow con ?code=… 
+  window.location.href = `tv.html?code=${code}`;
+}
+window.mostrarSlideshow = mostrarSlideshow;

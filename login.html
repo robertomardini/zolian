@@ -32,7 +32,7 @@
   <script src="js/supabaseClient.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
-    const redirect = params.get('redirect') || 'pantallas.html';
+    const redirect = params.get('redirect') || 'dashboard.html';
 
     document.getElementById('login-btn').addEventListener('click', async () => {
       const email = emailEl.value, password = passwordEl.value;
