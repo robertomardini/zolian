@@ -1,78 +1,143 @@
-(async () => {
-  // 1) Referencias
-  const app           = document.getElementById('app');
-  const userEmailBar  = document.getElementById('user-email-bar');
-  const tabs = {
-    pantallas: document.getElementById('tab-pantallas'),
-    galerias:  document.getElementById('tab-galerias'),
-    cuenta:    document.getElementById('tab-cuenta'),
-  };
+// js/tv.js
+;(async function() {
+  const params = new URLSearchParams(window.location.search);
+  const tvCode = params.get('code');
+  const qrDiv   = document.getElementById('qrcode');
+  const codeDiv = document.getElementById('code');
+  const statusP = document.getElementById('status');
 
-  // 2) Mostrar lista de pantallas
-  async function showPantallas() {
-    app.innerHTML = '<h2 class="text-xl p-4">Cargando pantallas…</h2>';
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return window.location.href = 'login.html?redirect=index.html';
+  if (!tvCode) {
+    // —————— MODO GENERACIÓN ——————
+    function generarCodigo(len = 6) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      return Array.from({ length: len }, () =>
+        chars[Math.floor(Math.random()*chars.length)]
+      ).join('');
     }
+    const nuevoCode = generarCodigo();
+    codeDiv.innerText  = nuevoCode;
+    statusP.innerText  = 'Escanea el QR para vincular';
 
-    userEmailBar.innerText = session.user.email;
-
-    const { data: tvs, error } = await supabase
+    // 1) Insertamos en la tabla `tv`
+    let { error: insertErr } = await supabase
       .from('tv')
-      .select('*')
-      .eq('user_id', session.user.id);
-
-    if (error) {
-      app.innerHTML = `<p class="text-red-500 p-4">Error al cargar pantallas: ${error.message}</p>`;
+      .insert([{ code: nuevoCode, linked: false }]);
+    if (insertErr) {
+      statusP.innerText = 'Error registrando TV.';
+      console.error(insertErr);
       return;
     }
 
-    app.innerHTML = `
-      <h2 class="text-xl p-4">Tus Pantallas</h2>
-      <ul class="list-disc pl-8 space-y-2">
-        ${tvs.map(t => `
-          <li class="flex items-center">
-            <strong>${t.nombre || t.code}</strong>
-            <button
-              onclick="window.location.href='administrar.html?code=${t.code}'"
-              class="ml-4 bg-[#4E0FA6] text-[#f4f4f4] px-3 py-1 rounded"
-            >Abrir</button>
-          </li>
-        `).join('')}
-      </ul>
-    `;
-  }
+    // 2) Generamos el QR (apunta a vincular.html?code=nuevoCode)
+    qrDiv.innerHTML = '';
+    new QRCode(qrDiv, {
+      text: `${window.location.origin}/vincular.html?code=${nuevoCode}`,
+      width: 200, height: 200,
+      colorDark: '#000', colorLight: '#fff',
+      correctLevel: QRCode.CorrectLevel.H,
+    });
 
-  // 3) Placeholder para galerías
-  async function showGalerias() {
-    app.innerHTML = '<h2 class="text-xl p-4">Tus Galerías</h2>';
-    // Aquí iría tu lógica de listado de galerías…
-    app.innerHTML += '<p class="p-4 text-gray-600">En construcción…</p>';
-  }
+    // 3) Polling cada 5 s para ver si el user ya vinculó
+    const intervalo = setInterval(async () => {
+      const { data, error } = await supabase
+        .from('tv')
+        .select('linked')
+        .eq('code', nuevoCode)
+        .single();
+      if (error) return console.error(error);
+      if (data?.linked) {
+        clearInterval(intervalo);
+        // REDIRIGIMOS el TV a tv.html?code=…
+        window.location.href = `${window.location.pathname}?code=${nuevoCode}`;
+      }
+    }, 5000);
 
-  // 4) Cuenta / cerrar sesión
-  async function showCuenta() {
-    app.innerHTML = '<h2 class="text-xl p-4">Mi Cuenta</h2>';
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return window.location.href = 'login.html?redirect=index.html';
+  } else {
+    // —————— MODO SLIDESHOW ——————
+    codeDiv.innerText = tvCode;
+    statusP.innerText = 'Cargando imágenes…';
+
+    // --- Función que lista imágenes y, si no hay, se reintenta ---
+    async function cargarYMostrar() {
+      // 1) Recuperamos user_id
+      const { data: tvRec, error: tvErr } = await supabase
+        .from('tv')
+        .select('user_id, linked')
+        .eq('code', tvCode)
+        .single();
+      if (tvErr || !tvRec?.linked) {
+        statusP.innerText = 'TV no vinculada aún';
+        return;
+      }
+
+      // 2) Listamos del bucket
+      const prefix = `${tvRec.user_id}/${tvCode}`;
+      const { data: files, error: listErr } = await supabase
+        .storage
+        .from('tv-content')
+        .list(prefix);
+      if (listErr) {
+        console.error('Error listando:', listErr);
+        statusP.innerText = 'Error cargando slideshow';
+        return;
+      }
+
+      // 3) Si no hay ficheros, volvemos a reintentar en 5s
+      if (!files || files.length === 0) {
+        statusP.innerText = 'No hay imágenes aún. Esperando…';
+        setTimeout(cargarYMostrar, 5000);
+        return;
+      }
+
+      // 4) Construimos URLs públicas
+      const urls = files.map(f =>
+        supabase
+          .storage
+          .from('tv-content')
+          .getPublicUrl(`${prefix}/${f.name}`)
+          .data.publicUrl
+      );
+
+      // 5) Ocultamos QR/código/estado
+      qrDiv.style.display   = 'none';
+      codeDiv.style.display = 'none';
+      statusP.style.display = 'none';
+
+      // 6) Insertamos <img> y arrancamos o actualizamos slideshow
+      if (!window._tvInterval) {
+        // Primera vez: creamos img y el interval
+        let idx = 0;
+        const img = document.createElement('img');
+        img.style.maxWidth  = '100%';
+        img.style.maxHeight = '100%';
+        document.body.appendChild(img);
+
+        window._tvInterval = setInterval(() => {
+          img.src = urls[idx];
+          idx = (idx + 1) % urls.length;
+        }, 3000);
+
+        // Guardamos la referencia al img para actualizaciones
+        window._tvImgEl = img;
+        window._tvIdx   = 0;
+        window._tvUrls  = urls;
+      } else {
+        // Ya teníamos el slideshow corriendo: actualizamos las URLs
+        window._tvUrls = urls;
+      }
     }
-    app.innerHTML += `
-      <p class="p-4">Correo: <strong>${session.user.email}</strong></p>
-      <button
-        onclick="supabase.auth.signOut().then(() => window.location.href='login.html')"
-        class="m-4 bg-[#4E0FA6] text-[#f4f4f4] px-4 py-2 rounded"
-      >Cerrar Sesión</button>
-    `;
+
+    // --- Suscripción Realtime: escucha el evento 'refresh' ---
+    const channel = supabase
+      .channel(`tv-${tvCode}`)
+      .on('broadcast', { event: 'refresh' }, () => {
+        console.log('🔄 Refresh recibido en TV, recargando imágenes');
+        cargarYMostrar();
+      });
+    await channel.subscribe();
+
+    // 7) Primera carga de imágenes
+    cargarYMostrar();
   }
 
-  // 5) Asociar tabs
-  tabs.pantallas.onclick = showPantallas;
-  tabs.galerias.onclick  = showGalerias;
-  tabs.cuenta.onclick    = showCuenta;
-
-  // 6) Arrancar con Pantallas
-  await showPantallas();
 })();
