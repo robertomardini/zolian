@@ -47,7 +47,7 @@
       if (error) return console.error(error);
       if (data?.linked) {
         clearInterval(intervalo);
-        // REDIRIGIMOS el TV a tv.html?code=…
+        // REDIRIGIMOS el TV a index.html?code=…
         window.location.href = `${window.location.pathname}?code=${nuevoCode}`;
       }
     }, 5000);
