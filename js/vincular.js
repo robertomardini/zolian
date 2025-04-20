@@ -52,7 +52,7 @@ async function init() {
       msgEl.innerText = error.message;
     } else {
       // Una vez vinculado, podrías redirigir a "administrar.html?code=…"
-      window.location.href = `administrar.html`;
+      window.location.href = `administrar.html?code=${tvCode}`;
     }
   });
 }
