@@ -106,7 +106,7 @@ async function init() {
       </svg>
       <span>+ Nueva galería</span>
     `;
-    btnNew.onclick = () => window.location.href = `galeria.html?code=${tvCode}`;
+    btnNew.onclick = () => window.location.href = `galerias.html?code=${tvCode}`;
     galleryArea.appendChild(btnNew);
 
     // Botones de cada sesión/galería
