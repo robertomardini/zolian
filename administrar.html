@@ -4,105 +4,28 @@
   <meta charset="UTF-8" />
   <title>Administrar TV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link
-    href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-    rel="stylesheet"
-  />
-  <style>
-    body { background: #f4f4f4; color: #202020; }
-    #sidebar { transition: transform 0.3s; }
-    #sidebar.hidden { transform: translateX(-100%); }
-  </style>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 </head>
 <body class="min-h-screen flex flex-col">
 
-  <!-- HEADER -->
-  <header class="bg-gradient-to-r from-[#05F2C7] to-[#4E0FA6]
-                 text-[#f4f4f4] flex items-center justify-between px-4 py-3">
-    <button id="btn-menu" aria-label="Abrir menú">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M4 6h16M4 12h16M4 18h16"/>
-      </svg>
-    </button>
-    <h1 id="tv-name" class="font-bold text-lg">Administrar TV</h1>
-    <span id="user-email" class="text-sm"></span>
-  </header>
+  <!-- MENÚ -->
+  <div id="menu-container"></div>
 
-  <!-- SIDEBAR -->
-  <nav id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-white shadow hidden">
-    <div class="flex justify-between items-center px-4 py-3 border-b">
-      <span class="font-semibold">Menú</span>
-      <button id="btn-close" aria-label="Cerrar menú">
-        <svg class="w-5 h-5" fill="none" stroke="#202020" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-    <ul class="mt-4">
-      <li class="px-4 py-2 hover:bg-gray-100">
-        <a href="pantallas.html">Pantallas</a>
-      </li>
-      <li class="px-4 py-2 hover:bg-gray-100">
-        <a href="galerias.html">Galerías</a>
-      </li>
-      <li class="px-4 py-2 hover:bg-gray-100">
-        <a href="login.html">Logout</a>
-      </li>
-    </ul>
-  </nav>
-
-  <!-- CONTENIDO -->
   <main class="flex-1 p-4">
-
-    <!-- Info TV -->
-    <div class="bg-white p-4 rounded shadow mb-6">
-      <div><strong>Código:</strong> <span id="tv-code">…</span></div>
-      <div><strong>Nombre:</strong> <span id="tv-nombre">…</span></div>
-    </div>
-
-    <!-- Selección de galería -->
-    <section class="bg-white p-4 rounded shadow mb-6">
-      <h2 class="font-semibold mb-3">Selecciona una galería</h2>
-      <div id="gallery-options" class="grid grid-cols-2 gap-4">
-        <button id="btn-new" class="flex flex-col items-center p-4 border rounded hover:bg-gray-50">
-          <svg class="w-8 h-8 mb-2" fill="none" stroke="#202020" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 4v16m8-8H4"/>
-          </svg>
-          <span>Crear nueva</span>
-        </button>
-        <!-- Aquí se inyectarán las galerías existentes -->
-      </div>
-    </section>
-
-    <!-- Configuración Slideshow -->
-    <section class="bg-white p-4 rounded shadow mb-6">
-      <div class="flex items-center space-x-4">
-        <button id="btn-fullscreen"
-                class="flex-1 bg-[#4E0FA6] text-[#f4f4f4] px-4 py-2 rounded">
-          Pantalla completa
-        </button>
-        <div class="flex items-center space-x-2">
-          <label for="duration" class="font-medium">Duración (s):</label>
-          <input id="duration" type="number" min="1" value="5"
-                 class="w-16 border p-1 rounded"/>
-        </div>
-      </div>
-    </section>
-
-    <!-- Desvincular -->
-    <section class="text-center">
-      <button id="btn-unlink"
-              class="text-red-500 underline">
-        Desvincular TV
-      </button>
-    </section>
-
+    <!-- aquí va todo tu contenido de administrar -->
   </main>
 
-  <!-- DEPENDENCIAS -->
+  <script>
+    Promise.all([
+      fetch('includes/menu.html').then(r => r.text()),
+      import('./js/menu.js')
+    ]).then(([html, mod]) => {
+      document.getElementById('menu-container').innerHTML = html;
+      mod.initMenu();
+      document.getElementById('page-title').innerText = 'Administrar TV';
+    });
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="js/supabaseClient.js"></script>
   <script src="js/administrar.js"></script>
