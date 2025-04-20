@@ -38,7 +38,7 @@ async function init() {
   // 2) Cargar datos de la TV
   const { data: tvRec, error: tvErr } = await supabase
     .from('tv')
-    .select('nombre,user_id,assigned_gallery,duration')
+    .select('nombre,user_id,gallery_code,duration')
     .eq('code', tvCode)
     .single();
 
@@ -49,7 +49,7 @@ async function init() {
   tvCodeEl.innerText   = tvCode;
   tvNombreEl.innerText = tvRec.nombre;
   if (tvRec.duration) inputDur.value = tvRec.duration;
-  assignedGallery = tvRec.assigned_gallery;
+  assignedGallery = tvRec.gallery_code;
 
   // 3) Cargar galerías existentes
   await loadGalerias();
@@ -71,7 +71,7 @@ async function init() {
       .update({
         linked: false,
         user_id: null,
-        assigned_gallery: null,
+        gallery_code: null,
         duration: null
       })
       .eq('code', tvCode);
@@ -121,7 +121,7 @@ async function init() {
     await supabase
       .from('tv')
       .update({
-        assigned_gallery: assignedGallery,
+        gallery_code: assignedGallery,
         duration: Number(inputDur.value)
       })
       .eq('code', tvCode);
