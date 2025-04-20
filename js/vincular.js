@@ -67,6 +67,6 @@ async function vincularTV() {
 // ——— Definimos la función y la exponemos globalmente ———
 function mostrarSlideshow(code) {
   // Redirige la TV al modo slideshow con ?code=… 
-  window.location.href = `?code=${code}`;
+  window.location.href = `index.html?code=${code}`;
 }
 window.mostrarSlideshow = mostrarSlideshow;
