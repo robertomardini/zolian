@@ -6,8 +6,9 @@ async function init() {
   const params = new URLSearchParams(location.search);
   const tvCode = params.get('code');
   if (!tvCode) {
-    // Si falta el código, volvemos al listado de pantallas
-    return window.location.href = 'pantallas.html';
+    // Si no viene código, vuelvo a la lista de pantallas
+    window.location.href = 'pantallas.html';
+    return;
   }
 
   // 1) Referencias al DOM
@@ -18,43 +19,44 @@ async function init() {
   const btnFull     = document.getElementById('btn-fullscreen');
   const inputDur    = document.getElementById('duration');
   const btnUnlink   = document.getElementById('btn-unlink');
+  const btnNew      = document.getElementById('btn-new'); // <— botón "Nueva galería"
 
-  // 2) Comprobamos la sesión
+  // 2) Sesión
   const { data: { session }, error: sesErr } = await supabase.auth.getSession();
   if (sesErr || !session) {
     const redirect = encodeURIComponent(`administrar.html?code=${tvCode}`);
-    return window.location.href = `login.html?redirect=${redirect}`;
+    window.location.href = `login.html?redirect=${redirect}`;
+    return;
   }
   const userId = session.user.id;
   userEmailEl.innerText = session.user.email;
 
-  // 3) Cargamos datos de la TV
+  // 3) Datos de la TV
   const { data: tvRec, error: tvErr } = await supabase
     .from('tv')
     .select('nombre, user_id, gallery_code, duration')
     .eq('code', tvCode)
     .single();
-
   if (tvErr || !tvRec || tvRec.user_id !== userId) {
     alert('No tienes permiso para administrar esta TV.');
     return;
   }
 
-  // Mostramos datos
+  // 4) Mostrar datos básicos
   tvCodeEl.innerText   = tvCode;
   tvNombreEl.innerText = tvRec.nombre || '—';
   if (tvRec.duration != null) inputDur.value = tvRec.duration;
   let assignedGallery = tvRec.gallery_code;
 
-  // 4) Creamos un canal Realtime para emitir 'refresh'
+  // 5) Canal Realtime (para notificar cambios desde el panel de administración)
   const channel = supabase
     .channel(`tv-${tvCode}`)
     .subscribe();
 
-  // 5) Renderizamos el listado de galerías
+  // 6) Renderizar galerías existentes + botón "Nueva galería"
   await loadGalerias();
 
-  // 6) Botón "Pantalla completa": guardamos duración y volvemos a la TV
+  // 7) Botón "Pantalla completa" (guarda sólo la duración y va a index.html)
   if (btnFull) {
     btnFull.onclick = async () => {
       await supabase
@@ -65,7 +67,7 @@ async function init() {
     };
   }
 
-  // 7) Botón "Desvincular TV"
+  // 8) Botón "Desvincular TV"
   if (btnUnlink) {
     btnUnlink.onclick = async () => {
       if (!confirm('¿Desvincular esta TV de tu cuenta?')) return;
@@ -82,7 +84,7 @@ async function init() {
     };
   }
 
-  // ——— Función para listar y mostrar galerías ———
+  // 9) Función para listar y mostrar botones de cada galería
   async function loadGalerias() {
     const { data: sesiones, error } = await supabase
       .from('tv')
@@ -95,22 +97,24 @@ async function init() {
       console.error(error);
       return;
     }
+
     galleryArea.innerHTML = '';
 
-    // 5.1) Botón para crear nueva galería
-    const btnNew = document.createElement('button');
-    btnNew.className = 'flex flex-col items-center p-4 border rounded hover:bg-gray-50';
-    btnNew.innerHTML = `
+    // --- Botón + Nueva galería ---
+    const newBtn = document.createElement('button');
+    newBtn.id = 'btn-new';
+    newBtn.className = 'flex flex-col items-center p-4 border rounded hover:bg-gray-50';
+    newBtn.innerHTML = `
       <svg class="w-8 h-8 mb-2" fill="none" stroke="#202020" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 4v16m8-8H4"/>
       </svg>
       <span>+ Nueva galería</span>
     `;
-    btnNew.onclick = () => window.location.href = `galerias.html?code=${tvCode}`;
-    galleryArea.appendChild(btnNew);
+    newBtn.onclick = () => window.location.href = `galeria.html?code=${tvCode}`;
+    galleryArea.appendChild(newBtn);
 
-    // 5.2) Botones para cada galería existente
+    // --- Botones para cada sesión/galería ---
     sesiones
       .filter(s => s.code !== tvCode)
       .forEach(s => {
@@ -124,7 +128,7 @@ async function init() {
           <span>${s.nombre || s.code}</span>
         `;
         btn.onclick = async () => {
-          // 1) Guardamos en la tabla tv
+          // 1) Actualizar gallery_code en la tabla
           const { error: updErr } = await supabase
             .from('tv')
             .update({ gallery_code: s.code })
@@ -134,18 +138,18 @@ async function init() {
           }
           assignedGallery = s.code;
 
-          // 2) Resaltamos la selección
+          // 2) Resaltar selección
           document
             .querySelectorAll('#gallery-options button')
             .forEach(b => b.classList.remove('ring','ring-2','ring-[#05F2C7]'));
           btn.classList.add('ring','ring-2','ring-[#05F2C7]');
 
-          // 3) Enviamos broadcast para refrescar la TV
+          // 3) Enviar broadcast al TV
           channel.send({ type: 'broadcast', event: 'refresh' });
         };
         galleryArea.appendChild(btn);
 
-        // Si ya estaba asignada, la marcamos
+        // Si ya era la galería seleccionada, simulo el click para resaltarla
         if (s.code === assignedGallery) {
           btn.click();
         }
