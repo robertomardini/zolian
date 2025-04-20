@@ -1,10 +1,17 @@
 // js/administrar.js
+
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-  // ——— Referencias a elementos (ya existen en el DOM) ———
-  const params      = new URLSearchParams(location.search);
-  const tvCode      = params.get('code');
+  // ——— 0) Obtengo el código de la TV de la URL y lo valido ———
+  const params = new URLSearchParams(location.search);
+  const tvCode = params.get('code');
+  if (!tvCode) {
+    // Si no viene código, vuelvo a la lista de pantallas
+    return window.location.href = 'pantallas.html';
+  }
+
+  // ——— 1) Referencias a elementos del DOM ———
   const btnMenu     = document.getElementById('btn-menu');
   const btnClose    = document.getElementById('btn-close');
   const sidebar     = document.getElementById('sidebar');
@@ -19,74 +26,91 @@ async function init() {
 
   let userId, assignedGallery;
 
-  // ——— Menú hamburguesa ———
+  // ——— 2) Menú hamburguesa ———
   if (btnMenu && btnClose && sidebar) {
     btnMenu.onclick  = () => sidebar.classList.remove('hidden');
     btnClose.onclick = () => sidebar.classList.add('hidden');
   }
 
-  // 1) Sesión y usuario
+  // ——— 3) Sesión y usuario ———
   const { data: { session }, error: sesErr } = await supabase.auth.getSession();
   if (sesErr || !session) {
-    // reenviar a login si no hay sesión
+    // Si no hay sesión, redirijo a login preservando el código
     const redirect = encodeURIComponent(`administrar.html?code=${tvCode}`);
     return window.location.href = `login.html?redirect=${redirect}`;
   }
   userId = session.user.id;
   userEmailEl.innerText = session.user.email;
 
-  // 2) Cargar datos de la TV
+  // ——— 4) Cargo datos de la TV ———
   const { data: tvRec, error: tvErr } = await supabase
     .from('tv')
     .select('nombre,user_id,gallery_code,duration')
     .eq('code', tvCode)
     .single();
 
-  if (tvErr || tvRec.user_id !== userId) {
+  if (tvErr || !tvRec || tvRec.user_id !== userId) {
     alert('No tienes permiso para administrar esta TV.');
     return;
   }
+
+  // Muestro datos básicos
   tvCodeEl.innerText   = tvCode;
-  tvNombreEl.innerText = tvRec.nombre;
-  if (tvRec.duration) inputDur.value = tvRec.duration;
+  tvNombreEl.innerText = tvRec.nombre || '—';
+  if (tvRec.duration != null) inputDur.value = tvRec.duration;
   assignedGallery = tvRec.gallery_code;
 
-  // 3) Cargar galerías existentes
+  // ——— 5) Cargo las galerías disponibles ———
   await loadGalerias();
 
-  // 4) Crear nueva galería
-  btnNew.onclick = () => window.location.href = `galeria.html?code=${tvCode}`;
+  // ——— 6) Botón "Nueva galería" ———
+  if (btnNew) {
+    btnNew.onclick = () => {
+      // paso el código de la TV a galeria.html
+      window.location.href = `galeria.html?code=${tvCode}`;
+    };
+  }
 
-  // 5) Fullscreen → guardar config y redirigir a index.html
-  btnFull.onclick = async () => {
-    await guardarConfig();
-    window.location.href = `index.html?code=${tvCode}`;
-  };
+  // ——— 7) Botón "Pantalla completa" ———
+  if (btnFull) {
+    btnFull.onclick = async () => {
+      await guardarConfig();
+      window.location.href = `index.html?code=${tvCode}`;
+    };
+  }
 
-  // 6) Desvincular TV
-  btnUnlink.onclick = async () => {
-    if (!confirm('¿Desvincular esta TV de tu cuenta?')) return;
-    await supabase
-      .from('tv')
-      .update({
-        linked: false,
-        user_id: null,
-        gallery_code: null,
-        duration: null
-      })
-      .eq('code', tvCode);
-    window.location.href = 'pantallas.html';
-  };
+  // ——— 8) Botón "Desvincular TV" ———
+  if (btnUnlink) {
+    btnUnlink.onclick = async () => {
+      if (!confirm('¿Desvincular esta TV de tu cuenta?')) return;
+      await supabase
+        .from('tv')
+        .update({
+          linked: false,
+          user_id: null,
+          gallery_code: null,
+          duration: null
+        })
+        .eq('code', tvCode);
+      window.location.href = 'pantallas.html';
+    };
+  }
 
-  // Función para listar y mostrar botones de cada sesión/galería
+  // ——— Función para listar y mostrar botones de cada galería ———
   async function loadGalerias() {
-    const { data: sesiones } = await supabase
+    const { data: sesiones, error } = await supabase
       .from('tv')
       .select('code,nombre')
       .eq('user_id', userId)
       .eq('linked', true);
 
-    galleryArea.innerHTML = ''; // limpia antes
+    if (error) {
+      console.error('Error cargando galerías:', error);
+      galleryArea.innerHTML = '<p class="text-red-500">Error al cargar galerías.</p>';
+      return;
+    }
+
+    galleryArea.innerHTML = ''; // limpio antes
 
     sesiones
       .filter(s => s.code !== tvCode)
@@ -102,21 +126,26 @@ async function init() {
         `;
         btn.onclick = () => {
           assignedGallery = s.code;
-          // resalta selección
+          // resalto la selección
           document.querySelectorAll('#gallery-options button')
             .forEach(b => b.classList.remove('ring','ring-2','ring-[#05F2C7]'));
           btn.classList.add('ring','ring-2','ring-[#05F2C7]');
         };
         galleryArea.appendChild(btn);
 
-        // si ya está asignada, la marcamos
+        // si ya estaba asignada, la clickeo de entrada
         if (s.code === assignedGallery) {
           btn.click();
         }
       });
+
+    // Si no hay otras sesiones
+    if (sesiones.filter(s => s.code !== tvCode).length === 0) {
+      galleryArea.innerHTML = '<p class="italic text-gray-500">No hay otras galerías vinculadas.</p>';
+    }
   }
 
-  // Función para guardar duración y galería asignada
+  // ——— Función para guardar galería seleccionada + duración ———
   async function guardarConfig() {
     await supabase
       .from('tv')
