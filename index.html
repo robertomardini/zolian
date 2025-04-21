@@ -54,37 +54,35 @@
   <!-- Aquí se inyectará el slideshow cuando venga la orden -->
   <div id="slides"></div>
 
-  <script>
-    (function(){
-      // 1. Obtener el parámetro ?code=XXX
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code') || '';
+ <script>
+  (function(){
+    const params = new URLSearchParams(window.location.search);
+    let code = params.get('code');
+    
+    if (!code) {
+      // genera un código único
+      code = crypto.randomUUID(); 
+      // actualiza la URL sin recargar la página
+      window.history.replaceState(null, '', `?code=${code}`);
+    }
 
-      // 2. Generar el QR solo si hay código
-      const qrContainer = document.getElementById('qr');
-      if (code) {
-        const vincularURL = `${window.location.origin}/vincular.html?code=${encodeURIComponent(code)}`;
-        new QRCode(qrContainer, {
-          text: vincularURL,
-          width: 200,
-          height: 200
-        });
-      } else {
-        qrContainer.textContent = 'Código no proporcionado';
-      }
+    // ahora sí siempre tenemos un 'code'
+    const qrContainer = document.getElementById('qr');
+    const vincularURL = `${window.location.origin}/vincular.html?code=${encodeURIComponent(code)}`;
+    new QRCode(qrContainer, {
+      text: vincularURL,
+      width: 200,
+      height: 200
+    });
 
-      // 3. Botón de pantalla completa
-      document.getElementById('fs-btn').addEventListener('click', () => {
-        const el = document.documentElement;
-        if (el.requestFullscreen) el.requestFullscreen();
-        // ocultar cursor y controles
-        document.body.style.cursor = 'none';
-        document.getElementById('controls').style.display = 'none';
-
-        // mostrar contenedor de slides (la lógica del slideshow vendrá de administrar.html)
-        document.getElementById('slides').style.display = 'block';
-      });
-    })();
-  </script>
+    // resto de tu lógica de fullscreen...
+    document.getElementById('fs-btn').addEventListener('click', () => {
+      document.documentElement.requestFullscreen?.();
+      document.body.style.cursor = 'none';
+      document.getElementById('controls').style.display = 'none';
+      document.getElementById('slides').style.display = 'block';
+    });
+  })();
+</script>
 </body>
 </html>
