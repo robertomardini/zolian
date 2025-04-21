@@ -367,5 +367,5 @@ body.dark button {
 
 /* Cuando la sidebar está colapsada, ocultamos el texto del usuario */
 .sidebar.close .nav-user .nav-text {
-  display: none;
+  display: inline-block !important;
 }
