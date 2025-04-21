@@ -1,7 +1,8 @@
 /* script.js */
 
 /**
- * Inicializa los listeners del sidebar (toggle, búsqueda, dark mode).
+ * Inicializa los listeners del sidebar (toggle, búsqueda, dark mode)
+ * y ajusta dinámicamente el ancho y posición de la sección .home.
  */
 function initSidebar() {
   const body = document.querySelector('body');
@@ -12,16 +13,31 @@ function initSidebar() {
   const modeSwitch = sidebar.querySelector('.toggle-switch');
   const modeText = sidebar.querySelector('.mode-text');
   const searchBtn = sidebar.querySelector('.search-box');
+  const home = body.querySelector('.home');
+
+  // Handler para ajustar .home según el estado del sidebar
+  function adjustHome() {
+    if (!home) return;
+    if (sidebar.classList.contains('close')) {
+      home.style.left = '78px';
+      home.style.width = 'calc(100% - 78px)';
+    } else {
+      home.style.left = '250px';
+      home.style.width = 'calc(100% - 250px)';
+    }
+  }
 
   // Toggle de apertura/cierre
   toggle.addEventListener('click', () => {
     sidebar.classList.toggle('close');
+    adjustHome();
   });
 
-  // Al hacer click en búsqueda, aseguramos sidebar abierta
+  // Abrir sidebar al enfocar búsqueda
   if (searchBtn) {
     searchBtn.addEventListener('click', () => {
       sidebar.classList.remove('close');
+      adjustHome();
     });
   }
 
@@ -32,6 +48,9 @@ function initSidebar() {
       modeText.innerText = body.classList.contains('dark') ? 'Light mode' : 'Dark mode';
     });
   }
+
+  // Ajuste inicial al cargar
+  adjustHome();
 }
 
 // Al cargar el DOM, inyectamos sidebar y/o inicializamos
