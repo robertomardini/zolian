@@ -9,25 +9,51 @@
   <!-- Estilos y Boxicons -->
   <link rel="stylesheet" href="style.css" />
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
-
+<script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
   <style>
     .home {
       padding: 20px;
       transition: left 0.3s, width 0.3s;
     }
-    #gallery-list li {
-      padding: 12px 16px;
-      border-bottom: 1px solid #ddd;
-      cursor: pointer;
-    }
-    #gallery-list li:hover {
-      background-color: var(--primary-color-light);
-    }
-    #no-galleries {
-      text-align: center;
-      color: var(--text-color);
-      margin-top: 40px;
-    }
+    #gallery-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  list-style: none;
+  padding: 0;
+  margin-top: 24px;
+}
+
+#gallery-list li {
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 12px;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+#gallery-list li:hover {
+  transform: scale(1.05);
+  background: var(--primary-color-light);
+}
+
+#gallery-list li box-icon {
+  /* Tamaño grande para el icono */
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+/* Texto debajo del icono */
+#gallery-list li span {
+  display: block;
+  font-weight: 500;
+}
+
   </style>
 </head>
 <body>
@@ -95,14 +121,20 @@
       }
 
       // 5) Renderizar cada álbum
-      galleries.forEach(g => {
-        const li = document.createElement('li');
-        li.textContent = g.name;
-        li.onclick = () => {
-          window.location.href = `album.html?code=${g.id}`;
-        };
-        listEl.appendChild(li);
-      });
+// vacía primero la lista
+listEl.innerHTML = '';
+
+galleries.forEach(p => {
+  const li = document.createElement('li');
+  li.innerHTML = `
+    <box-icon name='images' color='white' size='48px'></box-icon>
+    <span>${p.nombre || p.code}</span>
+  `;
+  li.onclick = () => {
+    window.location.href = `album.html?code=${p.code}`;
+  };
+  listEl.appendChild(li);
+});
     }
 
     // Espera al evento que dispara script.js cuando el sidebar está listo
