@@ -9,7 +9,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <script src="/script.js"></script>
-  <script src="/qrcode.min.js"></script>
+  <!-- Asegúrate de que este fichero esté en la misma carpeta que index.html -->
+  <script src="qrcode.min.js"></script>
 
   <style>
     html, body {
@@ -20,11 +21,7 @@
       align-items: center; justify-content: center;
       font-family: Arial, sans-serif;
     }
-    #controls {
-      text-align: center;
-      z-index: 10;
-    }
-    /* Contenedor del QR con borde blanco */
+    #controls { text-align: center; z-index: 10; }
     #qr {
       margin-bottom: 20px;
       padding: 8px;
@@ -32,7 +29,6 @@
       display: inline-block;
       border-radius: 12px;
     }
-    /* Asegurar que el canvas/svg del QR se ajuste */
     #qr img, #qr canvas, #qr svg {
       display: block;
       width: 300px !important;
@@ -45,15 +41,13 @@
     #slides {
       position: absolute; top: 0; left: 0;
       width: 100%; height: 100%;
-      overflow: hidden;
-      background: #000;
+      overflow: hidden; background: #000;
     }
     #slides img {
       position: absolute; top: 0; left: 0;
       width: 100%; height: 100%;
       object-fit: contain;
-      opacity: 0;
-      transition: opacity 1s ease-in-out;
+      opacity: 0; transition: opacity 1s ease-in-out;
     }
     :fullscreen body { margin: 0; cursor: none; }
   </style>
@@ -67,36 +61,15 @@
 
   <script>
   (function(){
+    // 0) Leer o generar código
     const params = new URLSearchParams(window.location.search);
     let code = params.get('code');
     if (!code) {
       code = crypto.randomUUID();
       window.history.replaceState(null, '', `?code=${code}`);
     }
-// --- NUEVO: subscripción a play=true ---
-  supabase
-    .from(`tv:code=eq.${code}`)
-    .on('UPDATE', payload => {
-      const { new: tv } = payload;
-      if (tv.play) {
-        // 1) Entrar en fullscreen
-        document.documentElement.requestFullscreen?.();
-        document.getElementById('controls').style.display = 'none';
-        // 2) Arrancar slideshow
-        setupSlideshow().then(() => {
-          if (intervalId) clearInterval(intervalId);
-          intervalId = setInterval(nextSlide, tv.duration * 1000);
-        });
-        // 3) Limpiar el flag para no volver a disparar
-        supabase
-          .from('tv')
-          .update({ play: false })
-          .eq('code', code);
-      }
-    })
-    .subscribe();
-    
-    // 1) Generar el QR grande + borde blanco
+
+    // 1) Generar el QR primero
     const qrContainer = document.getElementById('qr');
     const vincularURL = `${window.location.origin}/vincular.html?code=${encodeURIComponent(code)}`;
     new QRCode(qrContainer, {
@@ -112,37 +85,32 @@
     const slidesEl = document.getElementById('slides');
     let slides = [], current = 0, intervalId = null, duration = 5;
 
-    // 2) Cargar datos de TV y de imágenes
+    // 2) Funciones del slideshow
     async function setupSlideshow() {
-      const { data: tv, error: tvErr } = await supabase
+      const { data: tv } = await supabase
         .from('tv')
         .select('gallery_id,duration')
         .eq('code', code)
         .maybeSingle();
-      if (tvErr || !tv) return console.error('TV no vinculada', tvErr);
+      if (!tv || !tv.gallery_id) return console.warn('Pantalla no vinculada');
       duration = tv.duration;
-
-      const { data: imgs, error: imgErr } = await supabase
+      const { data: imgs } = await supabase
         .from('images')
         .select('url')
         .eq('gallery_id', tv.gallery_id)
         .order('created_at', { ascending: true });
-      if (imgErr) return console.error('Error cargando imágenes', imgErr);
-      if (!imgs.length) return console.warn('No hay imágenes en este álbum');
-
+      if (!imgs?.length) return console.warn('Sin imágenes');
       slidesEl.innerHTML = '';
-      slides = imgs.map(img =>
-        supabase.storage.from('images').getPublicUrl(img.url).data.publicUrl
+      slides = imgs.map(i =>
+        supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
       );
-      slides.forEach((src, i) => {
+      slides.forEach((src,i) => {
         const img = document.createElement('img');
         img.src = src;
-        if (i === 0) img.style.opacity = 1;
+        if (i===0) img.style.opacity = 1;
         slidesEl.appendChild(img);
       });
     }
-
-    // 3) Avanzar slide
     function nextSlide() {
       const imgs = slidesEl.querySelectorAll('img');
       imgs[current].style.opacity = 0;
@@ -150,12 +118,34 @@
       imgs[current].style.opacity = 1;
     }
 
-    // 4) Botón pantalla completa
+    // 3) Suscripción protegida para play=true
+    try {
+      supabase
+        .from(`tv:code=eq.${code}`)
+        .on('UPDATE', payload => {
+          const tv = payload.new;
+          if (tv.play) {
+            document.documentElement.requestFullscreen?.();
+            document.getElementById('controls').style.display = 'none';
+            setupSlideshow().then(() => {
+              clearInterval(intervalId);
+              intervalId = setInterval(nextSlide, tv.duration * 1000);
+            });
+            // resetear el flag
+            supabase.from('tv').update({ play:false }).eq('code',code);
+          }
+        })
+        .subscribe();
+    } catch(e) {
+      console.error('Realtime subscription falló:', e);
+    }
+
+    // 4) Botón pantalla completa tradicional
     document.getElementById('fs-btn').addEventListener('click', async () => {
       await document.documentElement.requestFullscreen?.();
       document.getElementById('controls').style.display = 'none';
       await setupSlideshow();
-      if (intervalId) clearInterval(intervalId);
+      clearInterval(intervalId);
       intervalId = setInterval(nextSlide, duration * 1000);
     });
   })();
