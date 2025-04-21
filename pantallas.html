@@ -120,14 +120,19 @@
       }
 
       // 5) Renderiza la lista
-      screens.forEach(p => {
-        const li = document.createElement('li');
-        li.textContent = p.nombre || p.code;
-        li.onclick = () => {
-          window.location.href = `administrar.html?code=${p.code}`;
-        };
-        listEl.appendChild(li);
-      });
+     listEl.innerHTML = '';
+
+screens.forEach(p => {
+  const li = document.createElement('li');
+  li.innerHTML = `
+    <box-icon name='tv' ></box-icon>
+    <span>${p.nombre || p.code}</span>
+  `;
+  li.onclick = () => {
+    window.location.href = `administrar.html?code=${p.code}`;
+  };
+  listEl.appendChild(li);
+});
     }
 
     // Espera al evento 'sidebarReady' lanzado desde script.js
