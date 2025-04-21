@@ -316,3 +316,26 @@ body.dark .home .text{
   color: var(--text-color);
   z-index: 200; /* para que quede encima de todo */
 }
+/* Aseguramos que en .home todo herede el color de texto de la paleta */
+body.dark .home,
+body.dark .home .text,
+body.dark #codeDisplay,
+body.dark label,
+body.dark input,
+body.dark button {
+  color: var(--text-color) !important;
+}
+
+/* Ajuste extra para inputs en dark mode */
+body.dark input {
+  background-color: var(--sidebar-color);
+  border: 1px solid var(--text-color);
+  color: var(--text-color);
+}
+
+/* Botones con fondo primario y texto claro */
+body.dark button {
+  background-color: var(--primary-color);
+  border: none;
+  color: #fff;
+}
