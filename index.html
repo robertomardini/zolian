@@ -149,19 +149,25 @@
     });
 
     // 4) Suscripción a cambios remotos en tv.play
-    supabase
-      .from(`tv:code=eq.${code}`)
-      .on('UPDATE', payload => {
-        const tv = payload.new;
-        if (tv.play) {
-          // No intentamos fullscreen aquí (falla)
-          startShow();
-          // Limpiar el flag
-          supabase.from('tv').update({ play:false }).eq('code',code);
-        }
-      })
-      .subscribe();
-  })();
-  </script>
+   supabase
+    .channel(`tv_play_${code}`)                                // nombre único del canal
+    .on('postgres_changes', {                                  // escucha cambios en Postgres
+      event: 'UPDATE',
+      schema: 'public',
+      table:  'tv',
+      filter: `code=eq.${code}`                                // sólo para este code
+    }, ({ new: tv }) => {
+      if (tv.play) {
+        startShow();                                           // arranca el slideshow
+        // limpia el flag para no disparar de nuevo
+        supabase
+          .from('tv')
+          .update({ play: false })
+          .eq('code', code);
+      }
+    })
+    .subscribe();
+})();
+</script>
 </body>
 </html>
