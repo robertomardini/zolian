@@ -116,45 +116,45 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="supabaseClient.js"></script>
   <script>
-    (function(){
-      const params = new URLSearchParams(window.location.search);
-      const redirect = params.get('redirect') || 'pantallas.html';
-      const msgEl = document.getElementById('msg');
+  window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect') || 'pantallas.html';
+    const msgEl = document.getElementById('msg');
 
-      async function handleLogin() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        msgEl.textContent = '';
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          msgEl.textContent = error.message;
-        } else {
-          window.location.href = redirect;
-        }
+    async function handleLogin() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      msgEl.textContent = '';
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        msgEl.textContent = error.message;
+      } else {
+        window.location.href = redirect;
       }
+    }
 
-      async function handleSignup() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        msgEl.textContent = '';
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) {
-          msgEl.textContent = error.message;
-        } else {
-          window.location.href = redirect;
-        }
+    async function handleSignup() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      msgEl.textContent = '';
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        msgEl.textContent = error.message;
+      } else {
+        window.location.href = redirect;
       }
+    }
 
-      document.getElementById('login-btn').addEventListener('click', handleLogin);
-      document.getElementById('signup-btn').addEventListener('click', handleSignup);
+    document.getElementById('login-btn').addEventListener('click', handleLogin);
+    document.getElementById('signup-btn').addEventListener('click', handleSignup);
 
-      // Atajo con Enter
-      ['email','password'].forEach(id => {
-        document.getElementById(id).addEventListener('keyup', (e) => {
-          if (e.key === 'Enter') handleLogin();
-        });
+    ['email','password'].forEach(id => {
+      document.getElementById(id).addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') handleLogin();
       });
-    })();
-  </script>
+    });
+  });
+</script>
+
 </body>
 </html>
