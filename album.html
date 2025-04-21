@@ -176,8 +176,21 @@
 
       // botón iniciar TV -> set play=true
       document.getElementById('start-tv').onclick = async () => {
-        await supabase.from('tv').update({play:true}).eq('code',tvCode);
-        alert('Señal enviada al TV');
+   // 1) Primero asignamos el álbum a esta TV
+   const { error: e1 } = await supabase
+     .from('tv')
+     .update({ gallery_id: albumId })
+     .eq('code', tvCode);
+   if (e1) return alert('Error al vincular álbum: ' + e1.message);
+
+   // 2) Ahora sí disparamos el play
+   const { error: e2 } = await supabase
+     .from('tv')
+     .update({ play: true })
+     .eq('code', tvCode);
+   if (e2) return alert('Error al iniciar TV: ' + e2.message);
+
+   alert('Se ha enviado la señal al TV.');
       };
 
       await loadImages();
