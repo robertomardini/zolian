@@ -66,7 +66,10 @@
   <!-- Contenido principal -->
   <section class="home">
     <div class="text">Administrar Álbum</div>
-
+<!-- Botón para forzar inicio en TV -->
+  <div class="section">
+    <button id="start-tv" style="background:#2ecc71;">Iniciar TV</button>
+  </div>
     <!-- Mostrar ID del álbum -->
     <div class="section">
       <label>Álbum ID:</label>
@@ -179,7 +182,22 @@
           .select('id,url')
           .eq('gallery_id', albumId)
           .order('created_at', { ascending: false });
-
+        await supabase
+    .from('tv')
+     .update({ play: true })
+     .eq('code', albumId);
+  }
+// Listener para el botón manual
+ const btnStart = document.getElementById('start-tv');
+ if (btnStart) {
+   btnStart.onclick = async () => {
+     await supabase
+       .from('tv')
+       .update({ play: true })
+       .eq('code', albumId);
+     alert('Se ha enviado la señal al TV');
+   };
+ }
         const list = document.getElementById('images-list');
         list.innerHTML = '';
         for (const img of imgs) {
