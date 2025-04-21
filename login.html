@@ -5,19 +5,32 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>Login - Zolian App</title>
 
-  <!-- Estilos y Boxicons -->
+  <!-- Estilos principales (sin sidebar) -->
   <link rel="stylesheet" href="style.css" />
-  <link
-    href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css"
-    rel="stylesheet"
-  />
 
   <style>
-    /* Ajustes específicos para el formulario de login */
+    /* Sobrescribir estilo para ocultar la sidebar */
+    nav.sidebar { display: none; }
+
+    /* Centrar el contenido de .home */
     .home {
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: start;
+      padding-top: 40px; /* espacio para el logo */
     }
+
+    /* Logo centrado */
+    .home .logo {
+      margin-bottom: 24px;
+    }
+    .home .logo img {
+      width: 120px;
+      height: auto;
+    }
+
+    /* Contenedor de login */
     .login-container {
       width: 100%;
       max-width: 360px;
@@ -56,38 +69,12 @@
   </style>
 </head>
 <body>
-  <!-- Sidebar para mantener el dark mode toggle -->
-  <nav class="sidebar close">
-    <header>
-      <div class="image-text">
-        <span class="image"><img src="logo.png" alt="Logo" /></span>
-        <div class="text logo-text">
-          <span class="name">Zolian App</span>
-          <span class="profession">Easy to share</span>
-        </div>
-      </div>
-      <i class="bx bx-chevron-right toggle"></i>
-    </header>
-    <div class="menu-bar">
-      <div class="menu">
-        <!-- Aquí podrías poner enlaces si quisieras -->
-      </div>
-      <div class="bottom-content">
-        <li class="mode">
-          <div class="sun-moon">
-            <i class="bx bx-moon icon moon"></i>
-            <i class="bx bx-sun icon sun"></i>
-          </div>
-          <span class="mode-text text">Dark mode</span>
-          <div class="toggle-switch">
-            <span class="switch"></span>
-          </div>
-        </li>
-      </div>
-    </div>
-  </nav>
-
   <section class="home">
+    <!-- Logo centrado -->
+    <div class="logo">
+      <img src="logo.png" alt="Zolian App" />
+    </div>
+
     <div class="text">Iniciar Sesión / Crear Cuenta</div>
     <div class="login-container">
       <input
@@ -108,10 +95,9 @@
     </div>
   </section>
 
-  <!-- Supabase y scripts -->
+  <!-- Supabase y lógica -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="supabaseClient.js"></script>
-  <script src="script.js"></script>
   <script>
     (function(){
       const params = new URLSearchParams(window.location.search);
@@ -138,7 +124,6 @@
         if (error) {
           msgEl.textContent = error.message;
         } else {
-          // Tras registrarse, podemos redirigir directamente
           window.location.href = redirect;
         }
       }
@@ -146,7 +131,7 @@
       document.getElementById('login-btn').addEventListener('click', handleLogin);
       document.getElementById('signup-btn').addEventListener('click', handleSignup);
 
-      // Soporte Enter en inputs
+      // Atajo con Enter
       ['email','password'].forEach(id => {
         document.getElementById(id).addEventListener('keyup', (e) => {
           if (e.key === 'Enter') handleLogin();
