@@ -226,6 +226,10 @@ body.dark .sidebar li a:hover .text{
     position: relative;
     transition: var(--tran-05);
 }
+.sidebar .bottom-content {
+  padding-bottom: 20px;
+  margin-top: auto; /* empuja este bloque hacía abajo del sidebar */
+}
 
 .menu-bar .mode .sun-moon{
     height: 50px;
