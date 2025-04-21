@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Galerías - Zolian App</title>
+
+  <!-- Estilos y Boxicons -->
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
+
+  <style>
+    .home {
+      padding: 20px;
+    }
+    #gallery-list li {
+      padding: 12px 16px;
+      border-bottom: 1px solid #ddd;
+      cursor: pointer;
+    }
+    #gallery-list li:hover {
+      background-color: var(--primary-color-light);
+    }
+    #no-galleries {
+      text-align: center;
+      color: var(--text-color);
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <nav class="sidebar close">
+    <header>
+      <div class="image-text">
+        <span class="image"><img src="logo.png" alt="Logo" /></span>
+        <div class="text logo-text">
+          <span class="name">Zolian App</span>
+          <span class="profession">Easy to share</span>
+        </div>
+      </div>
+      <i class="bx bx-chevron-right toggle"></i>
+    </header>
+    <div class="menu-bar">
+      <div class="menu">
+        <!-- Enlaces si hiciera falta -->
+      </div>
+      <div class="bottom-content">
+        <!-- Usuario -->
+        <li class="nav-link nav-user">
+          <a href="#">
+            <i class="bx bx-user icon"></i>
+            <span class="text nav-text" id="sidebar-user"></span>
+          </a>
+        </li>
+        <!-- Logout -->
+        <li>
+          <a href="#" id="logout">
+            <i class="bx bx-log-out icon"></i>
+            <span class="text nav-text">Cerrar sesión</span>
+          </a>
+        </li>
+        <!-- Dark Mode -->
+        <li class="mode">
+          <div class="sun-moon">
+            <i class="bx bx-moon icon moon"></i>
+            <i class="bx bx-sun icon sun"></i>
+          </div>
+          <span class="mode-text text">Dark mode</span>
+          <div class="toggle-switch">
+            <span class="switch"></span>
+          </div>
+        </li>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenido principal -->
+  <section class="home">
+    <div class="text">Mis Álbumes</div>
+    <ul id="gallery-list"></ul>
+    <p id="no-galleries" style="display:none;">
+      No tienes álbumes creados.<br>
+      Crea uno desde “Administrar Pantalla”.
+    </p>
+  </section>
+
+  <!-- Supabase y scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="supabaseClient.js"></script>
+  <script src="script.js"></script>
+  <script>
+    (async () => {
+      // Verificar sesión
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const redirect = encodeURIComponent('/galeria.html');
+        window.location.href = `login.html?redirect=${redirect}`;
+        return;
+      }
+      const user = session.user;
+
+      // Mostrar usuario en sidebar
+      const sidebarUserEl = document.getElementById('sidebar-user');
+      if (sidebarUserEl) sidebarUserEl.innerText = user.email;
+
+      // Logout
+      document.getElementById('logout').onclick = async (e) => {
+        e.preventDefault();
+        await supabase.auth.signOut();
+        window.location.href = 'login.html';
+      };
+
+      // Cargar álbumes
+      const { data: galleries, error } = await supabase
+        .from('galleries')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      const listEl = document.getElementById('gallery-list');
+      const noEl = document.getElementById('no-galleries');
+
+      if (!galleries.length) {
+        noEl.style.display = 'block';
+        return;
+      }
+
+      galleries.forEach(g => {
+        const li = document.createElement('li');
+        li.textContent = g.name;
+        li.onclick = () => {
+          // Navega a album.html con el ID del álbum
+          window.location.href = `album.html?code=${g.id}`;
+        };
+        listEl.appendChild(li);
+      });
+    })();
+  </script>
+</body>
+</html>
