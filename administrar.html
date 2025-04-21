@@ -154,7 +154,7 @@
           .limit(1)
           .then(({ data, error }) => {
             if (error) return alert('Error creando álbum');
-            window.location.href = `album.html?code=${data[0].id}`;
+            window.location.href = `album.html?code=${tvCode}&gallery=${g.id}`;
           });
       };
 
