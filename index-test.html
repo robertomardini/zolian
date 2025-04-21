@@ -25,7 +25,7 @@
      const { data: imgs } = await supabase
   .from('images')
   .select('url')
-  .eq('gallery_id', 'galleries');  // usa un ID real de prueba
+  .eq('gallery_id', 'images');  // usa un ID real de prueba
 
 // y luego haz exactamente lo mismo que con testImages,
 // pero usando imgs.map(i => i.url)
