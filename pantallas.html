@@ -87,7 +87,7 @@
       console.log('>>> Supabase session:', session);
       if (!session) {
         // Redirige al login si no hay sesión
-        const redirect = encodeURIComponent('/pantallas.html');
+        const redirect = encodeURIComponent('/pantallas');
         window.location.href = `login.html?redirect=${redirect}`;
         return;
       }
