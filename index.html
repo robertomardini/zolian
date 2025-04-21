@@ -5,6 +5,7 @@
   <title>Zolian TV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+  <!-- Supabase y QR -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <script src="/script.js"></script>
@@ -19,8 +20,24 @@
       align-items: center; justify-content: center;
       font-family: Arial, sans-serif;
     }
-    #controls { text-align: center; z-index: 10; }
-    #qr { margin-bottom: 20px; }
+    #controls {
+      text-align: center;
+      z-index: 10;
+    }
+    /* Contenedor del QR con borde blanco */
+    #qr {
+      margin-bottom: 20px;
+      padding: 8px;
+      background: #fff;
+      display: inline-block;
+      border-radius: 12px;
+    }
+    /* Asegurar que el canvas/svg del QR se ajuste */
+    #qr img, #qr canvas, #qr svg {
+      display: block;
+      width: 300px !important;
+      height: 300px !important;
+    }
     #fs-btn {
       padding: 10px 20px; font-size: 1.2rem;
       cursor: pointer; z-index: 10;
@@ -57,10 +74,17 @@
       window.history.replaceState(null, '', `?code=${code}`);
     }
 
-    // 1) Generar el QR
+    // 1) Generar el QR grande + borde blanco
     const qrContainer = document.getElementById('qr');
     const vincularURL = `${window.location.origin}/vincular.html?code=${encodeURIComponent(code)}`;
-    new QRCode(qrContainer, { text: vincularURL, width: 200, height: 200 });
+    new QRCode(qrContainer, {
+      text: vincularURL,
+      width: 300,
+      height: 300,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
 
     // Variables para slideshow
     const slidesEl = document.getElementById('slides');
@@ -68,7 +92,6 @@
 
     // 2) Cargar datos de TV y de imágenes
     async function setupSlideshow() {
-      // Traer duración y gallery_id
       const { data: tv, error: tvErr } = await supabase
         .from('tv')
         .select('gallery_id,duration')
@@ -77,7 +100,6 @@
       if (tvErr || !tv) return console.error('TV no vinculada', tvErr);
       duration = tv.duration;
 
-      // Traer imágenes
       const { data: imgs, error: imgErr } = await supabase
         .from('images')
         .select('url')
@@ -86,14 +108,9 @@
       if (imgErr) return console.error('Error cargando imágenes', imgErr);
       if (!imgs.length) return console.warn('No hay imágenes en este álbum');
 
-      // Construir elementos <img> dentro de #slides
       slidesEl.innerHTML = '';
-      slides = imgs.map(img => 
-        supabase
-          .storage
-          .from('images')
-          .getPublicUrl(img.url)
-          .data.publicUrl
+      slides = imgs.map(img =>
+        supabase.storage.from('images').getPublicUrl(img.url).data.publicUrl
       );
       slides.forEach((src, i) => {
         const img = document.createElement('img');
@@ -103,7 +120,7 @@
       });
     }
 
-    // 3) Función para avanzar
+    // 3) Avanzar slide
     function nextSlide() {
       const imgs = slidesEl.querySelectorAll('img');
       imgs[current].style.opacity = 0;
@@ -113,21 +130,12 @@
 
     // 4) Botón pantalla completa
     document.getElementById('fs-btn').addEventListener('click', async () => {
-      // iniciar fullscreen
       await document.documentElement.requestFullscreen?.();
-      // ocultar controles
       document.getElementById('controls').style.display = 'none';
-      // preparar slideshow
       await setupSlideshow();
-      // arrancar rotación
       if (intervalId) clearInterval(intervalId);
       intervalId = setInterval(nextSlide, duration * 1000);
     });
-
-    // Opcional: arrancar slideshow inmediatamente (sin fullscreen)
-    // setupSlideshow().then(() => {
-    //   intervalId = setInterval(nextSlide, duration * 1000);
-    // });
   })();
   </script>
 </body>
