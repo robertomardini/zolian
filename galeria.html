@@ -12,6 +12,7 @@
   <style>
     .home {
       padding: 20px;
+      transition: left 0.3s, width 0.3s;
     }
     #gallery-list li {
       padding: 12px 16px;
@@ -29,7 +30,8 @@
   </style>
 </head>
 <body>
- <div id="sidebar-container"></div>
+  <!-- Contenedor donde se inyecta el sidebar -->
+  <div id="sidebar-container"></div>
 
   <!-- Contenido principal -->
   <section class="home">
@@ -46,8 +48,9 @@
   <script src="supabaseClient.js"></script>
   <script src="script.js"></script>
   <script>
-    (async () => {
-      // Verificar sesión
+    // Función que inicializa esta página tras cargar el sidebar
+    async function initGaleria() {
+      // 1) Verificar sesión
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         const redirect = encodeURIComponent('/galeria.html');
@@ -56,18 +59,21 @@
       }
       const user = session.user;
 
-      // Mostrar usuario en sidebar
+      // 2) Mostrar email en sidebar (si existe)
       const sidebarUserEl = document.getElementById('sidebar-user');
       if (sidebarUserEl) sidebarUserEl.innerText = user.email;
 
-      // Logout
-      document.getElementById('logout').onclick = async (e) => {
-        e.preventDefault();
-        await supabase.auth.signOut();
-        window.location.href = 'login.html';
-      };
+      // 3) Logout seguro
+      const logoutBtn = document.getElementById('logout');
+      if (logoutBtn) {
+        logoutBtn.onclick = async (e) => {
+          e.preventDefault();
+          await supabase.auth.signOut();
+          window.location.href = 'login.html';
+        };
+      }
 
-      // Cargar álbumes
+      // 4) Cargar álbumes del usuario
       const { data: galleries, error } = await supabase
         .from('galleries')
         .select('id, name')
@@ -75,38 +81,31 @@
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error(error);
+        console.error('Error trayendo galerías:', error);
         return;
       }
 
       const listEl = document.getElementById('gallery-list');
-      const noEl = document.getElementById('no-galleries');
+      const noEl   = document.getElementById('no-galleries');
 
-      if (!galleries.length) {
-        noEl.style.display = 'block';
+      if (!galleries || galleries.length === 0) {
+        if (noEl) noEl.style.display = 'block';
         return;
       }
 
+      // 5) Renderizar cada álbum
       galleries.forEach(g => {
         const li = document.createElement('li');
         li.textContent = g.name;
         li.onclick = () => {
-          // Navega a album.html con el ID del álbum
           window.location.href = `album.html?code=${g.id}`;
         };
         listEl.appendChild(li);
       });
-    })();
-  </script>
-<script>
-  fetch('sidebar.html')
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById('sidebar-container').innerHTML = html;
-      initSidebar(); // función que inicializa toggle, dark mode, etc.
-    })
-    .catch(console.error);
-</script>
+    }
 
+    // Espera al evento que dispara script.js cuando el sidebar está listo
+    window.addEventListener('sidebarReady', initGaleria);
+  </script>
 </body>
 </html>
