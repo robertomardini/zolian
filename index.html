@@ -8,26 +8,51 @@
   <!-- Supabase y QR -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
+  <script src="/script.js"></script>
   <script src="/qrcode.min.js"></script>
 
   <style>
-    html, body { margin:0; padding:0; background:#000; color:#fff;
-      width:100%; height:100%; overflow:hidden;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      font-family: Arial, sans-serif;
+    html, body {
+      margin:0; padding:0;
+      width:100%; height:100%;
+      background:#000; color:#fff;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      font-family:Arial,sans-serif;
     }
-    #controls { text-align:center; z-index:10; }
-    #qr { background:#fff; padding:8px; border-radius:12px; margin-bottom:20px; }
-    #qr img, #qr canvas { width:300px!important; height:300px!important; display:block; }
-    #fs-btn { padding:10px 20px; font-size:1.2rem; cursor:pointer; }
-    #slides { position:absolute; top:0; left:0; width:100%; height:100%; background:#000; }
-    #slides img { position:absolute; width:100%; height:100%; object-fit:contain;
+    #controls {
+      text-align:center; z-index:10;
+    }
+    #qr {
+      margin-bottom:20px;
+      padding:8px;
+      background:#fff;
+      border-radius:12px;
+      display:inline-block;
+    }
+    #qr img, #qr canvas, #qr svg {
+      width:300px!important; height:300px!important;
+      display:block;
+    }
+    #fs-btn {
+      padding:10px 20px; font-size:1.2rem;
+      cursor:pointer; z-index:10;
+    }
+    #slides {
+      position:absolute; top:0; left:0;
+      width:100%; height:100%;
+      background:#000; overflow:hidden;
+    }
+    #slides img {
+      position:absolute; top:0; left:0;
+      width:100%; height:100%;
+      object-fit:contain;
       opacity:0; transition:opacity 1s ease-in-out;
     }
-    :fullscreen body { margin:0; cursor:none; }
   </style>
 </head>
 <body>
+
   <div id="controls">
     <div id="qr"></div>
     <button id="fs-btn">Pantalla completa</button>
@@ -36,91 +61,106 @@
 
   <script>
   (function(){
-    const params = new URLSearchParams(window.location.search);
-    let code = params.get('code');
+    // 0) Variables globales
+    const params   = new URLSearchParams(window.location.search);
+    let code       = params.get('code');
     if (!code) {
       code = crypto.randomUUID();
-      window.history.replaceState(null, '', `?code=${code}`);
+      window.history.replaceState(null,'', `?code=${code}`);
     }
 
-    // Generar QR
     const qrContainer = document.getElementById('qr');
     const vincularURL = `${window.location.origin}/vincular.html?code=${encodeURIComponent(code)}`;
+
+    // 1) Genera el QR grande
     new QRCode(qrContainer, {
-      text: vincularURL, width:300, height:300,
-      colorDark:"#000000", colorLight:"#ffffff",
+      text: vincularURL,
+      width: 300, height: 300,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
       correctLevel: QRCode.CorrectLevel.H
     });
 
+    // 2) Slideshow
     const slidesEl  = document.getElementById('slides');
-    let duration    = 5,
-        current     = 0,
-        intervalId  = null;
+    let   slides    = [], current = 0, intervalId = null, duration = 5;
 
-    // Cargar y montar slideshow (signed URL → fallback público)
     async function setupSlideshow() {
-      const { data:tv } = await supabase
-        .from('tv').select('gallery_id,duration').eq('code',code).maybeSingle();
-      if (!tv?.gallery_id) return console.warn('Pantalla sin álbum');
+      // Lee gallery_id + duration
+      const { data: tv, error: tvErr } = await supabase
+        .from('tv').select('gallery_id,duration').eq('code', code).maybeSingle();
+      if (tvErr || !tv) {
+        console.error('TV no vinculada', tvErr);
+        return;
+      }
       duration = tv.duration;
 
-      const { data:imgs } = await supabase
-        .from('images').select('url').eq('gallery_id',tv.gallery_id).order('created_at',{ascending:true});
-      slidesEl.innerHTML = ''; current=0;
+      // Carga imágenes
+      const { data: imgs, error: imgErr } = await supabase
+        .from('images').select('url')
+        .eq('gallery_id', tv.gallery_id)
+        .order('created_at', { ascending:true });
+      if (imgErr) {
+        console.error('Error cargando imágenes', imgErr);
+        return;
+      }
+      if (!imgs.length) {
+        console.warn('No hay imágenes en el álbum');
+        return;
+      }
 
-      for (let {url} of imgs) {
-        let src = null;
-        // try signed url
-        try {
-          let { data, error } = await supabase.storage.from('images').createSignedUrl(url,3600);
-          if(!error && data?.signedUrl) src = data.signedUrl;
-        } catch{}
-        // fallback a público
-        if (!src) {
-          let { data } = supabase.storage.from('images').getPublicUrl(url);
-          src = data.publicUrl;
-        }
-        if (!src) continue;
+      // Renderiza
+      slidesEl.innerHTML = '';
+      slides = imgs.map(i => 
+        supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
+      );
+      slides.forEach((src,i) => {
         const img = document.createElement('img');
         img.src = src;
+        if (i===0) img.style.opacity = 1;
         slidesEl.appendChild(img);
-      }
-      const imgsEl = slidesEl.querySelectorAll('img');
-      if (imgsEl.length) imgsEl[0].style.opacity = '1';
+      });
     }
 
-    // Avanza slide
     function nextSlide() {
       const imgs = slidesEl.querySelectorAll('img');
       if (!imgs.length) return;
-      imgs[current].style.opacity = '0';
+      imgs[current].style.opacity = 0;
       current = (current+1) % imgs.length;
-      imgs[current].style.opacity = '1';
+      imgs[current].style.opacity = 1;
     }
 
-    // Polling ligero para arrancar slideshow cuando album.html seteé play=true
-    setInterval(async ()=>{
-      const { data:tv } = await supabase
-        .from('tv').select('play').eq('code',code).maybeSingle();
-      if (tv?.play) {
-        clearInterval(intervalId);
-        await setupSlideshow();
-        document.getElementById('controls').style.display='none';
-        intervalId = setInterval(nextSlide,duration*1000);
-        // reset flag
-        await supabase.from('tv').update({play:false}).eq('code',code);
-      }
-    },3000);
-
-    // Botón fullscreen + arranque inmediato
-    document.getElementById('fs-btn').addEventListener('click', ()=>{
-      document.documentElement.requestFullscreen();
-      document.getElementById('controls').style.display='none';
+    function startShow() {
+      document.getElementById('controls').style.display = 'none';
       setupSlideshow().then(()=>{
-        clearInterval(intervalId);
-        intervalId = setInterval(nextSlide,duration*1000);
+        if (intervalId) clearInterval(intervalId);
+        intervalId = setInterval(nextSlide, duration*1000);
       });
+    }
+
+    // 3) Botón de pantalla completa (usuario)
+    document.getElementById('fs-btn').addEventListener('click', async () => {
+      try {
+        await document.documentElement.requestFullscreen();
+      } catch(e){
+        console.warn('No puedo hacer fullscreen:', e);
+      }
+      startShow();
     });
+
+    // 4) Suscripción a cambios remotos en tv.play
+    supabase
+      .from(`tv:code=eq.${code}`)
+      .on('UPDATE', payload => {
+        const tv = payload.new;
+        if (tv.play) {
+          // No intentamos fullscreen aquí (falla)
+          startShow();
+          // Limpiar el flag
+          supabase.from('tv').update({ play:false }).eq('code',code);
+        }
+      })
+      .subscribe();
   })();
   </script>
 </body>
