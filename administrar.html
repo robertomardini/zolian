@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>Administrar Pantalla - Zolian App</title>
 
-  <!-- Estilos y Boxicons (rutas absolutas) -->
+  <!-- Estilos y Boxicons -->
   <link rel="stylesheet" href="/style.css" />
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
 
@@ -18,32 +18,26 @@
   </style>
 </head>
 <body>
-  <!-- Sidebar inyectado -->
   <div id="sidebar-container"></div>
 
-  <!-- Contenido principal -->
   <section class="home">
     <div class="text">Administrar Pantalla</div>
     <p>Código: <strong id="codeDisplay"></strong></p>
     <button id="unlink-btn">Desvincular pantalla</button>
-
     <hr/>
 
     <label for="duration">Duración (segundos):</label>
     <input type="number" id="duration" min="1" style="width:80px;" />
     <button id="save-duration">Guardar duración</button>
-
     <hr/>
 
     <label for="new-gallery-name">Nuevo Álbum</label>
     <input type="text" id="new-gallery-name" placeholder="Nombre álbum" />
     <button id="create-gallery">Crear Álbum</button>
-
     <hr/>
 
     <p>Álbumes existentes:</p>
     <ul id="gallery-list"></ul>
-
     <hr/>
 
     <button id="open-tv">Abrir en TV</button>
@@ -55,6 +49,7 @@
   <script src="/script.js"></script>
   <script>
     async function initAdministrar() {
+      // 1) Leer TV code de la URL
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
       if (!code) {
@@ -62,7 +57,7 @@
       }
       document.getElementById('codeDisplay').innerText = code;
 
-      // Verificar sesión
+      // 2) Sesión
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         const redirect = encodeURIComponent(`/administrar.html?code=${code}`);
@@ -70,11 +65,11 @@
       }
       const user = session.user;
 
-      // Inyectar email
+      // 3) Inyectar email
       const su = document.getElementById('sidebar-user');
       if (su) su.innerText = user.email;
 
-      // Logout
+      // 4) Logout
       const logoutBtn = document.getElementById('logout');
       if (logoutBtn) {
         logoutBtn.onclick = async e => {
@@ -84,22 +79,19 @@
         };
       }
 
-      // Cargar registro de tv
+      // 5) Cargar registro de tv
       const { data: tv, error: tvError } = await supabase
         .from('tv')
-        .select('gallery_id, duration, nombre, user_id')
+        .select('gallery_id, duration, user_id')
         .eq('code', code)
         .maybeSingle();
-
       if (tvError || !tv || tv.user_id !== user.id) {
         alert('Pantalla no válida o sin permiso.');
         return window.location.href = 'pantallas.html';
       }
 
-      // Prellenar duración
+      // 6) Duración
       document.getElementById('duration').value = tv.duration;
-
-      // Guardar duración
       document.getElementById('save-duration').onclick = async () => {
         const val = parseInt(document.getElementById('duration').value, 10);
         if (!val || val < 1) return alert('Duración inválida');
@@ -111,9 +103,9 @@
         alert('Duración actualizada');
       };
 
-      // Desvincular
+      // 7) Desvincular pantalla
       document.getElementById('unlink-btn').onclick = async () => {
-        if (!confirm('¿Desvincular esta pantalla?')) return;
+        if(!confirm('¿Desvincular esta pantalla?')) return;
         await supabase
           .from('tv')
           .update({ user_id: null, nombre: null, gallery_id: null })
@@ -121,12 +113,12 @@
         window.location.href = `vincular.html?code=${code}`;
       };
 
-      // Listar galerías
+      // 8) Listar galerías
       const { data: galleries } = await supabase
         .from('galleries')
         .select('id, name')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at',{ ascending: false });
 
       const listEl = document.getElementById('gallery-list');
       galleries.forEach(g => {
@@ -134,33 +126,35 @@
         li.textContent = g.name;
         if (g.id === tv.gallery_id) li.style.fontWeight = 'bold';
         li.onclick = async () => {
+          // Al hacer clic, asignas la galería a la TV
           await supabase
             .from('tv')
             .update({ gallery_id: g.id })
             .eq('code', code);
-          window.location.reload();
+          // y vas al álbum pasando ambos parámetros:
+          window.location.href = `/album.html?code=${code}&gallery=${g.id}`;
         };
         listEl.appendChild(li);
       });
 
-      // Crear álbum
-      document.getElementById('create-gallery').onclick = () => {
+      // 9) Crear álbum (handler corregido)
+      document.getElementById('create-gallery').onclick = async () => {
         const name = document.getElementById('new-gallery-name').value.trim();
         if (!name) return alert('Nombre vacío');
-        supabase
+        const { data, error } = await supabase
           .from('galleries')
           .insert({ name, user_id: user.id })
           .select('id')
-          .limit(1)
-          .then(({ data, error }) => {
-            if (error) return alert('Error creando álbum');
-            window.location.href = `album.html?code=${tvCode}&gallery=${g.id}`;
-          });
+          .single();
+        if (error) return alert('Error creando álbum');
+        const galleryId = data.id;
+        // Redirigir al album pasando TV code + gallery id
+        window.location.href = `/album.html?code=${code}&gallery=${galleryId}`;
       };
 
-      // Abrir en TV
+      // 10) Abrir en TV
       document.getElementById('open-tv').onclick = () => {
-        window.open(`index.html?code=${code}`, '_blank');
+        window.open(`/index.html?code=${code}`, '_blank');
       };
     }
 
