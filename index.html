@@ -79,13 +79,11 @@
       correctLevel: QRCode.CorrectLevel.H
     });
 
-    // Variables del slideshow
+    // Variables para el slideshow
     const slidesEl = document.getElementById('slides');
-    let current = 0,
-        intervalId = null,
-        duration = 5;
+    let current = 0, intervalId = null, duration = 5;
 
-    // 2) Cargar y construir el slideshow (con Signed URLs)
+    // 2) Cargar imágenes y preparar el slideshow
     async function setupSlideshow() {
       const { data: tv } = await supabase
         .from('tv')
@@ -94,7 +92,7 @@
         .maybeSingle();
       if (!tv?.gallery_id) {
         console.warn('Pantalla no vinculada o sin álbum');
-        return [];
+        return;
       }
       duration = tv.duration;
 
@@ -104,38 +102,52 @@
         .eq('gallery_id', tv.gallery_id)
         .order('created_at', { ascending: true });
 
-      // Generar signed URLs
-      const urls = await Promise.all(imgs.map(async img => {
-        const { data, error } = await supabase
-          .storage
-          .from('images')
-          .createSignedUrl(img.url, 60 * 60);
-        if (error) console.error('Error signedUrl:', error);
-        return data?.signedUrl || null;
-      }));
+      slidesEl.innerHTML = '';
+      current = 0;
 
-      // Filtrar nulls
-      const validUrls = urls.filter(u => !!u);
-      slidesEl.innerHTML = '';    // vaciar
-      validUrls.forEach((src, i) => {
-        const img = document.createElement('img');
-        img.src = src;
-        if (i === 0) img.style.opacity = 1;
-        slidesEl.appendChild(img);
-      });
-      return validUrls;
+      for (let img of imgs) {
+        let src = null;
+        // Intentamos signed URL
+        try {
+          const { data, error } = await supabase
+            .storage
+            .from('images')
+            .createSignedUrl(img.url, 3600);
+          if (!error && data?.signedUrl) src = data.signedUrl;
+        } catch(_) {}
+        // Si no hay signedUrl, fallback a público
+        if (!src) {
+          const { data } = supabase
+            .storage
+            .from('images')
+            .getPublicUrl(img.url);
+          src = data.publicUrl;
+        }
+        if (!src) continue;
+
+        const imgEl = document.createElement('img');
+        imgEl.src = src;
+        imgEl.style.opacity = '0';
+        slidesEl.appendChild(imgEl);
+      }
+
+      // Si al menos hay una imagen, mostramos la primera
+      const allImgs = slidesEl.querySelectorAll('img');
+      if (allImgs.length > 0) {
+        allImgs[0].style.opacity = '1';
+      }
     }
 
-    // 3) Avanzar slide con seguridad
+    // 3) Cambiar a la siguiente slide con comprobación
     function nextSlide() {
       const imgs = slidesEl.querySelectorAll('img');
-      if (!imgs.length) return;
-      imgs[current].style.opacity = 0;
+      if (imgs.length === 0) return;
+      imgs[current].style.opacity = '0';
       current = (current + 1) % imgs.length;
-      imgs[current].style.opacity = 1;
+      imgs[current].style.opacity = '1';
     }
 
-    // 4) Suscripción Realtime (solo arranca slideshow, NO fullscreen)
+    // 4) Suscripción Realtime (solo para arrancar slideshow)
     supabase
       .channel('tv-updates')
       .on('postgres_changes', {
@@ -143,32 +155,36 @@
         schema: 'public',
         table: 'tv',
         filter: `code=eq.${code}`
-      }, async payload => {
-        if (payload.new.play) {
-          // Emerja el slideshow
+      }, async ({ new: tv }) => {
+        if (tv.play) {
+          // Arranca el slideshow (no fullscreen aquí)
           clearInterval(intervalId);
           await setupSlideshow();
           intervalId = setInterval(nextSlide, duration * 1000);
 
-          // resetear play
-          supabase
+          // resetear el flag play
+          await supabase
             .from('tv')
-            .update({ play:false })
+            .update({ play: false })
             .eq('code', code);
         }
       })
       .subscribe();
 
-    // 5) Botón Pantalla Completa -> solicitud de FS + arranque manual
-    document.getElementById('fs-btn').addEventListener('click', async () => {
-      await document.documentElement.requestFullscreen();
+    // 5) Botón “Pantalla completa” (gesto de usuario válido)
+    document.getElementById('fs-btn').addEventListener('click', () => {
+      // 5.1 Solicitar fullscreen inmediatamente
+      document.documentElement.requestFullscreen();
+      // 5.2 Ocultar controles y arrancar slideshow
       document.getElementById('controls').style.display = 'none';
-      clearInterval(intervalId);
-      await setupSlideshow();
-      intervalId = setInterval(nextSlide, duration * 1000);
+      setupSlideshow().then(() => {
+        clearInterval(intervalId);
+        intervalId = setInterval(nextSlide, duration * 1000);
+      });
     });
   })();
 </script>
+
 
  </body>
  </html>
