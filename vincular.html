@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Vincular Pantalla</title>
+  <!-- CSS y Boxicons del look mobile -->
+  <link rel="stylesheet" href="style.css">
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet">
+</head>
+<body>
+  <!-- Sidebar reutilizado de mobile.html -->
+  <nav class="sidebar close">
+    <header>
+      <div class="image-text">
+        <span class="image"><img src="logo.png" alt="Logo"></span>
+        <div class="text logo-text">
+          <span class="name">Zolian App</span>
+          <span class="profession">Easy to share</span>
+        </div>
+      </div>
+      <i class='bx bx-chevron-right toggle'></i>
+    </header>
+    <div class="menu-bar">
+      <div class="menu">
+        <ul class="menu-links">
+          <li class="nav-link">
+            <a href="pantallas.html">
+              <i class='bx bx-home-alt icon'></i><span class="text nav-text">Pantallas</span>
+            </a>
+          </li>
+          <li class="nav-link">
+            <a href="galeria.html">
+              <i class='bx bx-image icon'></i><span class="text nav-text">Galerías</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="bottom-content">
+        <li>
+          <a href="#" id="logout">
+            <i class='bx bx-log-out icon'></i><span class="text nav-text">Cerrar sesión</span>
+          </a>
+        </li>
+        <li class="mode">
+          <div class="sun-moon">
+            <i class='bx bx-moon icon moon'></i>
+            <i class='bx bx-sun icon sun'></i>
+          </div>
+          <span class="mode-text text">Dark mode</span>
+          <div class="toggle-switch">
+            <span class="switch"></span>
+          </div>
+        </li>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenido principal -->
+  <section class="home">
+    <div class="text">Vincular Pantalla</div>
+    <div style="padding:20px;">
+      <p>Código: <strong id="codeDisplay"></strong></p>
+      <label for="nombre">Nombre de la pantalla</label>
+      <input
+        type="text"
+        id="nombre"
+        placeholder="Ej. Sala de espera"
+        style="width:100%; padding:8px; margin-top:8px; border-radius:4px; border:1px solid #ccc;"
+      />
+      <button
+        id="ok-btn"
+        style="margin-top:16px; padding:10px 20px; background:var(--primary-color); color:#fff; border:none; border-radius:4px; cursor:pointer;"
+      >
+        OK
+      </button>
+      <p id="msg" style="color:red; margin-top:12px;"></p>
+    </div>
+  </section>
+
+  <!-- Supabase y lógica -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="supabaseClient.js"></script>
+  <!-- Script de interacción (sidebar, dark mode) -->
+  <script src="script.js"></script>
+  <script>
+    (async function(){
+      // 1) Leer código de la URL
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      if (!code) {
+        // Si no hay código, volvemos a la lista de pantallas
+        window.location.href = 'pantallas.html';
+        return;
+      }
+      document.getElementById('codeDisplay').innerText = code;
+
+      // 2) Verificar sesión de usuario
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // Redirigir a login con ?redirect=/vincular.html?code=XXX
+        const redirect = encodeURIComponent(`/vincular.html?code=${code}`);
+        window.location.href = `login.html?redirect=${redirect}`;
+        return;
+      }
+      const user = session.user;
+
+      // Logout
+      document.getElementById('logout').addEventListener('click', async (e) => {
+        e.preventDefault();
+        await supabase.auth.signOut();
+        window.location.href = 'login.html';
+      });
+
+      // 3) Cargar registro existente (si ya existe la fila en tv)
+      const { data: record, error } = await supabase
+        .from('tv')
+        .select('user_id, nombre')
+        .eq('code', code)
+        .maybeSingle();
+      if (error) {
+        console.error(error);
+        document.getElementById('msg').innerText = 'Error al consultar la pantalla.';
+        return;
+      }
+      if (record) {
+        // Si pertenece a otro usuario, no permitir
+        if (record.user_id && record.user_id !== user.id) {
+          document.getElementById('msg').innerText = 'Esta pantalla ya está vinculada por otro usuario.';
+          document.getElementById('ok-btn').disabled = true;
+          return;
+        }
+        // Si ya es tuya, mostrar nombre existente
+        document.getElementById('nombre').value = record.nombre || '';
+      }
+
+      // 4) Al hacer clic en OK, insertar o actualizar
+      document.getElementById('ok-btn').addEventListener('click', async () => {
+        const nombre = document.getElementById('nombre').value.trim();
+        if (!nombre) {
+          document.getElementById('msg').innerText = 'Debes ingresar un nombre.';
+          return;
+        }
+        let res;
+        if (record) {
+          res = await supabase
+            .from('tv')
+            .update({ user_id: user.id, nombre })
+            .eq('code', code);
+        } else {
+          res = await supabase
+            .from('tv')
+            .insert({ code, user_id: user.id, nombre });
+        }
+        if (res.error) {
+          console.error(res.error);
+          document.getElementById('msg').innerText = 'Error al guardar.';
+          return;
+        }
+        // 5) Redirigir a administrar.html
+        window.location.href = `administrar.html?code=${code}`;
+      });
+    })();
+  </script>
+</body>
+</html>
