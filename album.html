@@ -20,43 +20,27 @@
     .section input[type="text"],
     .section input[type="file"],
     .section button {
-      display: block;
-      width: 100%;
-      box-sizing: border-box;
+      display: block; width: 100%; box-sizing: border-box;
     }
     .section input[type="text"] {
       padding: 8px; border:1px solid #ccc; border-radius:4px;
-      margin-bottom: 8px;
-      background: var(--body-color); color: var(--text-color);
-    }
-    .section input[type="file"] {
-      margin-bottom: 8px;
+      margin-bottom: 8px; background: var(--body-color); color: var(--text-color);
     }
     .section button {
       padding: 10px; margin-bottom: 8px;
       background: var(--primary-color); color: #fff;
       border: none; border-radius:4px; cursor:pointer;
     }
-
-    #images-list {
-      list-style: none;
-      padding: 0;
-    }
-    #images-list li {
-      position: relative;
-      margin-bottom: 12px;
-    }
+    #images-list { list-style: none; padding: 0; }
+    #images-list li { position: relative; margin-bottom: 12px; }
     #images-list img {
-      max-width: 100%;
-      border-radius: 4px;
-      display: block;
+      max-width: 100%; border-radius: 4px; display: block;
     }
     #images-list .delete-btn {
-      position: absolute;
-      top: 8px; right: 8px;
-      background: rgba(0,0,0,0.5);
-      color: #fff; border:none; border-radius:50%;
-      width:24px; height:24px; cursor:pointer;
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(0,0,0,0.5); color: #fff;
+      border:none; border-radius:50%; width:24px; height:24px;
+      cursor:pointer;
     }
   </style>
 </head>
@@ -69,10 +53,16 @@
 
     <!-- Botón para forzar inicio en TV -->
     <div class="section">
-      <button id="start-tv" style="background:#2ecc71;">Iniciar TV</button>
+      <button id="start-tv" style="background:#2ecc71;">
+        <box-icon name='tv' ></box-icon> Iniciar TV
+      </button>
     </div>
 
-    <!-- Mostrar ID del álbum -->
+    <!-- Mostrar IDs -->
+    <div class="section">
+      <label>TV Code:</label>
+      <strong id="tv-code"></strong>
+    </div>
     <div class="section">
       <label>Álbum ID:</label>
       <strong id="album-id"></strong>
@@ -87,14 +77,18 @@
 
     <!-- Borrar álbum -->
     <div class="section">
-      <button id="delete-album" style="background:#e74c3c;">Eliminar álbum</button>
+      <button id="delete-album" style="background:#e74c3c;">
+        <box-icon name='trash'></box-icon> Eliminar álbum
+      </button>
     </div>
 
     <!-- Subir imágenes -->
     <div class="section">
       <label for="file-input">Subir imágenes</label>
       <input type="file" id="file-input" multiple accept="image/*"/>
-      <button id="upload-btn">Subir</button>
+      <button id="upload-btn">
+        <box-icon name='upload'></box-icon> Subir
+      </button>
     </div>
 
     <!-- Lista de imágenes -->
@@ -110,28 +104,32 @@
   <script src="/script.js"></script>
   <script>
     async function initAlbum() {
-      // 1) Leer ID de álbum de la URL
       const params = new URLSearchParams(window.location.search);
-      const albumId = params.get('code');
-      if (!albumId) {
-        alert('Falta el ID del álbum.');
+      const tvCode    = params.get('code');      // el código de la TV
+      const albumId   = params.get('gallery');   // el ID del álbum
+
+      if (!tvCode || !albumId) {
+        alert('Faltan parámetros de URL (code y gallery).');
         return;
       }
+
+      // Mostrar códigos en pantalla
+      document.getElementById('tv-code').innerText = tvCode;
       document.getElementById('album-id').innerText = albumId;
 
-      // 2) Verificar sesión
-      const { data: { session } } = await supabase.auth.getSession();
+      // Verificar sesión
+      const { data:{ session } } = await supabase.auth.getSession();
       if (!session) {
-        const redir = encodeURIComponent(`/album?code=${albumId}`);
+        const redir = encodeURIComponent(`/album?code=${tvCode}&gallery=${albumId}`);
         return window.location.href = `login.html?redirect=${redir}`;
       }
       const user = session.user;
 
-      // 3) Inyectar email en sidebar
+      // Inyectar email en sidebar
       const sidebarUser = document.getElementById('sidebar-user');
       if (sidebarUser) sidebarUser.innerText = user.email;
 
-      // 4) Logout
+      // Logout seguro
       const logoutBtn = document.getElementById('logout');
       if (logoutBtn) {
         logoutBtn.onclick = async (e) => {
@@ -141,7 +139,7 @@
         };
       }
 
-      // 5) Cargar datos del álbum
+      // Cargar y prellenar nombre del álbum
       const { data: album, error: albErr } = await supabase
         .from('galleries')
         .select('name,user_id')
@@ -153,7 +151,7 @@
       }
       document.getElementById('album-name').value = album.name;
 
-      // 6) Guardar nombre
+      // Botón Guardar nombre
       document.getElementById('save-name').onclick = async () => {
         const newName = document.getElementById('album-name').value.trim();
         if (!newName) return alert('Escribe un nombre.');
@@ -165,7 +163,7 @@
         alert('Nombre actualizado.');
       };
 
-      // 7) Eliminar álbum
+      // Botón Eliminar álbum
       document.getElementById('delete-album').onclick = async () => {
         if (!confirm('Eliminar este álbum y todas sus imágenes?')) return;
         await supabase.from('images').delete().eq('gallery_id', albumId);
@@ -174,7 +172,7 @@
         window.location.href = 'galeria';
       };
 
-      // 8) Función para cargar imágenes
+      // Función para renderizar imágenes
       async function loadImages() {
         const { data: imgs } = await supabase
           .from('images')
@@ -185,7 +183,7 @@
         const list = document.getElementById('images-list');
         list.innerHTML = '';
         for (const img of imgs) {
-          const { data: { publicUrl }} = supabase
+          const { data:{ publicUrl }} = supabase
             .storage
             .from('images')
             .getPublicUrl(img.url);
@@ -209,23 +207,16 @@
         }
       }
 
-      // 9) Botón "Iniciar TV"
+      // Botón Iniciar TV: pone play=true en la fila `tv` correcta
       document.getElementById('start-tv').onclick = async () => {
-        // Actualiza el flag play = true en la fila tv correspondiente
-        // (necesitamos saber aquí el código de la TV, que debe venir como param o guardarse
-        // en otra variable; asumo que se pasa como ?tvcode=XXX)
-        const tvCode = params.get('tvcode');
-        if (!tvCode) {
-          return alert('No se encontró el código de la pantalla.');
-        }
         await supabase
           .from('tv')
           .update({ play: true })
           .eq('code', tvCode);
-        alert('Se ha enviado orden al TV.');
+        alert('Se ha enviado la señal al TV.');
       };
 
-      // 10) Subir imágenes
+      // Botón Subir imágenes
       document.getElementById('upload-btn').onclick = async () => {
         const files = document.getElementById('file-input').files;
         if (!files.length) return alert('Selecciona al menos una imagen.');
@@ -240,20 +231,16 @@
             alert(`Error subiendo ${file.name}: ${upErr.message}`);
             continue;
           }
-          await supabase.from('images').insert({
-            gallery_id: albumId,
-            url: path
-          });
+          await supabase.from('images').insert({ gallery_id: albumId, url: path });
         }
         document.getElementById('file-input').value = null;
         loadImages();
       };
 
-      // 11) Primera carga de imágenes
+      // Primera carga
       await loadImages();
     }
 
-    // Espera a que el sidebar esté listo
     window.addEventListener('sidebarReady', initAlbum);
   </script>
 </body>
