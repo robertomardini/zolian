@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Administrar Pantalla</title>
+  <!-- CSS y Boxicons -->
+  <link rel="stylesheet" href="style.css" />
+  <link
+    href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css"
+    rel="stylesheet"
+  />
+</head>
+<body>
+  <!-- Sidebar -->
+  <nav class="sidebar close">
+    <header>
+      <div class="image-text">
+        <span class="image"><img src="logo.png" alt="Logo" /></span>
+        <div class="text logo-text">
+          <span class="name">Zolian App</span>
+          <span class="profession">Easy to share</span>
+        </div>
+      </div>
+      <i class="bx bx-chevron-right toggle"></i>
+    </header>
+    <div class="menu-bar">
+      <div class="menu">
+        <ul class="menu-links">
+          <li class="nav-link">
+            <a href="pantallas.html">
+              <i class="bx bx-home-alt icon"></i
+              ><span class="text nav-text">Pantallas</span>
+            </a>
+          </li>
+          <li class="nav-link">
+            <a href="galeria.html">
+              <i class="bx bx-image icon"></i
+              ><span class="text nav-text">Galerías</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="bottom-content">
+        <!-- Usuario -->
+        <li class="nav-link nav-user">
+          <a href="#">
+            <i class="bx bx-user icon"></i
+            ><span class="text nav-text" id="sidebar-user"></span>
+          </a>
+        </li>
+        <!-- Cerrar sesión -->
+        <li>
+          <a href="#" id="logout">
+            <i class="bx bx-log-out icon"></i
+            ><span class="text nav-text">Cerrar sesión</span>
+          </a>
+        </li>
+        <!-- Dark mode -->
+        <li class="mode">
+          <div class="sun-moon">
+            <i class="bx bx-moon icon moon"></i>
+            <i class="bx bx-sun icon sun"></i>
+          </div>
+          <span class="mode-text text">Dark mode</span>
+          <div class="toggle-switch">
+            <span class="switch"></span>
+          </div>
+        </li>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenido principal -->
+  <section class="home">
+    <div class="text">Administrar Pantalla</div>
+    <div style="padding: 20px;">
+      <p>
+        Código:
+        <strong id="codeDisplay"></strong>
+      </p>
+
+      <!-- Desvincular -->
+      <button id="unlink-btn" style="margin-bottom:16px;">
+        Desvincular pantalla
+      </button>
+
+      <hr />
+
+      <!-- Duración -->
+      <label for="duration">Duración (segundos):</label>
+      <input
+        type="number"
+        id="duration"
+        min="1"
+        style="width:80px; margin-left:8px;"
+      />
+      <button id="save-duration">Guardar duración</button>
+
+      <hr />
+
+      <!-- Crear nuevo álbum -->
+      <label for="new-gallery-name">Nuevo Álbum</label>
+      <input
+        type="text"
+        id="new-gallery-name"
+        placeholder="Nombre álbum"
+        style="
+          width: 100%;
+          padding: 8px;
+          margin-top: 8px;
+          border-radius: 4px;
+          border: 1px solid #ccc;
+        "
+      />
+      <button id="create-gallery" style="margin-top:8px;">
+        Crear Álbum
+      </button>
+
+      <hr />
+
+      <!-- Lista de álbumes -->
+      <p>Álbumes existentes:</p>
+      <ul id="gallery-list" style="list-style: none; padding-left: 0;"></ul>
+
+      <hr />
+
+      <!-- Abrir en TV -->
+      <button id="open-tv" style="margin-top:16px;">
+        Abrir en TV
+      </button>
+    </div>
+  </section>
+
+  <!-- Supabase y scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="supabaseClient.js"></script>
+  <script src="script.js"></script>
+  <script>
+    (async () => {
+      // 1) Parámetro de pantalla
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      if (!code) {
+        window.location.href = "pantallas.html";
+        return;
+      }
+      document.getElementById("codeDisplay").innerText = code;
+
+      // 2) Verificar sesión
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        const redirect = encodeURIComponent(
+          `/administrar.html?code=${code}`
+        );
+        window.location.href = `login.html?redirect=${redirect}`;
+        return;
+      }
+      const user = session.user;
+
+      // Inyectar usuario en sidebar
+      const sidebarUserEl = document.getElementById("sidebar-user");
+      if (sidebarUserEl) sidebarUserEl.innerText = user.email;
+
+      // Logout
+      document.getElementById("logout").onclick = async (e) => {
+        e.preventDefault();
+        await supabase.auth.signOut();
+        window.location.href = "login.html";
+      };
+
+      // 3) Cargar datos de 'tv'
+      const {
+        data: tv,
+        error: tvError
+      } = await supabase
+        .from("tv")
+        .select("gallery_id, duration, nombre, user_id")
+        .eq("code", code)
+        .maybeSingle();
+      if (tvError || !tv || tv.user_id !== user.id) {
+        alert("Pantalla no válida o sin permiso.");
+        window.location.href = "pantallas.html";
+        return;
+      }
+
+      // Prellenar duración
+      const inputDuration = document.getElementById("duration");
+      inputDuration.value = tv.duration;
+
+      // 4) Guardar duración
+      document.getElementById("save-duration").onclick = async () => {
+        const val = parseInt(inputDuration.value, 10);
+        if (!val || val < 1) return alert("Duración inválida");
+        const { error } = await supabase
+          .from("tv")
+          .update({ duration: val })
+          .eq("code", code);
+        if (error) return alert("Error al guardar duración");
+        alert("Duración actualizada");
+      };
+
+      // 5) Desvincular pantalla
+      document.getElementById("unlink-btn").onclick = async () => {
+        const ok = confirm("¿Seguro que quieres desvincular esta pantalla?");
+        if (!ok) return;
+        await supabase
+          .from("tv")
+          .update({ user_id: null, nombre: null, gallery_id: null })
+          .eq("code", code);
+        window.location.href = "vincular.html?code=" + code;
+      };
+
+      // 6) Listar galerías del usuario
+      const { data: galleries } = await supabase
+        .from("galleries")
+        .select("id, name")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      const listEl = document.getElementById("gallery-list");
+      galleries.forEach((g) => {
+        const li = document.createElement("li");
+        li.style.padding = "8px 0";
+        li.style.cursor = "pointer";
+        if (g.id === tv.gallery_id) {
+          li.style.fontWeight = "bold";
+        }
+        li.textContent = g.name;
+        li.onclick = async () => {
+          await supabase
+            .from("tv")
+            .update({ gallery_id: g.id })
+            .eq("code", code);
+          // refrescar para resaltar
+          window.location.reload();
+        };
+        listEl.appendChild(li);
+      });
+
+      // 7) Crear nuevo álbum
+      document.getElementById("create-gallery").onclick = async () => {
+        const name = document.getElementById("new-gallery-name").value.trim();
+        if (!name) return alert("Ingresa un nombre de álbum");
+        const { data: [newG], error } = await supabase
+          .from("galleries")
+          .insert({ name, user_id: user.id })
+          .select("id")
+          .limit(1);
+        if (error) return alert("Error al crear álbum");
+        // redirigir a album.html?code=ID_DEL_ALBUM
+        window.location.href = `album.html?code=${newG.id}`;
+      };
+
+      // 8) Abrir en TV
+      document.getElementById("open-tv").onclick = () => {
+        window.open(`index.html?code=${code}`, "_blank");
+      };
+    })();
+  </script>
+</body>
+</html>
