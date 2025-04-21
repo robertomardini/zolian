@@ -82,15 +82,20 @@
   <script>
     // Esta función arranca SOLO cuando el sidebar ya está listo
     async function initPantallas() {
-      // 1) Obtener sesión de Supabase
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('>>> Supabase session:', session);
-      if (!session) {
-        // Redirige al login si no hay sesión
-        const redirect = encodeURIComponent('/pantallas');
-        window.location.href = `login.html?redirect=${redirect}`;
-        return;
-      }
+  const { data:{ session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    // Redirige al login si no hay sesión, usando la ruta correcta
+    const redirect = encodeURIComponent('/pantallas');
+    window.location.href = `login.html?redirect=${redirect}`;
+    return;
+  }
+
+  // Inyecta el email en el sidebar
+  const sidebarUser = document.getElementById('sidebar-user');
+  if (sidebarUser) {
+    sidebarUser.innerText = session.user.email;
+  }
 
       // 2) Inyecta email en el sidebar (si existe)
       const sidebarUser = document.getElementById('sidebar-user');
