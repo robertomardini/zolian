@@ -70,10 +70,14 @@
     const qrContainer = document.getElementById('qr');
     const vincularURL = `${window.location.origin}/vincular.html?code=${encodeURIComponent(code)}`;
     new QRCode(qrContainer, {
-      text: vincularURL,
-      width: 200,
-      height: 200
-    });
+  text: vincularURL,
+  width: 300,
+  height: 300,
+  colorDark: "#000000",
+  colorLight: "#ffffff",
+  correctLevel: QRCode.CorrectLevel.H   // máxima corrección de errores
+});
+
 
     // resto de tu lógica de fullscreen...
     document.getElementById('fs-btn').addEventListener('click', () => {
