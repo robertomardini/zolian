@@ -127,7 +127,7 @@
     screens.forEach(p => {
       const li = document.createElement('li');
       li.innerHTML = `
-        <box-icon name='tv'></box-icon>
+        <box-icon name='tv' color='white' size='48px'></box-icon>
         <span>${p.nombre || p.code}</span>
       `;
       li.onclick = () => {
