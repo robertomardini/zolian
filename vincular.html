@@ -117,9 +117,10 @@
       const ui = document.getElementById('user-info');
       if (ui) ui.innerText = user.email;
       
-// Poner el email dentro del nuevo nav-user
-const sidebarUserEl = document.getElementById('sidebar-user');
-if (sidebarUserEl) sidebarUserEl.innerText = user.email;
+
+      // Mostrar el email del usuario en el sidebar
+const ui = document.getElementById('user-info');
+if (ui) ui.innerText = user.email;
 
       // Logout
       document.getElementById('logout').addEventListener('click', async (e) => {
