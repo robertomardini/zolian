@@ -343,3 +343,29 @@ body.dark button {
   border: none;
   color: #fff;
 }
+/* Espacio extra y orden en bottom-content */
+.sidebar .bottom-content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding-bottom: 20px;
+}
+
+/* Estilos para el nav-user */
+.sidebar .nav-user {
+  margin-bottom: 8px;
+}
+.sidebar .nav-user .icon {
+  font-size: 20px;
+}
+.sidebar .nav-user .nav-text {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Cuando la sidebar está colapsada, ocultamos el texto del usuario */
+.sidebar.close .nav-user .nav-text {
+  display: none;
+}
