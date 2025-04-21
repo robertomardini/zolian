@@ -1,3 +1,5 @@
+no me aparecen los iconos, puedes revisar el code?
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7,50 +9,53 @@
   <title>Mis Pantallas - Zolian App</title>
 
   <!-- Estilos y Boxicons -->
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="style.css" />
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
-  <!-- Script necesario para <box-icon> -->
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
-
   <style>
     .home {
       padding: 20px;
       transition: left 0.3s, width 0.3s;
     }
     #screens-list {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 24px;
-      list-style: none;
-      padding: 0;
-      margin-top: 24px;
-    }
-    #screens-list li {
-      background: var(--primary-color);
-      color: #fff;
-      border-radius: 12px;
-      height: 160px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.2s, background 0.2s;
-    }
-    #screens-list li:hover {
-      transform: scale(1.05);
-      background: var(--primary-color-light);
-    }
-    /* Aplica estilo al web component box-icon */
-    #screens-list li box-icon {
-      font-size: 48px;
-      margin-bottom: 8px;
-      color: #fff;
-    }
-    #screens-list li span {
-      display: block;
-      font-weight: 500;
-    }
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  list-style: none;
+  padding: 0;
+  margin-top: 24px;
+}
+
+#screens-list li {
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 12px;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+#screens-list li:hover {
+  transform: scale(1.05);
+  background: var(--primary-color-light);
+}
+
+#screens-list li box-icon {
+  /* Tamaño grande para el icono */
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+/* Texto debajo del icono */
+#screens-list li span {
+  display: block;
+  font-weight: 500;
+}
+
     #no-screens {
       text-align: center;
       color: var(--text-color);
@@ -59,8 +64,10 @@
   </style>
 </head>
 <body>
+  <!-- Contenedor donde se inyecta el sidebar -->
   <div id="sidebar-container"></div>
 
+  <!-- Contenido principal -->
   <section class="home">
     <div class="text">Mis Pantallas</div>
     <ul id="screens-list"></ul>
@@ -72,18 +79,26 @@
 
   <!-- Supabase y scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
-  <script src="/script.js"></script>
+  <script src="supabaseClient.js"></script>
+  <script src="script.js"></script>
   <script>
+    // Esta función arranca SOLO cuando el sidebar ya está listo
     async function initPantallas() {
+      // 1) Obtener sesión de Supabase
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('>>> Supabase session:', session);
       if (!session) {
-        const redirect = encodeURIComponent('/pantallas');
-        return window.location.href = `login.html?redirect=${redirect}`;
+        // Redirige al login si no hay sesión
+        const redirect = encodeURIComponent('/pantallas.html');
+        window.location.href = `login.html?redirect=${redirect}`;
+        return;
       }
+
+      // 2) Inyecta email en el sidebar (si existe)
       const sidebarUser = document.getElementById('sidebar-user');
       if (sidebarUser) sidebarUser.innerText = session.user.email;
 
+      // 3) Logout seguro (null‑guard)
       const logoutBtn = document.getElementById('logout');
       if (logoutBtn) {
         logoutBtn.onclick = async (e) => {
@@ -93,34 +108,43 @@
         };
       }
 
+      // 4) Carga las pantallas del usuario
       const { data: screens, error } = await supabase
         .from('tv')
         .select('code,nombre')
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
+      if (error) {
+        console.error('Error trayendo pantallas:', error);
+        return;
+      }
+
       const listEl = document.getElementById('screens-list');
       const noEl   = document.getElementById('no-screens');
-      listEl.innerHTML = '';
 
-      if (error || !screens || screens.length === 0) {
+      if (!screens || screens.length === 0) {
         if (noEl) noEl.style.display = 'block';
         return;
       }
 
-      screens.forEach(p => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-          <box-icon name='tv'></box-icon>
-          <span>${p.nombre || p.code}</span>
-        `;
-        li.onclick = () => {
-          window.location.href = `/administrar.html?code=${p.code}`;
-        };
-        listEl.appendChild(li);
-      });
+      // 5) Renderiza la lista
+     listEl.innerHTML = '';
+
+screens.forEach(p => {
+  const li = document.createElement('li');
+  li.innerHTML = `
+    <box-icon name='tv' ></box-icon>
+    <span>${p.nombre || p.code}</span>
+  `;
+  li.onclick = () => {
+    window.location.href = `administrar.html?code=${p.code}`;
+  };
+  listEl.appendChild(li);
+});
     }
 
+    // Espera al evento 'sidebarReady' lanzado desde script.js
     window.addEventListener('sidebarReady', initPantallas);
   </script>
 </body>
