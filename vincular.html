@@ -105,6 +105,8 @@
         return;
       }
       const user = session.user;
+      const ui = document.getElementById('user-info');
+if (ui) ui.innerText = user.email;
 
       // Logout
       document.getElementById('logout').addEventListener('click', async (e) => {
