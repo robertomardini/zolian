@@ -79,76 +79,67 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="supabaseClient.js"></script>
   <script src="script.js"></script>
-  <script>
-    // Esta función arranca SOLO cuando el sidebar ya está listo
-    async function initPantallas() {
-  const { data:{ session } } = await supabase.auth.getSession();
+  <!-- ... resto de tu HTML ... -->
 
-  if (!session) {
-    // Redirige al login si no hay sesión, usando la ruta correcta
-    const redirect = encodeURIComponent('/pantallas');
-    window.location.href = `login.html?redirect=${redirect}`;
-    return;
-  }
-
-  // Inyecta el email en el sidebar
-  const sidebarUser = document.getElementById('sidebar-user');
-  if (sidebarUser) {
-    sidebarUser.innerText = session.user.email;
-  }
-
-      // 2) Inyecta email en el sidebar (si existe)
-      const sidebarUser = document.getElementById('sidebar-user');
-      if (sidebarUser) sidebarUser.innerText = session.user.email;
-
-      // 3) Logout seguro (null‑guard)
-      const logoutBtn = document.getElementById('logout');
-      if (logoutBtn) {
-        logoutBtn.onclick = async (e) => {
-          e.preventDefault();
-          await supabase.auth.signOut();
-          window.location.href = 'login.html';
-        };
-      }
-
-      // 4) Carga las pantallas del usuario
-      const { data: screens, error } = await supabase
-        .from('tv')
-        .select('code,nombre')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error trayendo pantallas:', error);
-        return;
-      }
-
-      const listEl = document.getElementById('screens-list');
-      const noEl   = document.getElementById('no-screens');
-
-      if (!screens || screens.length === 0) {
-        if (noEl) noEl.style.display = 'block';
-        return;
-      }
-
-      // 5) Renderiza la lista
-     listEl.innerHTML = '';
-
-screens.forEach(p => {
-  const li = document.createElement('li');
-  li.innerHTML = `
-    <box-icon name='tv' color='white' size='48px'></box-icon>
-    <span>${p.nombre || p.code}</span>
-  `;
-  li.onclick = () => {
-    window.location.href = `administrar.html?code=${p.code}`;
-  };
-  listEl.appendChild(li);
-});
+<script>
+  async function initPantallas() {
+    // 1) Obtener sesión
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const redirect = encodeURIComponent('/pantallas');
+      window.location.href = `login.html?redirect=${redirect}`;
+      return;
     }
 
-    // Espera al evento 'sidebarReady' lanzado desde script.js
-    window.addEventListener('sidebarReady', initPantallas);
-  </script>
+    // 2) Inyectar email en el sidebar
+    const userEmailEl = document.getElementById('sidebar-user');
+    if (userEmailEl) {
+      userEmailEl.innerText = session.user.email;
+    }
+
+    // 3) Logout
+    const logoutBtn = document.getElementById('logout');
+    if (logoutBtn) {
+      logoutBtn.onclick = async (e) => {
+        e.preventDefault();
+        await supabase.auth.signOut();
+        window.location.href = 'login.html';
+      };
+    }
+
+    // 4) Cargar pantallas del usuario
+    const { data: screens, error } = await supabase
+      .from('tv')
+      .select('code, nombre')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false });
+
+    const listEl = document.getElementById('screens-list');
+    const noEl   = document.getElementById('no-screens');
+    listEl.innerHTML = '';
+
+    if (error || !screens || screens.length === 0) {
+      if (noEl) noEl.style.display = 'block';
+      return;
+    }
+
+    // 5) Renderizar tarjetas
+    screens.forEach(p => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <box-icon name='tv'></box-icon>
+        <span>${p.nombre || p.code}</span>
+      `;
+      li.onclick = () => {
+        window.location.href = `/administrar.html?code=${p.code}`;
+      };
+      listEl.appendChild(li);
+    });
+  }
+
+  // Espera al sidebarReady que dispara script.js
+  window.addEventListener('sidebarReady', initPantallas);
+</script>
+
 </body>
 </html>
