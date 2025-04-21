@@ -22,12 +22,14 @@
   <script>
     (async function(){
       // ** 1) URLs de prueba **
-      // Crea aquí un array con 2 o 3 URLs de imágenes públicas
-      const testImages = [
-        'https://picsum.photos/800/600?random=1',
-        'https://picsum.photos/800/600?random=2',
-        'https://picsum.photos/800/600?random=3'
-      ];
+     const { data: imgs } = await supabase
+  .from('images')
+  .select('url')
+  .eq('gallery_id', 'galleries');  // usa un ID real de prueba
+
+// y luego haz exactamente lo mismo que con testImages,
+// pero usando imgs.map(i => i.url)
+
 
       // ** 2) Inyectar <img> **
       const slidesEl = document.getElementById('slides');
