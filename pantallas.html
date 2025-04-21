@@ -34,82 +34,83 @@
   </style>
 </head>
 <body>
+  <!-- Aquí inyectaremos el sidebar -->
   <div id="sidebar-container"></div>
-
 
   <!-- Contenido principal -->
   <section class="home">
     <div class="text">Mis Pantallas</div>
     <ul id="screens-list"></ul>
-    <p id="no-screens" style="display:none;">No tienes pantallas vinculadas.<br>Escanea un QR para agregar una.</p>
+    <p id="no-screens" style="display:none;">
+      No tienes pantallas vinculadas.<br>
+      Escanea un QR para agregar una.
+    </p>
   </section>
 
-  <!-- Supabase y scripts -->
+  <!-- Supabase y el loader de sidebar + lógica de página -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="supabaseClient.js"></script>
   <script src="script.js"></script>
   <script>
-    (async () => {
-      // Verificar sesión
+    // Esta función arranca SOLO cuando el sidebar ya está listo
+    async function initPantallas() {
+      // 1) Sesión
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('>>> Supabase session:', session);
       if (!session) {
+        // Redirige al login si no hay sesión
         const redirect = encodeURIComponent('/pantallas.html');
         window.location.href = `login.html?redirect=${redirect}`;
         return;
       }
-      const user = session.user;
 
-      // Inyectar usuario en sidebar
-      const sidebarUserEl = document.getElementById('sidebar-user');
-      if (sidebarUserEl) sidebarUserEl.innerText = user.email;
+      // 2) Inyecta email en el sidebar (si existe)
+      const sidebarUser = document.getElementById('sidebar-user');
+      if (sidebarUser) sidebarUser.innerText = session.user.email;
 
-      // Logout
-      document.getElementById('logout').onclick = async (e) => {
-        e.preventDefault();
-        await supabase.auth.signOut();
-        window.location.href = 'login.html';
-      };
+      // 3) Logout seguro (null‑guard)
+      const logoutBtn = document.getElementById('logout');
+      if (logoutBtn) {
+        logoutBtn.onclick = async (e) => {
+          e.preventDefault();
+          await supabase.auth.signOut();
+          window.location.href = 'login.html';
+        };
+      }
 
-      // Traer mis pantallas
+      // 4) Carga tus pantallas
       const { data: screens, error } = await supabase
         .from('tv')
-        .select('code, nombre')
-        .eq('user_id', user.id)
+        .select('code,nombre')
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error(error);
+        console.error('Error trayendo pantallas:', error);
         return;
       }
 
       const listEl = document.getElementById('screens-list');
-      const noScreensEl = document.getElementById('no-screens');
+      const noEl   = document.getElementById('no-screens');
 
-      if (!screens.length) {
-        noScreensEl.style.display = 'block';
+      if (!screens || screens.length === 0) {
+        if (noEl) noEl.style.display = 'block';
         return;
       }
 
-      // Renderizar cada pantalla
-      screens.forEach(({ code, nombre }) => {
+      // 5) Renderiza la lista
+      for (const p of screens) {
         const li = document.createElement('li');
-        li.textContent = nombre || code;
+        li.textContent = p.nombre || p.code;
         li.onclick = () => {
-          window.location.href = `administrar.html?code=${code}`;
+          window.location.href = `administrar.html?code=${p.code}`;
         };
         listEl.appendChild(li);
-      });
-    })();
-  </script>
-<script>
-  fetch('sidebar.html')
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById('sidebar-container').innerHTML = html;
-      initSidebar(); // función que inicializa toggle, dark mode, etc.
-    })
-    .catch(console.error);
-</script>
+      }
+    }
 
+    // Espera al dispatch 'sidebarReady' lanzado en script.js
+    window.addEventListener('sidebarReady', initPantallas);
+  </script>
 </body>
 </html>
