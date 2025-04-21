@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Zolian TV</title>
+  <!-- QR Code JS y Supabase client -->
+  <script src="qrcode.min.js"></script>
+  <script src="supabaseClient.js"></script>
+  <style>
+    /* Estilo minimal para TV */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, sans-serif;
+    }
+    #controls {
+      text-align: center;
+    }
+    #qr {
+      margin-bottom: 20px;
+    }
+    #fs-btn {
+      padding: 10px 20px;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    /* Contenedor para el slideshow (oculto por defecto) */
+    #slides {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+    /* Al hacer fullscreen quitamos márgenes automáticamente */
+    :fullscreen body {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <div id="qr"></div>
+    <button id="fs-btn">Pantalla completa</button>
+  </div>
+
+  <!-- Aquí se inyectará el slideshow cuando venga la orden -->
+  <div id="slides"></div>
+
+  <script>
+    (function(){
+      // 1. Obtener el parámetro ?code=XXX
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code') || '';
+
+      // 2. Generar el QR solo si hay código
+      const qrContainer = document.getElementById('qr');
+      if (code) {
+        const vincularURL = `${window.location.origin}/vincular.html?code=${encodeURIComponent(code)}`;
+        new QRCode(qrContainer, {
+          text: vincularURL,
+          width: 200,
+          height: 200
+        });
+      } else {
+        qrContainer.textContent = 'Código no proporcionado';
+      }
+
+      // 3. Botón de pantalla completa
+      document.getElementById('fs-btn').addEventListener('click', () => {
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+        // ocultar cursor y controles
+        document.body.style.cursor = 'none';
+        document.getElementById('controls').style.display = 'none';
+
+        // mostrar contenedor de slides (la lógica del slideshow vendrá de administrar.html)
+        document.getElementById('slides').style.display = 'block';
+      });
+    })();
+  </script>
+</body>
+</html>
