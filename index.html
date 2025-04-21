@@ -118,27 +118,40 @@
       imgs[current].style.opacity = 1;
     }
 
-    // 3) Suscripción protegida para play=true
-    try {
-      supabase
-        .from(`tv:code=eq.${code}`)
-        .on('UPDATE', payload => {
-          const tv = payload.new;
-          if (tv.play) {
-            document.documentElement.requestFullscreen?.();
-            document.getElementById('controls').style.display = 'none';
-            setupSlideshow().then(() => {
-              clearInterval(intervalId);
-              intervalId = setInterval(nextSlide, tv.duration * 1000);
-            });
-            // resetear el flag
-            supabase.from('tv').update({ play:false }).eq('code',code);
-          }
-        })
-        .subscribe();
-    } catch(e) {
-      console.error('Realtime subscription falló:', e);
-    }
+     // --- SUSCRIPCIÓN REALTIME con Supabase JS v2 ---
+  const channel = supabase
+    .channel('tv-updates')                            // nombre arbitrario para el canal
+    .on(
+      'postgres_changes',                             // escucha cambios en Postgres
+      {
+        event: 'UPDATE',                              // solo actualizaciones
+        schema: 'public',
+        table: 'tv',
+        filter: `code=eq.${code}`                     // solo filas con este code
+      },
+      (payload) => {
+        const tv = payload.new;
+        if (tv.play) {
+          // Entrar en fullscreen
+          document.documentElement.requestFullscreen?.();
+          document.getElementById('controls').style.display = 'none';
+
+          // Arrancar slideshow
+          setupSlideshow().then(() => {
+            clearInterval(intervalId);
+            intervalId = setInterval(nextSlide, tv.duration * 1000);
+          });
+
+          // Resetear el flag play
+          supabase
+            .from('tv')
+            .update({ play: false })
+            .eq('code', code);
+        }
+      }
+    )
+    .subscribe();
+
 
     // 4) Botón pantalla completa tradicional
     document.getElementById('fs-btn').addEventListener('click', async () => {
