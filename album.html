@@ -242,15 +242,15 @@
         for (let file of files) {
           const path = `${albumId}/${Date.now()}_${file.name}`;
           // upload
-          const { error: upErr } = await supabase
-            .storage
-            .from('images')
-            .upload(path, file, { upsert: false });
-          if (upErr) {
-            console.error(upErr);
-            alert('Error subiendo ' + file.name);
-            continue;
-          }
+          const { data: uploadData, error: upErr } = await supabase
+  .storage
+  .from('images')
+  .upload(path, file, { upsert: false });
+if (upErr) {
+  console.error('Upload error:', upErr);
+  alert(`Error subiendo ${file.name}: ${upErr.message}`);
+  continue;
+}
           // insert record con url = path
           await supabase.from('images').insert({
             gallery_id: albumId,
