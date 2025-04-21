@@ -10,9 +10,9 @@
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
 
   <style>
-    /* Ajustes locales para centrar contenido */
     .home {
       padding: 20px;
+      transition: left 0.3s, width 0.3s;
     }
     #screens-list li {
       padding: 12px 16px;
@@ -34,7 +34,7 @@
   </style>
 </head>
 <body>
-  <!-- Aquí inyectaremos el sidebar -->
+  <!-- Contenedor donde se inyecta el sidebar -->
   <div id="sidebar-container"></div>
 
   <!-- Contenido principal -->
@@ -47,14 +47,14 @@
     </p>
   </section>
 
-  <!-- Supabase y el loader de sidebar + lógica de página -->
+  <!-- Supabase y scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="supabaseClient.js"></script>
   <script src="script.js"></script>
   <script>
     // Esta función arranca SOLO cuando el sidebar ya está listo
     async function initPantallas() {
-      // 1) Sesión
+      // 1) Obtener sesión de Supabase
       const { data: { session } } = await supabase.auth.getSession();
       console.log('>>> Supabase session:', session);
       if (!session) {
@@ -78,7 +78,7 @@
         };
       }
 
-      // 4) Carga tus pantallas
+      // 4) Carga las pantallas del usuario
       const { data: screens, error } = await supabase
         .from('tv')
         .select('code,nombre')
@@ -99,17 +99,17 @@
       }
 
       // 5) Renderiza la lista
-      for (const p of screens) {
+      screens.forEach(p => {
         const li = document.createElement('li');
         li.textContent = p.nombre || p.code;
         li.onclick = () => {
           window.location.href = `administrar.html?code=${p.code}`;
         };
         listEl.appendChild(li);
-      }
+      });
     }
 
-    // Espera al dispatch 'sidebarReady' lanzado en script.js
+    // Espera al evento 'sidebarReady' lanzado desde script.js
     window.addEventListener('sidebarReady', initPantallas);
   </script>
 </body>
