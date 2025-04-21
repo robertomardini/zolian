@@ -73,7 +73,29 @@
       code = crypto.randomUUID();
       window.history.replaceState(null, '', `?code=${code}`);
     }
-
+// --- NUEVO: subscripción a play=true ---
+  supabase
+    .from(`tv:code=eq.${code}`)
+    .on('UPDATE', payload => {
+      const { new: tv } = payload;
+      if (tv.play) {
+        // 1) Entrar en fullscreen
+        document.documentElement.requestFullscreen?.();
+        document.getElementById('controls').style.display = 'none';
+        // 2) Arrancar slideshow
+        setupSlideshow().then(() => {
+          if (intervalId) clearInterval(intervalId);
+          intervalId = setInterval(nextSlide, tv.duration * 1000);
+        });
+        // 3) Limpiar el flag para no volver a disparar
+        supabase
+          .from('tv')
+          .update({ play: false })
+          .eq('code', code);
+      }
+    })
+    .subscribe();
+    
     // 1) Generar el QR grande + borde blanco
     const qrContainer = document.getElementById('qr');
     const vincularURL = `${window.location.origin}/vincular.html?code=${encodeURIComponent(code)}`;
