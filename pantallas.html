@@ -17,25 +17,24 @@
     }
     #screens-list {
   display: grid;
-  /* ajusta el número de columnas según el ancho */
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 24px;
   list-style: none;
   padding: 0;
-  margin: 24px 0 0 0;
+  margin-top: 24px;
 }
 
 #screens-list li {
   background: var(--primary-color);
   color: #fff;
   border-radius: 12px;
+  height: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 140px;
   cursor: pointer;
-  transition: transform .2s;
+  transition: transform 0.2s, background 0.2s;
 }
 
 #screens-list li:hover {
@@ -43,10 +42,18 @@
   background: var(--primary-color-light);
 }
 
-#screens-list li .icon-large {
+#screens-list li box-icon {
+  /* Tamaño grande para el icono */
   font-size: 48px;
   margin-bottom: 8px;
 }
+
+/* Texto debajo del icono */
+#screens-list li span {
+  display: block;
+  font-weight: 500;
+}
+
     #no-screens {
       text-align: center;
       color: var(--text-color);
