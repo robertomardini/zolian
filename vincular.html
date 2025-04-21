@@ -1,137 +1,109 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <base href="/" />
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Vincular Pantalla</title>
-  <!-- CSS y Boxicons del look mobile -->
-  <link rel="stylesheet" href="style.css">
-  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Vincular Pantalla - Zolian App</title>
+
+  <!-- Estilos y Boxicons -->
+  <link rel="stylesheet" href="/style.css" />
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
+
+  <style>
+    .home { padding: 20px; transition: left 0.3s, width 0.3s; }
+    .home .text { margin-bottom: 16px; }
+    #nome-btn, #ok-btn { margin-top: 12px; }
+  </style>
 </head>
 <body>
-
+  <!-- Sidebar inyectado -->
   <div id="sidebar-container"></div>
 
   <!-- Contenido principal -->
   <section class="home">
     <div class="text">Vincular Pantalla</div>
-    <div style="padding:20px;">
-      <p>Código: <strong id="codeDisplay"></strong></p>
-      <label for="nombre">Nombre de la pantalla</label>
-      <input
-        type="text"
-        id="nombre"
-        placeholder="Ej. Sala de espera"
-        style="width:100%; padding:8px; margin-top:8px; border-radius:4px; border:1px solid #ccc;"
-      />
-      <button
-        id="ok-btn"
-        style="margin-top:16px; padding:10px 20px; background:var(--primary-color); color:#fff; border:none; border-radius:4px; cursor:pointer;"
-      >
-        OK
-      </button>
-      <p id="msg" style="color:red; margin-top:12px;"></p>
-    </div>
+    <p>Código: <strong id="codeDisplay"></strong></p>
+    <label for="nombre">Nombre de la pantalla</label>
+    <input type="text" id="nombre" placeholder="Ej. Sala de espera" />
+    <button id="ok-btn">OK</button>
+    <p id="msg" style="color:red;"></p>
   </section>
 
-  <!-- Supabase y lógica -->
+  <!-- Supabase y scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="supabaseClient.js"></script>
-  <!-- Script de interacción (sidebar, dark mode) -->
-  <script src="script.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <script src="/script.js"></script>
   <script>
-    (async function(){
-      // 1) Leer código de la URL
+    async function initVincular() {
       const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
+      let code = params.get('code');
       if (!code) {
-        // Si no hay código, volvemos a la lista de pantallas
-        window.location.href = 'pantallas.html';
-        return;
+        // genera uno si falta
+        code = crypto.randomUUID();
+        window.history.replaceState(null, '', `?code=${code}`);
       }
       document.getElementById('codeDisplay').innerText = code;
 
-      // 2) Verificar sesión de usuario
+      // Sesión
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        // Redirigir a login con ?redirect=/vincular.html?code=XXX
         const redirect = encodeURIComponent(`/vincular.html?code=${code}`);
-        window.location.href = `login.html?redirect=${redirect}`;
-        return;
+        return window.location.href = `login.html?redirect=${redirect}`;
       }
       const user = session.user;
-      
-// Poner el email dentro del nuevo nav-user
-const sidebarUserEl = document.getElementById('sidebar-user');
-if (sidebarUserEl) sidebarUserEl.innerText = user.email;
-    
+
+      // Inyectar email
+      const su = document.getElementById('sidebar-user');
+      if (su) su.innerText = user.email;
 
       // Logout
-      document.getElementById('logout').addEventListener('click', async (e) => {
-        e.preventDefault();
-        await supabase.auth.signOut();
-        window.location.href = 'login.html';
-      });
+      const logoutBtn = document.getElementById('logout');
+      if (logoutBtn) {
+        logoutBtn.onclick = async e => {
+          e.preventDefault();
+          await supabase.auth.signOut();
+          window.location.href = 'login.html';
+        };
+      }
 
-      // 3) Cargar registro existente (si ya existe la fila en tv)
+      // Consultar si ya existe
       const { data: record, error } = await supabase
         .from('tv')
         .select('user_id, nombre')
         .eq('code', code)
         .maybeSingle();
       if (error) {
-        console.error(error);
-        document.getElementById('msg').innerText = 'Error al consultar la pantalla.';
+        document.getElementById('msg').innerText = 'Error al consultar.';
+        return;
+      }
+      if (record && record.user_id && record.user_id !== user.id) {
+        document.getElementById('msg').innerText = 'Esta pantalla está vinculada.';
         return;
       }
       if (record) {
-        // Si pertenece a otro usuario, no permitir
-        if (record.user_id && record.user_id !== user.id) {
-          document.getElementById('msg').innerText = 'Esta pantalla ya está vinculada por otro usuario.';
-          document.getElementById('ok-btn').disabled = true;
-          return;
-        }
-        // Si ya es tuya, mostrar nombre existente
         document.getElementById('nombre').value = record.nombre || '';
       }
 
-      // 4) Al hacer clic en OK, insertar o actualizar
-      document.getElementById('ok-btn').addEventListener('click', async () => {
+      // OK → insert/update + redirigir
+      document.getElementById('ok-btn').onclick = async () => {
         const nombre = document.getElementById('nombre').value.trim();
         if (!nombre) {
-          document.getElementById('msg').innerText = 'Debes ingresar un nombre.';
+          document.getElementById('msg').innerText = 'Ingresa un nombre.';
           return;
         }
-        let res;
-        if (record) {
-          res = await supabase
-            .from('tv')
-            .update({ user_id: user.id, nombre })
-            .eq('code', code);
-        } else {
-          res = await supabase
-            .from('tv')
-            .insert({ code, user_id: user.id, nombre });
-        }
-        if (res.error) {
-          console.error(res.error);
+        const fn = record
+          ? supabase.from('tv').update({ user_id: user.id, nombre }).eq('code', code)
+          : supabase.from('tv').insert({ code, user_id: user.id, nombre });
+        const { error: upErr } = await fn;
+        if (upErr) {
           document.getElementById('msg').innerText = 'Error al guardar.';
           return;
         }
-        // 5) Redirigir a administrar.html
         window.location.href = `administrar.html?code=${code}`;
-      });
-    })();
+      };
+    }
+
+    window.addEventListener('sidebarReady', initVincular);
   </script>
-<script>
-  fetch('sidebar.html')
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById('sidebar-container').innerHTML = html;
-      initSidebar(); // función que inicializa toggle, dark mode, etc.
-    })
-    .catch(console.error);
-</script>
 </body>
 </html>
