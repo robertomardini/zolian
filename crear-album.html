@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <title>Crear Álbum – Zolian App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 </head>
 <body>
   <h1>Crear nuevo álbum</h1>
@@ -14,38 +15,42 @@
   <script src="/supabaseClient.js"></script>
   <script>
     (async () => {
-      // 1) Leer código de TV si existe (QR)
+      // Leer código de TV (si vienes desde vincular.html?code=XXX)
       const tvCode = new URLSearchParams(location.search).get('code');
 
-      // 2) Sesión
+      // 1) Sesión
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        // redirigir al login y luego volver aquí con ?code=…
-        return location.href = `login.html?redirect=${encodeURIComponent(location.pathname + location.search)}`;
+        // redirige a login y luego vuelva aquí
+        const redirect = encodeURIComponent(location.pathname + location.search);
+        return location.href = `login.html?redirect=${redirect}`;
       }
 
-      const btn  = document.getElementById('create-btn');
-      const msg  = document.getElementById('msg');
-      const name = document.getElementById('album-name');
+      const btn     = document.getElementById('create-btn');
+      const msg     = document.getElementById('msg');
+      const nameInp = document.getElementById('album-name');
 
       btn.onclick = async () => {
         msg.textContent = '';
-        const n = name.value.trim();
+        const n = nameInp.value.trim();
         if (!n) {
           msg.textContent = 'Debes escribir un nombre.';
           return;
         }
-        // 3) Crear álbum
+
+        // 2) Crear álbum y devolver la fila insertada
         const { data: gallery, error: err1 } = await supabase
           .from('galleries')
           .insert({ name: n, user_id: session.user.id })
-          .single();
-        if (err1) {
+          .select()         // <–– Muy importante para que devuelva la fila
+          .single();        // <–– Esperamos 1 solo registro
+        if (err1 || !gallery) {
           msg.textContent = 'Error al crear álbum.';
           console.error(err1);
           return;
         }
-        // 4) Si hay tvCode, actualizar esa TV
+
+        // 3) Si tenemos tvCode, vinculamos este álbum a la TV
         if (tvCode) {
           const { error: err2 } = await supabase
             .from('tv')
@@ -53,12 +58,15 @@
             .eq('code', tvCode);
           if (err2) {
             alert('Álbum creado, pero no se vinculó a la TV: ' + err2.message);
+            // vamos al álbum de todas formas
+            return location.href = `/album.html?gallery=${gallery.id}`;
           } else {
-            // redirige directo a slideshow de esa TV
+            // redirige automáticamente al slideshow de esa TV
             return location.href = `/slideshow.html?code=${tvCode}`;
           }
         }
-        // 5) Si no hay TV, simplemente vamos al álbum
+
+        // 4) Si no venías con tvCode, vas al administrador de tu álbum
         location.href = `/album.html?gallery=${gallery.id}`;
       };
     })();
