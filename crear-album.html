@@ -2,10 +2,76 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
-  <title>Crear Álbum – Zolian App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crear Álbum – Zolian App</title>
+  <!-- Estilos y Boxicons -->
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
+  <style>
+    .home {
+      padding: 20px;
+      transition: left 0.3s, width 0.3s;
+    }
+    #screens-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  list-style: none;
+  padding: 0;
+  margin-top: 24px;
+}
+
+#screens-list li {
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 12px;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+#screens-list li:hover {
+  transform: scale(1.05);
+  background: var(--primary-color-light);
+}
+
+#screens-list li box-icon {
+  /* Tamaño grande para el icono */
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+/* Texto debajo del icono */
+#screens-list li span {
+  display: block;
+  font-weight: 500;
+}
+
+    #no-screens {
+      text-align: center;
+      color: var(--text-color);
+      margin-top: 40px;
+    }
+  </style>
 </head>
 <body>
+  <!-- Contenedor donde se inyecta el sidebar -->
+  <div id="sidebar-container"></div>
+
+  <!-- Contenido principal -->
+  <section class="home">
+    <div class="text">Mis Pantallas</div>
+    <ul id="screens-list"></ul>
+    <p id="no-screens" style="display:none;">
+      No tienes ningun álbum creado.<br>
+    
+    </p>
+  </section>
   <h1>Crear nuevo álbum</h1>
   <input type="text" id="album-name" placeholder="Nombre del álbum" />
   <button id="create-btn">Crear Álbum</button>
