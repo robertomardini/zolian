@@ -65,6 +65,7 @@
       if (tv?.gallery_id) {
         // Si no estás ya en fullscreen, pide user gesture:
         document.documentElement.requestFullscreen?.();
+        startSlideshow();
         arrancar(tv.gallery_id, tv.duration);
       }
 
