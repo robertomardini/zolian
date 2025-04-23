@@ -11,21 +11,42 @@
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
-    /* Ajustes propios de esta página */
-    .home { padding: 20px; }
-    .home .text { font-size: 24px; margin-bottom: 16px; }
-    ul { list-style: none; padding: 0; margin: 0; }
-    li {
+    /* ---- Anular el .home absoluto del CSS global ---- */
+    .home {
+      position: static !important;
+      left: auto !important;
+      width: auto !important;
+      height: auto !important;
+      padding: 20px;
+      background: var(--body-color);
+    }
+
+    /* Tus estilos locales */
+    .home .text {
+      font-size: 24px;
+      margin-bottom: 16px;
+      color: var(--text-color);
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 16px 0;
+    }
+    ul li {
       padding: 12px;
       border: 1px solid var(--primary-color);
       border-radius: 6px;
       margin-bottom: 8px;
       cursor: pointer;
       transition: background var(--tran-03);
+      background: #fff;
+      color: var(--text-color);
     }
-    li:hover { background: var(--primary-color-light); }
+    ul li:hover {
+      background: var(--primary-color-light);
+    }
     #createAlbum {
-      display: block;
+      display: inline-block;
       margin: 16px 0;
       padding: 10px 16px;
       background: var(--primary-color);
@@ -35,6 +56,7 @@
       cursor: pointer;
     }
     #unlink {
+      display: block;
       color: red;
       cursor: pointer;
       margin-top: 16px;
@@ -44,16 +66,16 @@
 </head>
 <body>
 
-  <!-- Sidebar -->
+  <!-- Sidebar inyectado -->
   <div id="sidebar-container"></div>
 
   <!-- Contenido principal -->
   <section class="home">
     <div class="text">Administrar Pantalla</div>
-    <p>Pantalla: <strong id="screenName"></strong></p>
-    <p>Usuario: <strong id="userEmail"></strong></p>
+    <p><strong>Pantalla:</strong> <span id="screenName"></span></p>
+    <p><strong>Usuario:</strong> <span id="userEmail"></span></p>
 
-    <div style="margin-top:24px">
+    <div>
       <div class="text" id="albumsTitle">Selecciona un álbum:</div>
       <ul id="galleryList"></ul>
       <button id="createAlbum">Crear nuevo álbum</button>
@@ -66,23 +88,20 @@
   <script src="supabaseClient.js"></script>
   <script src="script.js"></script>
   <script>
-    // Cuando el sidebar esté listo, inicializamos la lógica
     window.addEventListener('sidebarReady', () => {
       (async () => {
         const params = new URLSearchParams(location.search);
         const code = params.get('code');
         if (!code) {
           alert('Falta el parámetro code de TV. Volviendo a Mis Pantallas.');
-          location.href = 'pantallas.html';
-          return;
+          return location.href = 'pantallas.html';
         }
 
         // 1) Sesión
         const { data:{ session } } = await supabase.auth.getSession();
         if (!session) {
-          const redirect = encodeURIComponent(`/administrar.html?code=${code}`);
-          location.href = `login.html?redirect=${redirect}`;
-          return;
+          const rd = encodeURIComponent(`/administrar.html?code=${code}`);
+          return location.href = `login.html?redirect=${rd}`;
         }
         document.getElementById('userEmail').innerText = session.user.email;
 
@@ -94,8 +113,7 @@
           .maybeSingle();
         if (tvErr || !tv || tv.user_id !== session.user.id) {
           alert('Pantalla no válida o sin permisos. Volviendo a Mis Pantallas.');
-          location.href = 'pantallas.html';
-          return;
+          return location.href = 'pantallas.html';
         }
         document.getElementById('screenName').innerText = tv.nombre;
 
@@ -114,7 +132,7 @@
           const li = document.createElement('li');
           li.textContent = g.name;
           li.onclick = async () => {
-            const { error: updateErr } = await supabase
+            const { error:updateErr } = await supabase
               .from('tv')
               .update({ gallery_id: g.id, play: true })
               .eq('code', code);
@@ -149,6 +167,5 @@
       })();
     });
   </script>
-
 </body>
 </html>
