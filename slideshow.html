@@ -4,8 +4,10 @@
   <meta charset="UTF-8" />
   <title>Slideshow – Zolian TV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
+
   <style>
     html, body { margin:0; padding:0; background:#000; overflow:hidden; }
     #slides { position:relative; width:100vw; height:100vh; }
@@ -18,56 +20,61 @@
 </head>
 <body>
   <div id="slides"></div>
+
   <script>
     (async()=>{
       const code = new URLSearchParams(location.search).get('code');
       if (!code) return alert('Falta ?code en la URL');
 
-      // Función que arranca/rearranca el slideshow
-      async function arrancar(galleryId, duration) {
-        // fullscreen
-        document.documentElement.requestFullscreen?.();
-        // cargar urls
+      // Función para cargar y arrancar slideshow
+      async function arrancar(galleryId, duration){
+        // ya estamos full-screen
+        const cont = document.getElementById('slides');
+        // traer imágenes
         const { data: imgs } = await supabase
           .from('images')
           .select('url')
           .eq('gallery_id', galleryId)
           .order('created_at',{ascending:true});
         if (!imgs.length) return console.warn('Sin imágenes');
-        const cont = document.getElementById('slides');
         cont.innerHTML = '';
-        const urls = imgs.map(i =>
+        const urls = imgs.map(i=>
           supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
         );
         urls.forEach((src,i)=>{
           const img = document.createElement('img');
           img.src = src;
-          img.style.opacity = i===0 ? 1 : 0;
+          img.style.opacity = i===0?1:0;
           cont.appendChild(img);
         });
         let idx=0;
         setInterval(()=>{
-          const all = cont.querySelectorAll('img');
-          all[idx].style.opacity = 0;
-          idx = (idx+1)%all.length;
-          all[idx].style.opacity = 1;
+          const lis = cont.querySelectorAll('img');
+          lis[idx].style.opacity = 0;
+          idx = (idx+1)%lis.length;
+          lis[idx].style.opacity = 1;
         }, duration*1000);
       }
 
-      // 1) Cargar estado inicial
+      // 1) Carga inicial
       const { data: tv } = await supabase
         .from('tv')
         .select('gallery_id,duration')
         .eq('code', code)
         .maybeSingle();
-      if (tv && tv.gallery_id) {
+      if (tv?.gallery_id) {
+        // Si no estás ya en fullscreen, pide user gesture:
+        document.documentElement.requestFullscreen?.();
         arrancar(tv.gallery_id, tv.duration);
       }
 
-      // 2) Suscribirse a cambios
+      // 2) Suscripción a cambios de gallery_id o duration
       supabase
-        .from(`tv:code=eq.${code}`)
-        .on('UPDATE', payload => {
+        .channel(`tv_updates_${code}`)
+        .on('postgres_changes', {
+          event: 'UPDATE', schema:'public', table:'tv',
+          filter: `code=eq.${code}`
+        }, payload => {
           const nt = payload.new;
           if (nt.gallery_id) {
             arrancar(nt.gallery_id, nt.duration);
