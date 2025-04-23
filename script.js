@@ -9,6 +9,29 @@ function initSidebar() {
   const sidebar = body.querySelector('nav.sidebar');
   const home = body.querySelector('.home');
   if (!sidebar) return;
+  
+  const shareBtn = sidebar.querySelector('#share-btn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const shareData = {
+        title: 'Zolian App',
+        text: 'Échale un vistazo a Zolian App para compartir galerías',
+        url: window.location.origin
+      };
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+        } else {
+          // Fallback: copiar la URL al portapapeles
+          await navigator.clipboard.writeText(shareData.url);
+          alert('Enlace copiado al portapapeles: ' + shareData.url);
+        }
+      } catch (err) {
+        console.error('Error compartiendo:', err);
+      }
+    });
+  }
 
   const toggle = sidebar.querySelector('.toggle');
   const searchBtn = sidebar.querySelector('.search-box');
