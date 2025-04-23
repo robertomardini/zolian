@@ -5,17 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Administrar Pantalla – Zolian App</title>
 
-  <!-- Estilos globales y Boxicons -->
-  <link rel="stylesheet" href="/style.css"/>
+  <!-- CSS global -->
+  <link rel="stylesheet" href="style.css"/>
+  <!-- Boxicons -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
-  <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
 
   <style>
     /* Ajustes propios de esta página */
-    .home {
-      padding: 20px;
-      transition: left 0.3s, width 0.3s;
+    .home { padding: 20px; }
+    .home .text { font-size: 24px; margin-bottom: 16px; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li {
+      padding: 12px;
+      border: 1px solid var(--primary-color);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background var(--tran-03);
     }
+    li:hover { background: var(--primary-color-light); }
     #createAlbum {
       display: block;
       margin: 16px 0;
@@ -36,7 +44,7 @@
 </head>
 <body>
 
-  <!-- Sidebar inyectado -->
+  <!-- Sidebar -->
   <div id="sidebar-container"></div>
 
   <!-- Contenido principal -->
@@ -53,12 +61,12 @@
     </div>
   </section>
 
-  <!-- Supabase y scripts -->
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
-  <script src="/script.js"></script>
+  <script src="supabaseClient.js"></script>
+  <script src="script.js"></script>
   <script>
-    // Esperamos a que el sidebar esté listo
+    // Cuando el sidebar esté listo, inicializamos la lógica
     window.addEventListener('sidebarReady', () => {
       (async () => {
         const params = new URLSearchParams(location.search);
@@ -69,8 +77,8 @@
           return;
         }
 
-        // 1) Comprobar sesión
-        const { data: { session } } = await supabase.auth.getSession();
+        // 1) Sesión
+        const { data:{ session } } = await supabase.auth.getSession();
         if (!session) {
           const redirect = encodeURIComponent(`/administrar.html?code=${code}`);
           location.href = `login.html?redirect=${redirect}`;
@@ -78,7 +86,7 @@
         }
         document.getElementById('userEmail').innerText = session.user.email;
 
-        // 2) Leer datos de la pantalla
+        // 2) Datos de la pantalla
         const { data: tv, error: tvErr } = await supabase
           .from('tv')
           .select('nombre,user_id')
@@ -91,12 +99,12 @@
         }
         document.getElementById('screenName').innerText = tv.nombre;
 
-        // 3) Cargar álbumes del usuario
+        // 3) Cargar álbumes
         const { data: galleries, error } = await supabase
           .from('galleries')
           .select('id,name')
           .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false });
+          .order('created_at',{ ascending:false });
         if (error) {
           document.getElementById('albumsTitle').innerText = 'Error cargando álbumes';
         }
@@ -141,5 +149,6 @@
       })();
     });
   </script>
+
 </body>
 </html>
