@@ -1,15 +1,16 @@
 /* script.js */
 
 /**
- * Inicializa los listeners del sidebar (toggle, búsqueda, dark mode, logout)
- * y ajusta dinámicamente el ancho y posición de la sección .home.
+ * Inicializa los listeners del sidebar (toggle, búsqueda, dark mode, logout,
+ * compartir y escanear QR) y ajusta la posición/ancho de la sección .home.
  */
 function initSidebar() {
-  const body = document.querySelector('body');
+  const body    = document.querySelector('body');
   const sidebar = body.querySelector('nav.sidebar');
-  const home = body.querySelector('.home');
+  const home    = body.querySelector('.home');
   if (!sidebar) return;
-  
+
+  // --- Botón Compartir ---
   const shareBtn = sidebar.querySelector('#share-btn');
   if (shareBtn) {
     shareBtn.addEventListener('click', async (e) => {
@@ -23,7 +24,6 @@ function initSidebar() {
         if (navigator.share) {
           await navigator.share(shareData);
         } else {
-          // Fallback: copiar la URL al portapapeles
           await navigator.clipboard.writeText(shareData.url);
           alert('Enlace copiado al portapapeles: ' + shareData.url);
         }
@@ -33,31 +33,29 @@ function initSidebar() {
     });
   }
 
-  const toggle = sidebar.querySelector('.toggle');
-  const searchBtn = sidebar.querySelector('.search-box');
+  // --- Toggle, búsqueda, dark mode y logout ---
+  const toggle     = sidebar.querySelector('.toggle');
+  const searchBtn  = sidebar.querySelector('.search-box');
   const modeSwitch = sidebar.querySelector('.toggle-switch');
-  const modeText = sidebar.querySelector('.mode-text');
-  const logoutBtn = sidebar.querySelector('#logout');
+  const modeText   = sidebar.querySelector('.mode-text');
+  const logoutBtn  = sidebar.querySelector('#logout');
 
-  // Ajustar .home en función del estado del sidebar
   function adjustHome() {
     if (!home) return;
     if (sidebar.classList.contains('close')) {
-      home.style.left = '78px';
+      home.style.left  = '78px';
       home.style.width = 'calc(100% - 78px)';
     } else {
-      home.style.left = '250px';
+      home.style.left  = '250px';
       home.style.width = 'calc(100% - 250px)';
     }
   }
 
-  // Toggle apertura/cierre sidebar
   toggle.addEventListener('click', () => {
     sidebar.classList.toggle('close');
     adjustHome();
   });
 
-  // Mantener abierto al interactuar con buscador
   if (searchBtn) {
     searchBtn.addEventListener('click', () => {
       sidebar.classList.remove('close');
@@ -65,7 +63,6 @@ function initSidebar() {
     });
   }
 
-  // Alternar Dark / Light mode
   if (modeSwitch) {
     modeSwitch.addEventListener('click', () => {
       body.classList.toggle('dark');
@@ -73,7 +70,6 @@ function initSidebar() {
     });
   }
 
-  // Cerrar sesión
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -82,11 +78,20 @@ function initSidebar() {
     });
   }
 
-  // Ajuste inicial
+  // --- Botón Escanear QR ---
+  const scanBtn = sidebar.querySelector('#scan-qr-btn');
+  if (scanBtn) {
+    scanBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      startQrScanner();
+    });
+  }
+
+  // Ajuste inicial de .home
   adjustHome();
 }
 
-// Inyecta sidebar y notifica cuando esté listo
+// Inyecta el sidebar y lanza initSidebar
 window.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('sidebar-container');
   if (container) {
@@ -102,31 +107,27 @@ window.addEventListener('DOMContentLoaded', () => {
     initSidebar();
     window.dispatchEvent(new Event('sidebarReady'));
   }
-  // Al final de tu initSidebar(), añade esto:
+});
 
-const scanBtn = sidebar.querySelector('#scan-qr-btn');
-if (scanBtn) {
-  scanBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    startQrScanner();
-  });
-}
-
+/**
+ * startQrScanner: abre la cámara, detecta un QR y devuelve su contenido.
+ * Requiere haber cargado antes: <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+ */
 async function startQrScanner() {
-  // 1) Crea un overlay
+  // 1) Crear overlay y vídeo
   const overlay = document.createElement('div');
-  overlay.style = `
-    position: fixed; top:0; left:0;
-    width:100vw; height:100vh;
-    background: rgba(0,0,0,0.8);
-    display:flex; align-items:center; justify-content:center;
-    z-index:1000;
-  `;
+  Object.assign(overlay.style, {
+    position: 'fixed', top: 0, left: 0,
+    width: '100vw', height: '100vh',
+    background: 'rgba(0,0,0,0.8)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: 1000
+  });
   const video = document.createElement('video');
   overlay.appendChild(video);
   document.body.appendChild(overlay);
 
-  // 2) Pide permiso y arranca cámara
+  // 2) Pedir permiso y arrancar cámara
   let stream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -138,33 +139,28 @@ async function startQrScanner() {
     return;
   }
 
-  // 3) Canvas para leer frames
+  // 3) Preparar canvas para procesar frames
   const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
+  const ctx    = canvas.getContext('2d');
 
-  // 4) Función de escaneo usando jsQR
-  async function scanFrame() {
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-      requestAnimationFrame(scanFrame);
-      return;
-    }
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-    // Suponiendo que hayas cargado jsQR previamente
-    const code = jsQR(imageData.data, canvas.width, canvas.height);
-    if (code) {
-      // Encontró el QR, lo procesas:
-      alert(`QR detectado: ${code.data}`);
-      stopScanner();
-      return;
+  // 4) Función recursiva de escaneo
+  function scanFrame() {
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, canvas.width, canvas.height);
+      if (code) {
+        alert(`QR detectado: ${code.data}`);
+        stopScanner();
+        return;
+      }
     }
     requestAnimationFrame(scanFrame);
   }
 
-  // 5) Detener todo
+  // 5) Detener escaneo y cámara
   function stopScanner() {
     stream.getTracks().forEach(t => t.stop());
     document.body.removeChild(overlay);
@@ -172,5 +168,3 @@ async function startQrScanner() {
 
   scanFrame();
 }
-
-});
