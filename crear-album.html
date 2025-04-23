@@ -1,3 +1,4 @@
+<!-- crear-album.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7,29 +8,48 @@
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <section class="home" style="padding:20px; max-width:400px; margin:0 auto;">
+  <section class="home" style="max-width:400px; margin:0 auto; padding:20px;">
     <h1>Crear nuevo álbum</h1>
-    <input type="text" id="album-name" placeholder="Nombre del álbum" style="width:100%; padding:8px; margin-top:12px;" />
-    <button id="create-btn" style="margin-top:16px; padding:10px; background:#695CFE; color:#fff;">
-      <box-icon name='plus-circle'></box-icon> Crear
+    <input
+      type="text"
+      id="album-name"
+      placeholder="Nombre del álbum"
+      style="width:100%; padding:8px; margin-top:12px;"
+    />
+    <button
+      id="create-btn"
+      style="margin-top:16px; padding:10px; background:#695CFE; color:#fff;"
+    >
+      Crear Álbum
     </button>
     <p id="msg" style="color:red; min-height:1.2em;"></p>
   </section>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <script>
-    (async()=>{
-      // Asegúrate de que el usuario esté logueado
-      const { data:{ session } } = await supabase.auth.getSession();
-      if (!session) return window.location.href = 'login.html?redirect=/crear-album.html';
+    (async () => {
+      // 1) Sesión
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        location.href = 'login.html?redirect=/crear-album.html';
+        return;
+      }
 
-      document.getElementById('create-btn').onclick = async () => {
+      // 2) Obtener referencia al botón
+      const btn = document.getElementById('create-btn');
+      const msg = document.getElementById('msg');
+
+      // 3) Listener
+      btn.onclick = async () => {
+        msg.textContent = ''; // limpia mensaje
         const name = document.getElementById('album-name').value.trim();
-        const msg = document.getElementById('msg');
-        msg.textContent = '';
-        if (!name) return msg.textContent = 'Debes poner un nombre.';
+        if (!name) {
+          msg.textContent = 'Debes poner un nombre.';
+          return;
+        }
 
-        // Supabase genera el id (uuid) automáticamente
+        // 4) Inserción en Supabase
         const { data, error } = await supabase
           .from('galleries')
           .insert({ name, user_id: session.user.id })
@@ -37,10 +57,11 @@
 
         if (error) {
           console.error(error);
-          return msg.textContent = 'Error al crear el álbum.';
+          msg.textContent = 'Error al crear el álbum.';
+        } else {
+          // 5) Redirigir a administrar
+          location.href = `/album.html?gallery=${data.id}`;
         }
-        // Redirige a administrar el álbum recién creado
-        window.location.href = `/album.html?gallery=${data.id}`;
       };
     })();
   </script>
