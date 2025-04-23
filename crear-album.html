@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Crear Álbum – Zolian App</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <section class="home" style="padding:20px; max-width:400px; margin:0 auto;">
+    <h1>Crear nuevo álbum</h1>
+    <input type="text" id="album-name" placeholder="Nombre del álbum" style="width:100%; padding:8px; margin-top:12px;" />
+    <button id="create-btn" style="margin-top:16px; padding:10px; background:#695CFE; color:#fff;">
+      <box-icon name='plus-circle'></box-icon> Crear
+    </button>
+    <p id="msg" style="color:red; min-height:1.2em;"></p>
+  </section>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <script>
+    (async()=>{
+      // Asegúrate de que el usuario esté logueado
+      const { data:{ session } } = await supabase.auth.getSession();
+      if (!session) return window.location.href = 'login.html?redirect=/crear-album.html';
+
+      document.getElementById('create-btn').onclick = async () => {
+        const name = document.getElementById('album-name').value.trim();
+        const msg = document.getElementById('msg');
+        msg.textContent = '';
+        if (!name) return msg.textContent = 'Debes poner un nombre.';
+
+        // Supabase genera el id (uuid) automáticamente
+        const { data, error } = await supabase
+          .from('galleries')
+          .insert({ name, user_id: session.user.id })
+          .single();
+
+        if (error) {
+          console.error(error);
+          return msg.textContent = 'Error al crear el álbum.';
+        }
+        // Redirige a administrar el álbum recién creado
+        window.location.href = `/album.html?gallery=${data.id}`;
+      };
+    })();
+  </script>
+</body>
+</html>
