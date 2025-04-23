@@ -102,4 +102,75 @@ window.addEventListener('DOMContentLoaded', () => {
     initSidebar();
     window.dispatchEvent(new Event('sidebarReady'));
   }
+  // Al final de tu initSidebar(), añade esto:
+
+const scanBtn = sidebar.querySelector('#scan-qr-btn');
+if (scanBtn) {
+  scanBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    startQrScanner();
+  });
+}
+
+async function startQrScanner() {
+  // 1) Crea un overlay
+  const overlay = document.createElement('div');
+  overlay.style = `
+    position: fixed; top:0; left:0;
+    width:100vw; height:100vh;
+    background: rgba(0,0,0,0.8);
+    display:flex; align-items:center; justify-content:center;
+    z-index:1000;
+  `;
+  const video = document.createElement('video');
+  overlay.appendChild(video);
+  document.body.appendChild(overlay);
+
+  // 2) Pide permiso y arranca cámara
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    video.srcObject = stream;
+    await video.play();
+  } catch (err) {
+    console.error('No se pudo acceder a la cámara', err);
+    document.body.removeChild(overlay);
+    return;
+  }
+
+  // 3) Canvas para leer frames
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  // 4) Función de escaneo usando jsQR
+  async function scanFrame() {
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+      requestAnimationFrame(scanFrame);
+      return;
+    }
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Suponiendo que hayas cargado jsQR previamente
+    const code = jsQR(imageData.data, canvas.width, canvas.height);
+    if (code) {
+      // Encontró el QR, lo procesas:
+      alert(`QR detectado: ${code.data}`);
+      stopScanner();
+      return;
+    }
+    requestAnimationFrame(scanFrame);
+  }
+
+  // 5) Detener todo
+  function stopScanner() {
+    stream.getTracks().forEach(t => t.stop());
+    document.body.removeChild(overlay);
+  }
+
+  scanFrame();
+}
+
 });
