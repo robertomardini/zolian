@@ -1,68 +1,79 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Slideshow</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="supabaseClient.js"></script>
+  <meta charset="UTF-8" />
+  <title>Slideshow – Zolian TV</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <style>
+    html, body { margin:0; padding:0; background:#000; overflow:hidden; }
+    #slides { position:relative; width:100vw; height:100vh; }
+    #slides img {
+      position:absolute; width:100%; height:100%;
+      object-fit:contain; opacity:0;
+      transition:opacity 1s ease-in-out;
+    }
+  </style>
 </head>
-<body style="margin:0; background:#000;">
-  <div id="slideshow" style="width:100vw; height:100vh; display:flex; align-items:center; justify-content:center;"></div>
-
+<body>
+  <div id="slides"></div>
   <script>
-    const supabase = window.supabase;
-    const params   = new URLSearchParams(window.location.search);
-    const screenId = params.get('code');
+    (async()=>{
+      const code = new URLSearchParams(location.search).get('code');
+      if (!code) return alert('Falta ?code en la URL');
 
-    let currentAlbum = null;
-    let images       = [];
-    let idx          = 0;
-    let timer;
+      // Función que arranca/rearranca el slideshow
+      async function arrancar(galleryId, duration) {
+        // fullscreen
+        document.documentElement.requestFullscreen?.();
+        // cargar urls
+        const { data: imgs } = await supabase
+          .from('images')
+          .select('url')
+          .eq('gallery_id', galleryId)
+          .order('created_at',{ascending:true});
+        if (!imgs.length) return console.warn('Sin imágenes');
+        const cont = document.getElementById('slides');
+        cont.innerHTML = '';
+        const urls = imgs.map(i =>
+          supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
+        );
+        urls.forEach((src,i)=>{
+          const img = document.createElement('img');
+          img.src = src;
+          img.style.opacity = i===0 ? 1 : 0;
+          cont.appendChild(img);
+        });
+        let idx=0;
+        setInterval(()=>{
+          const all = cont.querySelectorAll('img');
+          all[idx].style.opacity = 0;
+          idx = (idx+1)%all.length;
+          all[idx].style.opacity = 1;
+        }, duration*1000);
+      }
 
-    // Carga las URLs de un álbum y arranca el ciclo
-    async function loadAlbum(albumId) {
-      currentAlbum = albumId;
-      clearTimeout(timer);
+      // 1) Cargar estado inicial
+      const { data: tv } = await supabase
+        .from('tv')
+        .select('gallery_id,duration')
+        .eq('code', code)
+        .maybeSingle();
+      if (tv && tv.gallery_id) {
+        arrancar(tv.gallery_id, tv.duration);
+      }
 
-      const { data, error } = await supabase
-        .from('images')
-        .select('url')
-        .eq('album_id', albumId)
-        .order('order');
-      if (error) return console.error('Error fetch imágenes:', error);
-
-      images = data.map(i => i.url);
-      idx    = 0;
-      showNext();
-    }
-
-    // Muestra la siguiente imagen y reprograma el timeout
-    function showNext() {
-      if (!images.length) return;
-      document.getElementById('slideshow').innerHTML =
-        `<img src="${images[idx]}" style="max-width:100%; max-height:100%;">`;
-      idx = (idx + 1) % images.length;
-      timer = setTimeout(showNext, 5000); // cada 5s
-    }
-
-    (async () => {
-      // 1) Suscríbete a cambios en este screen
+      // 2) Suscribirse a cambios
       supabase
-        .from(`screens:id=eq.${screenId}`)
+        .from(`tv:code=eq.${code}`)
         .on('UPDATE', payload => {
-          const a = payload.new.current_album_id;
-          if (a && a !== currentAlbum) loadAlbum(a);
+          const nt = payload.new;
+          if (nt.gallery_id) {
+            arrancar(nt.gallery_id, nt.duration);
+          }
         })
         .subscribe();
-
-      // 2) Chequeo inicial: quizá ya hay un álbum asignado
-      const { data: scr, error } = await supabase
-        .from('screens')
-        .select('current_album_id')
-        .eq('id', screenId)
-        .single();
-      if (error) return console.error('Error fetch screen:', error);
-      if (scr.current_album_id) loadAlbum(scr.current_album_id);
     })();
   </script>
 </body>
