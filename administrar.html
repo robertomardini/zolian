@@ -1,17 +1,28 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Administrar Pantalla – Zolian App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
+
+  <!-- Estilos globales y Boxicons -->
+  <link rel="stylesheet" href="/style.css"/>
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
+
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    h1, h2 { margin-bottom: 12px; }
-    ul { list-style: none; padding: 0; margin-bottom: 16px; }
-    li { padding: 8px; border: 1px solid #ccc; margin-bottom: 4px; cursor: pointer; }
-    li:hover { background: #f0f0f0; }
+    /* Ajustes propios de esta página */
+    .home { padding: 20px; }
+    .home .text { font-size: 24px; margin-bottom: 16px; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li {
+      padding: 12px;
+      border: 1px solid var(--primary-color);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background var(--tran-03);
+    }
+    li:hover { background: var(--primary-color-light); }
     #createAlbum {
       display: block;
       margin: 16px 0;
@@ -31,97 +42,111 @@
   </style>
 </head>
 <body>
-  <h1>Administrar Pantalla</h1>
-  <p>Pantalla: <strong id="screenName"></strong></p>
-  <p>Usuario: <strong id="userEmail"></strong></p>
 
-  <h2 id="albumsTitle">Selecciona un álbum:</h2>
-  <ul id="galleryList"></ul>
+  <!-- Sidebar inyectado -->
+  <div id="sidebar-container"></div>
 
-  <button id="createAlbum">Crear nuevo álbum</button>
-  <p id="unlink">Desvincular esta pantalla</p>
+  <!-- Contenido principal -->
+  <section class="home">
+    <div class="text">Administrar Pantalla</div>
+    <p>Pantalla: <strong id="screenName"></strong></p>
+    <p>Usuario: <strong id="userEmail"></strong></p>
 
+    <div style="margin-top:24px">
+      <div class="text" id="albumsTitle">Selecciona un álbum:</div>
+      <ul id="galleryList"></ul>
+      <button id="createAlbum">Crear nuevo álbum</button>
+      <p id="unlink">Desvincular esta pantalla</p>
+    </div>
+  </section>
+
+  <!-- Supabase y scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <script src="/script.js"></script>
   <script>
-    (async () => {
-      const code = new URLSearchParams(location.search).get('code');
-      if (!code) {
-        alert('Falta el parámetro code de TV. Volviendo a Mis Pantallas.');
-        location.href = 'pantallas.html';
-        return;
-      }
+    // Esperamos a que el sidebar esté listo
+    window.addEventListener('sidebarReady', () => {
+      (async () => {
+        const params = new URLSearchParams(location.search);
+        const code = params.get('code');
+        if (!code) {
+          alert('Falta el parámetro code de TV. Volviendo a Mis Pantallas.');
+          location.href = 'pantallas.html';
+          return;
+        }
 
-      // 1) Sesión
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        const redirect = encodeURIComponent(`/administrar.html?code=${code}`);
-        location.href = `login.html?redirect=${redirect}`;
-        return;
-      }
-      document.getElementById('userEmail').innerText = session.user.email;
+        // 1) Comprobar sesión
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          const redirect = encodeURIComponent(`/administrar.html?code=${code}`);
+          location.href = `login.html?redirect=${redirect}`;
+          return;
+        }
+        document.getElementById('userEmail').innerText = session.user.email;
 
-      // 2) Leer datos de la pantalla
-      const { data: tv, error: tvErr } = await supabase
-        .from('tv')
-        .select('nombre,user_id')
-        .eq('code', code)
-        .maybeSingle();
-      if (tvErr || !tv || tv.user_id !== session.user.id) {
-        alert('Pantalla no válida o sin permisos. Volviendo a Mis Pantallas.');
-        location.href = 'pantallas.html';
-        return;
-      }
-      document.getElementById('screenName').innerText = tv.nombre;
+        // 2) Leer datos de la pantalla
+        const { data: tv, error: tvErr } = await supabase
+          .from('tv')
+          .select('nombre,user_id')
+          .eq('code', code)
+          .maybeSingle();
+        if (tvErr || !tv || tv.user_id !== session.user.id) {
+          alert('Pantalla no válida o sin permisos. Volviendo a Mis Pantallas.');
+          location.href = 'pantallas.html';
+          return;
+        }
+        document.getElementById('screenName').innerText = tv.nombre;
 
-      // 3) Cargar álbumes del usuario
-      const { data: galleries, error } = await supabase
-        .from('galleries')
-        .select('id,name')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-      if (error) {
-        document.getElementById('albumsTitle').innerText = 'Error cargando álbumes';
-      }
-      const ul = document.getElementById('galleryList');
-      galleries.forEach(g => {
-        const li = document.createElement('li');
-        li.textContent = g.name;
-        li.onclick = async () => {
-          // Actualizar TV: asignar álbum y disparar slideshow
-          const { error: updateErr } = await supabase
+        // 3) Cargar álbumes del usuario
+        const { data: galleries, error } = await supabase
+          .from('galleries')
+          .select('id,name')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
+        if (error) {
+          document.getElementById('albumsTitle').innerText = 'Error cargando álbumes';
+        }
+        const ul = document.getElementById('galleryList');
+        ul.innerHTML = '';
+        galleries.forEach(g => {
+          const li = document.createElement('li');
+          li.textContent = g.name;
+          li.onclick = async () => {
+            const { error: updateErr } = await supabase
+              .from('tv')
+              .update({ gallery_id: g.id, play: true })
+              .eq('code', code);
+            if (updateErr) {
+              alert('Error al asignar álbum: ' + updateErr.message);
+            } else {
+              alert('¡Listo! La TV arrancará el slideshow.');
+            }
+          };
+          ul.appendChild(li);
+        });
+
+        // 4) Crear nuevo álbum
+        document.getElementById('createAlbum').onclick = () => {
+          location.href = `crear-album.html?code=${code}`;
+        };
+
+        // 5) Desvincular pantalla
+        document.getElementById('unlink').onclick = async () => {
+          if (!confirm('¿Estás seguro de desvincular esta pantalla?')) return;
+          const { error: unlinkErr } = await supabase
             .from('tv')
-            .update({ gallery_id: g.id, play: true })
+            .update({ user_id: null, gallery_id: null, play: false })
             .eq('code', code);
-          if (updateErr) {
-            alert('Error al asignar álbum: ' + updateErr.message);
+          if (unlinkErr) {
+            alert('Error al desvincular: ' + unlinkErr.message);
           } else {
-            alert('¡Listo! La TV arrancará el slideshow.');
+            alert('Pantalla desvinculada correctamente.');
+            location.href = 'pantallas.html';
           }
         };
-        ul.appendChild(li);
-      });
-
-      // 4) Botón "Crear nuevo álbum"
-      document.getElementById('createAlbum').onclick = () => {
-        // Redirige a la página de creación, pasando el código de la pantalla
-        location.href = `crear-album.html`;
-      };
-
-      // 5) Desvincular pantalla
-      document.getElementById('unlink').onclick = async () => {
-        if (!confirm('¿Estás seguro de desvincular esta pantalla?')) return;
-        // Quitamos la vinculación al usuario (y álbum)
-        const { error: unlinkErr } = await supabase
-          .from('tv')
-          .update({ user_id: null, gallery_id: null, play: false })
-          .eq('code', code);
-        if (unlinkErr) {
-          alert('Error al desvincular: ' + unlinkErr.message);
-        } else {
-          alert('Pantalla desvinculada correctamente.');
-          location.href = 'pantallas.html';
-        }
-      };
-    })();
+      })();
+    });
   </script>
 </body>
 </html>
