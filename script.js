@@ -114,57 +114,87 @@ window.addEventListener('DOMContentLoaded', () => {
  * Requiere haber cargado antes: <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
  */
 async function startQrScanner() {
-  // 1) Crear overlay y vídeo
-  const overlay = document.createElement('div');
-  Object.assign(overlay.style, {
-    position: 'fixed', top: 0, left: 0,
-    width: '100vw', height: '100vh',
-    background: 'rgba(0,0,0,0.8)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    zIndex: 1000
-  });
-  const video = document.createElement('video');
-  overlay.appendChild(video);
-  document.body.appendChild(overlay);
-
-  // 2) Pedir permiso y arrancar cámara
-  let stream;
+  // Intento 1: Cámara en la página
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const overlay = document.createElement('div');
+    Object.assign(overlay.style, {
+      position: 'fixed', top:0, left:0,
+      width:'100vw', height:'100vh',
+      background:'rgba(0,0,0,0.8)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      zIndex:1000
+    });
+    const video = document.createElement('video');
+    overlay.appendChild(video);
+    document.body.appendChild(overlay);
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    });
     video.srcObject = stream;
     await video.play();
-  } catch (err) {
-    console.error('No se pudo acceder a la cámara', err);
-    document.body.removeChild(overlay);
-    return;
-  }
 
-  // 3) Preparar canvas para procesar frames
-  const canvas = document.createElement('canvas');
-  const ctx    = canvas.getContext('2d');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
 
-  // 4) Función recursiva de escaneo
-  function scanFrame() {
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width  = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, canvas.width, canvas.height);
-      if (code) {
-        alert(`QR detectado: ${code.data}`);
-        stopScanner();
-        return;
+    const stopAll = () => {
+      stream.getTracks().forEach(t => t.stop());
+      document.body.removeChild(overlay);
+    };
+
+    const scanFrame = () => {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code = jsQR(imageData.data, canvas.width, canvas.height);
+        if (code) {
+          alert(`QR detectado: ${code.data}`);
+          stopAll();
+          return;
+        }
       }
-    }
-    requestAnimationFrame(scanFrame);
+      requestAnimationFrame(scanFrame);
+    };
+    scanFrame();
+    return; // si llegamos aquí, no ejecutamos el fallback
+  } catch (err) {
+    console.warn('getUserMedia falló, usando input file como fallback', err);
   }
 
-  // 5) Detener escaneo y cámara
-  function stopScanner() {
-    stream.getTracks().forEach(t => t.stop());
-    document.body.removeChild(overlay);
-  }
-
-  scanFrame();
+  // Intento 2: input file con capture nativo
+  return new Promise(resolve => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.style = 'position:fixed;top:-100px';
+    document.body.appendChild(input);
+    input.addEventListener('change', async () => {
+      if (!input.files?.length) {
+        document.body.removeChild(input);
+        return resolve();
+      }
+      const file = input.files[0];
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code = jsQR(imageData.data, canvas.width, canvas.height);
+        if (code) alert(`QR detectado: ${code.data}`);
+        else alert('No se detectó QR en la foto.');
+        document.body.removeChild(input);
+        resolve();
+      };
+      img.src = URL.createObjectURL(file);
+    });
+    // Simula click para abrir la cámara
+    input.click();
+  });
 }
+
