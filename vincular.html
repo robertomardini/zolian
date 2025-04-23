@@ -1,109 +1,44 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Vincular Pantalla - Zolian App</title>
-
-  <!-- Estilos y Boxicons -->
-  <link rel="stylesheet" href="/style.css" />
-  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
-
-  <style>
-    .home { padding: 20px; transition: left 0.3s, width 0.3s; }
-    .home .text { margin-bottom: 16px; }
-    #nome-btn, #ok-btn { margin-top: 12px; }
-  </style>
+  <meta charset="UTF-8">
+  <title>Vincular Pantalla</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="supabaseClient.js"></script>
 </head>
 <body>
-  <!-- Sidebar inyectado -->
-  <div id="sidebar-container"></div>
+  <h1>Vincular Pantalla</h1>
+  <div style="margin:2rem;">
+    <label for="name">Nombre de la pantalla:</label><br>
+    <input type="text" id="name" placeholder="Ej: Sala 1" style="width:100%; padding:.5rem;">
+    <button id="submit" style="margin-top:1rem; padding:.5rem 1rem;">OK</button>
+  </div>
 
-  <!-- Contenido principal -->
-  <section class="home">
-    <div class="text">Vincular Pantalla</div>
-    <p>Código: <strong id="codeDisplay"></strong></p>
-    <label for="nombre">Nombre de la pantalla</label>
-    <input type="text" id="nombre" placeholder="Ej. Sala de espera" />
-    <button id="ok-btn">OK</button>
-    <p id="msg" style="color:red;"></p>
-  </section>
-
-  <!-- Supabase y scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
-  <script src="/script.js"></script>
   <script>
-    async function initVincular() {
-      const params = new URLSearchParams(window.location.search);
-      let code = params.get('code');
-      if (!code) {
-        // genera uno si falta
-        code = crypto.randomUUID();
-        window.history.replaceState(null, '', `?code=${code}`);
-      }
-      document.getElementById('codeDisplay').innerText = code;
+    const supabase = window.supabase;
+    const params   = new URLSearchParams(window.location.search);
+    const screenId = params.get('code');
+    if (!screenId) alert('Falta el parámetro code en la URL.');
 
-      // Sesión
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        const redirect = encodeURIComponent(`/vincular.html?code=${code}`);
-        return window.location.href = `login.html?redirect=${redirect}`;
-      }
-      const user = session.user;
+    // Asegúrate de que quien entra aquí está logueado
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) window.location.href = '/login.html';
+    })();
 
-      // Inyectar email
-      const su = document.getElementById('sidebar-user');
-      if (su) su.innerText = user.email;
+    document.getElementById('submit').addEventListener('click', async () => {
+      const nombre = document.getElementById('name').value.trim();
+      if (!nombre) return alert('Por favor ingresa un nombre.');
+      // Actualiza el registro con el nombre
+      const { error } = await supabase
+        .from('screens')
+        .update({ name: nombre })
+        .eq('id', screenId);
+      if (error) return console.error('Error al guardar nombre:', error);
 
-      // Logout
-      const logoutBtn = document.getElementById('logout');
-      if (logoutBtn) {
-        logoutBtn.onclick = async e => {
-          e.preventDefault();
-          await supabase.auth.signOut();
-          window.location.href = 'login.html';
-        };
-      }
-
-      // Consultar si ya existe
-      const { data: record, error } = await supabase
-        .from('tv')
-        .select('user_id, nombre')
-        .eq('code', code)
-        .maybeSingle();
-      if (error) {
-        document.getElementById('msg').innerText = 'Error al consultar.';
-        return;
-      }
-      if (record && record.user_id && record.user_id !== user.id) {
-        document.getElementById('msg').innerText = 'Esta pantalla está vinculada.';
-        return;
-      }
-      if (record) {
-        document.getElementById('nombre').value = record.nombre || '';
-      }
-
-      // OK → insert/update + redirigir
-      document.getElementById('ok-btn').onclick = async () => {
-        const nombre = document.getElementById('nombre').value.trim();
-        if (!nombre) {
-          document.getElementById('msg').innerText = 'Ingresa un nombre.';
-          return;
-        }
-        const fn = record
-          ? supabase.from('tv').update({ user_id: user.id, nombre }).eq('code', code)
-          : supabase.from('tv').insert({ code, user_id: user.id, nombre });
-        const { error: upErr } = await fn;
-        if (upErr) {
-          document.getElementById('msg').innerText = 'Error al guardar.';
-          return;
-        }
-        window.location.href = `administrar.html?code=${code}`;
-      };
-    }
-
-    window.addEventListener('sidebarReady', initVincular);
+      // Lleva a la pantalla de administrar
+      window.location.href = `/administrar.html?code=${screenId}`;
+    });
   </script>
 </body>
 </html>
