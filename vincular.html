@@ -1,44 +1,50 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Vincular Pantalla</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="supabaseClient.js"></script>
+  <meta charset="UTF-8" />
+  <title>Vincular Pantalla – Zolian App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <style>
+    body { font-family:Arial,sans-serif; padding:20px; }
+    input, button { width:100%; padding:8px; margin-top:8px; }
+    button { cursor:pointer; }
+    #msg { color:red; margin-top:8px; }
+  </style>
 </head>
 <body>
   <h1>Vincular Pantalla</h1>
-  <div style="margin:2rem;">
-    <label for="name">Nombre de la pantalla:</label><br>
-    <input type="text" id="name" placeholder="Ej: Sala 1" style="width:100%; padding:.5rem;">
-    <button id="submit" style="margin-top:1rem; padding:.5rem 1rem;">OK</button>
-  </div>
-
+  <p>Código: <strong id="codeDisplay"></strong></p>
+  <input id="pantallaName" type="text" placeholder="Ej. Sala de espera"/>
+  <button id="btnOk">OK</button>
+  <p id="msg"></p>
   <script>
-    const supabase = window.supabase;
-    const params   = new URLSearchParams(window.location.search);
-    const screenId = params.get('code');
-    if (!screenId) alert('Falta el parámetro code en la URL.');
-
-    // Asegúrate de que quien entra aquí está logueado
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) window.location.href = '/login.html';
+    (async()=>{
+      const code = new URLSearchParams(location.search).get('code');
+      if (!code) return alert('Falta ?code en la URL');
+      document.getElementById('codeDisplay').innerText = code;
+      // 1) Sesión
+      const { data:{ session } } = await supabase.auth.getSession();
+      if (!session) {
+        const rd = encodeURIComponent(`/vincular.html?code=${code}`);
+        return location.href = `login.html?redirect=${rd}`;
+      }
+      // 2) Insertar fila en tv
+      document.getElementById('btnOk').onclick = async () => {
+        const nombre = document.getElementById('pantallaName').value.trim();
+        if (!nombre) { document.getElementById('msg').innerText = 'Escribe un nombre'; return; }
+        const { error } = await supabase
+          .from('tv')
+          .insert({ code, nombre, user_id: session.user.id, play: false });
+        if (error) {
+          document.getElementById('msg').innerText = error.message;
+        } else {
+          // redirigir a administrar
+          location.href = `/administrar.html?code=${code}`;
+        }
+      };
     })();
-
-    document.getElementById('submit').addEventListener('click', async () => {
-      const nombre = document.getElementById('name').value.trim();
-      if (!nombre) return alert('Por favor ingresa un nombre.');
-      // Actualiza el registro con el nombre
-      const { error } = await supabase
-        .from('screens')
-        .update({ name: nombre })
-        .eq('id', screenId);
-      if (error) return console.error('Error al guardar nombre:', error);
-
-      // Lleva a la pantalla de administrar
-      window.location.href = `/administrar.html?code=${screenId}`;
-    });
   </script>
 </body>
 </html>
