@@ -1,164 +1,68 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>Administrar Pantalla - Zolian App</title>
-
-  <!-- Estilos y Boxicons -->
-  <link rel="stylesheet" href="/style.css" />
-  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
-
-  <style>
-    .home { padding: 20px; transition: left 0.3s, width 0.3s; }
-    .home .text { margin-bottom: 16px; }
-    .home button, .home input { margin-top: 8px; }
-    #gallery-list li { padding: 8px 0; cursor: pointer; }
-    #gallery-list li:hover { background: var(--primary-color-light); }
-  </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Administrar Pantalla – Zolian App</title>
+  <link rel="stylesheet" href="/style.css"/>
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 </head>
 <body>
   <div id="sidebar-container"></div>
-
   <section class="home">
-    <div class="text">Administrar Pantalla</div>
-    <p>Código: <strong id="codeDisplay"></strong></p>
-    <button id="unlink-btn">Desvincular pantalla</button>
-    <hr/>
-
-    <label for="duration">Duración (segundos):</label>
-    <input type="number" id="duration" min="1" style="width:80px;" />
-    <button id="save-duration">Guardar duración</button>
-    <hr/>
-
-    <label for="new-gallery-name">Nuevo Álbum</label>
-    <input type="text" id="new-gallery-name" placeholder="Nombre álbum" />
-    <button id="create-gallery">Crear Álbum</button>
-    <hr/>
-
-    <p>Álbumes existentes:</p>
-    <ul id="gallery-list"></ul>
-    <hr/>
-
-    <button id="open-tv">Abrir en TV</button>
+    <h1 class="text">Administrar Pantalla</h1>
+    <p>Código de TV: <strong id="tv-code"></strong></p>
+    <hr>
+    <h2>Elige un Álbum</h2>
+    <ul id="albums-list"></ul>
   </section>
 
-  <!-- Supabase y scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <script src="/script.js"></script>
   <script>
-    async function initAdministrar() {
-      // 1) Leer TV code de la URL
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      if (!code) {
-        return window.location.href = 'pantallas.html';
-      }
-      document.getElementById('codeDisplay').innerText = code;
+  async function initAdministrar() {
+    // 1) Obtener código de TV
+    const code = new URLSearchParams(location.search).get('code');
+    if (!code) return alert('Falta el código de pantalla');
+    document.getElementById('tv-code').innerText = code;
 
-      // 2) Sesión
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        const redirect = encodeURIComponent(`/administrar.html?code=${code}`);
-        return window.location.href = `login.html?redirect=${redirect}`;
-      }
-      const user = session.user;
+    // 2) Sesión y UI
+    const { data:{ session } } = await supabase.auth.getSession();
+    if (!session) return location.href = `login.html?redirect=${encodeURIComponent(location.pathname+location.search)}`;
+    document.querySelector('#sidebar-user')?.innerText = session.user.email;
 
-      // 3) Inyectar email
-      const su = document.getElementById('sidebar-user');
-      if (su) su.innerText = user.email;
+    // 3) Cargar mis álbumes
+    const { data: galleries, error } = await supabase
+      .from('galleries')
+      .select('id,name')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending:false });
+    if (error) return console.error(error);
 
-      // 4) Logout
-      const logoutBtn = document.getElementById('logout');
-      if (logoutBtn) {
-        logoutBtn.onclick = async e => {
-          e.preventDefault();
-          await supabase.auth.signOut();
-          window.location.href = 'login.html';
-        };
-      }
-
-      // 5) Cargar registro de tv
-      const { data: tv, error: tvError } = await supabase
-        .from('tv')
-        .select('gallery_id, duration, user_id')
-        .eq('code', code)
-        .maybeSingle();
-      if (tvError || !tv || tv.user_id !== user.id) {
-        alert('Pantalla no válida o sin permiso.');
-        return window.location.href = 'pantallas.html';
-      }
-
-      // 6) Duración
-      document.getElementById('duration').value = tv.duration;
-      document.getElementById('save-duration').onclick = async () => {
-        const val = parseInt(document.getElementById('duration').value, 10);
-        if (!val || val < 1) return alert('Duración inválida');
-        const { error } = await supabase
-          .from('tv')
-          .update({ duration: val })
-          .eq('code', code);
-        if (error) return alert('Error guardando duración');
-        alert('Duración actualizada');
-      };
-
-      // 7) Desvincular pantalla
-      document.getElementById('unlink-btn').onclick = async () => {
-        if(!confirm('¿Desvincular esta pantalla?')) return;
-        await supabase
-          .from('tv')
-          .update({ user_id: null, nombre: null, gallery_id: null })
-          .eq('code', code);
-        window.location.href = `vincular.html?code=${code}`;
-      };
-
-      // 8) Listar galerías
-      const { data: galleries } = await supabase
-        .from('galleries')
-        .select('id, name')
-        .eq('user_id', user.id)
-        .order('created_at',{ ascending: false });
-
-      const listEl = document.getElementById('gallery-list');
+    const ul = document.getElementById('albums-list');
+    if (!galleries.length) {
+      ul.innerHTML = `<li>No tienes álbumes. Crea uno en Galerías.</li>`;
+    } else {
       galleries.forEach(g => {
         const li = document.createElement('li');
         li.textContent = g.name;
-        if (g.id === tv.gallery_id) li.style.fontWeight = 'bold';
+        li.style.cursor = 'pointer';
         li.onclick = async () => {
-          // Al hacer clic, asignas la galería a la TV
-          await supabase
+          // actualiza tv.gallery_id
+          const { error:updateErr } = await supabase
             .from('tv')
             .update({ gallery_id: g.id })
             .eq('code', code);
-          // y vas al álbum pasando ambos parámetros:
-          window.location.href = `/album.html?code=${code}&gallery=${g.id}`;
+          if (updateErr) return alert('Error al asignar álbum');
+          alert('Álbum asignado correctamente');
         };
-        listEl.appendChild(li);
+        ul.appendChild(li);
       });
-
-      // 9) Crear álbum (handler corregido)
-      document.getElementById('create-gallery').onclick = async () => {
-        const name = document.getElementById('new-gallery-name').value.trim();
-        if (!name) return alert('Nombre vacío');
-        const { data, error } = await supabase
-          .from('galleries')
-          .insert({ name, user_id: user.id })
-          .select('id')
-          .single();
-        if (error) return alert('Error creando álbum');
-        const galleryId = data.id;
-        // Redirigir al album pasando TV code + gallery id
-        window.location.href = `/album.html?code=${code}&gallery=${galleryId}`;
-      };
-
-      // 10) Abrir en TV
-      document.getElementById('open-tv').onclick = () => {
-        window.open(`/index.html?code=${code}`, '_blank');
-      };
     }
+  }
 
-    window.addEventListener('sidebarReady', initAdministrar);
+  window.addEventListener('sidebarReady', initAdministrar);
   </script>
 </body>
 </html>
