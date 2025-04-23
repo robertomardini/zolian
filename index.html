@@ -1,40 +1,49 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Vincular TV – Zolian App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
-  <script src="/qrcode.min.js"></script>
-  <style>
-    html, body { margin:0; padding:0; display:flex; flex-direction:column;
-      align-items:center; justify-content:center; height:100vh; background:#000; color:#fff;
-    }
-    #qr { background:#fff; padding:8px; border-radius:12px; margin-bottom:20px; }
-  </style>
+  <meta charset="UTF-8">
+  <title>Pantalla</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="qrcode.min.js"></script>
+  <script src="supabaseClient.js"></script>
 </head>
 <body>
-  <div id="qr"></div>
-  <script>
-    // 1) Obtener o generar código único
-    const params = new URLSearchParams(location.search);
-    let code = params.get('code');
-    if (!code) {
-      code = crypto.randomUUID();
-      history.replaceState(null, '', `?code=${code}`);
-    }
+  <div style="text-align:center; padding-top:2rem;">
+    <div id="qrcode"></div>
+    <p>Escanea con tu móvil para vincular esta pantalla</p>
+  </div>
 
-    // 2) Mostrar QR que apunta a vincular.html
-    const qrContainer = document.getElementById('qr');
-    const urlVincular = `${origin}/vincular.html?code=${encodeURIComponent(code)}`;
-    new QRCode(qrContainer, {
-      text: urlVincular,
-      width: 300, height: 300,
-      colorDark: "#000000",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.H
-    });
+  <script>
+    const supabase = window.supabase;
+    (async function init() {
+      // 1) Inserta un nuevo registro en 'screens'
+      const { data: screen, error } = await supabase
+        .from('screens')
+        .insert({})           // podrá añadirse más info luego
+        .select()
+        .single();
+      if (error) return console.error('Error creando pantalla:', error);
+
+      // 2) Genera el QR apuntando a vincular.html?code=<screen.id>
+      const link = `${window.location.origin}/vincular.html?code=${screen.id}`;
+      new QRCode(document.getElementById('qrcode'), {
+        text: link,
+        width: 200,
+        height: 200
+      });
+
+      // 3) Suscríbete a cambios en este screen
+      supabase
+        .from(`screens:id=eq.${screen.id}`)
+        .on('UPDATE', payload => {
+          const nuevo = payload.new.current_album_id;
+          if (nuevo) {
+            // en cuanto haya un álbum elegido, redirige al slideshow
+            window.location.href = `/slideshow.html?code=${screen.id}`;
+          }
+        })
+        .subscribe();
+    })();
   </script>
 </body>
 </html>
