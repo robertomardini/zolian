@@ -5,6 +5,7 @@
   <title>Slideshow – Zolian TV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+  <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
 
@@ -12,9 +13,12 @@
     html, body { margin:0; padding:0; background:#000; overflow:hidden; }
     #slides { position:relative; width:100vw; height:100vh; }
     #slides img {
-      position:absolute; width:100%; height:100%;
-      object-fit:contain; opacity:0;
-      transition:opacity 1s ease-in-out;
+      position:absolute;
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      opacity:0;
+      transition: opacity 1s ease-in-out;
     }
   </style>
 </head>
@@ -22,63 +26,96 @@
   <div id="slides"></div>
 
   <script>
-    (async()=>{
+    (async () => {
       const code = new URLSearchParams(location.search).get('code');
-      if (!code) return alert('Falta ?code en la URL');
+      if (!code) {
+        alert('Falta ?code en la URL');
+        return;
+      }
 
-      // Función para cargar y arrancar slideshow
-      async function arrancar(galleryId, duration){
-        // ya estamos full-screen
-        const cont = document.getElementById('slides');
-        // traer imágenes
-        const { data: imgs } = await supabase
+      const slidesEl   = document.getElementById('slides');
+      let intervalId   = null;
+
+      // Función que limpia y arranca un slideshow
+      async function arrancar(galleryId, duration) {
+        // 1) Clear anterior
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+        slidesEl.innerHTML = '';
+
+        // 2) Traer imágenes del álbum
+        const { data: imgs, error: imgErr } = await supabase
           .from('images')
           .select('url')
           .eq('gallery_id', galleryId)
-          .order('created_at',{ascending:true});
-        if (!imgs.length) return console.warn('Sin imágenes');
-        cont.innerHTML = '';
-        const urls = imgs.map(i=>
-          supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
+          .order('created_at', { ascending: true });
+        if (imgErr) {
+          console.error('Error cargando imágenes:', imgErr);
+          return;
+        }
+        if (!imgs.length) {
+          console.warn('Sin imágenes en el álbum');
+          return;
+        }
+
+        // 3) Obtener URLs públicas
+        const urls = imgs.map(i =>
+          supabase
+            .storage
+            .from('images')
+            .getPublicUrl(i.url)
+            .data
+            .publicUrl
         );
-        urls.forEach((src,i)=>{
+
+        // 4) Pintar slides (primero visible, resto ocultos)
+        urls.forEach((src, i) => {
           const img = document.createElement('img');
           img.src = src;
-          img.style.opacity = i===0?1:0;
-          cont.appendChild(img);
+          img.style.opacity = i === 0 ? '1' : '0';
+          slidesEl.appendChild(img);
         });
-        let idx=0;
-        setInterval(()=>{
-          const lis = cont.querySelectorAll('img');
-          lis[idx].style.opacity = 0;
-          idx = (idx+1)%lis.length;
-          lis[idx].style.opacity = 1;
-        }, duration*1000);
+
+        // 5) Arrancar el ciclo con la duración indicada
+        let idx = 0;
+        intervalId = setInterval(() => {
+          const lis = slidesEl.querySelectorAll('img');
+          lis[idx].style.opacity = '0';
+          idx = (idx + 1) % lis.length;
+          lis[idx].style.opacity = '1';
+        }, duration * 1000);
       }
 
-      // 1) Carga inicial
-      const { data: tv } = await supabase
+      // 1) Request Fullscreen al entrar (si no se hizo ya por user action)
+      document.documentElement.requestFullscreen?.().catch(() => {
+        /* Algunas TVs o navegadores bloquean fullscreen sin user gesture */
+      });
+
+      // 2) Carga inicial de gallery_id & duration desde la fila `tv`
+      const { data: tv, error: tvErr } = await supabase
         .from('tv')
         .select('gallery_id,duration')
         .eq('code', code)
         .maybeSingle();
-      if (tv?.gallery_id) {
-        // Si no estás ya en fullscreen, pide user gesture:
-        document.documentElement.requestFullscreen?.();
-        startSlideshow();
-        arrancar(tv.gallery_id, tv.duration);
+      if (tvErr) {
+        console.error('Error leyendo TV:', tvErr);
+      } else if (tv?.gallery_id) {
+        await arrancar(tv.gallery_id, tv.duration);
       }
 
-      // 2) Suscripción a cambios de gallery_id o duration
+      // 3) Suscripción Realtime a cambios en esa fila `tv`
       supabase
         .channel(`tv_updates_${code}`)
         .on('postgres_changes', {
-          event: 'UPDATE', schema:'public', table:'tv',
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tv',
           filter: `code=eq.${code}`
-        }, payload => {
-          const nt = payload.new;
-          if (nt.gallery_id) {
-            arrancar(nt.gallery_id, nt.duration);
+        }, ({ new: updated }) => {
+          if (updated.gallery_id) {
+            arrancar(updated.gallery_id, updated.duration);
           }
         })
         .subscribe();
