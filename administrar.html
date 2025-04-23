@@ -1,79 +1,50 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Administrar TV – Zolian App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/style.css" />
-  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
+  <meta charset="UTF-8">
+  <title>Administrar Álbum</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="supabaseClient.js"></script>
 </head>
 <body>
-  <div id="sidebar-container"></div>
+  <h1>Selecciona un Álbum</h1>
+  <div id="albums" style="margin:2rem;"></div>
 
-  <section class="home">
-    <h1 class="text">Administrar Pantalla</h1>
-    <p>TV Code: <strong id="tv-code"></strong></p>
-    <p>Usuario: <strong id="tv-user"></strong></p>
-
-    <h2>Selecciona un álbum</h2>
-    <ul id="gallery-list" class="grid-2cols"></ul>
-    <p id="no-galleries" style="display:none;">No tienes álbumes. Crea uno primero.</p>
-  </section>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
-  <script src="/script.js"></script>
   <script>
-    // Espera a que script.js inyecte y arranque el sidebar
-    window.addEventListener('sidebarReady', initAdmin);
+    const supabase = window.supabase;
+    const params   = new URLSearchParams(window.location.search);
+    const screenId = params.get('code');
 
-    async function initAdmin() {
-      const params = new URLSearchParams(location.search);
-      const code = params.get('code');
-      if (!code) return alert('Falta el code en la URL.');
+    (async () => {
+      // 1) Verifica sesión
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return window.location.href = '/login.html';
 
-      document.getElementById('tv-code').innerText = code;
+      // 2) Trae los álbumes de quien está logueado
+      const { data: albums, error } = await supabase
+        .from('albums')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .order('name');
+      if (error) return console.error('Error al cargar álbumes:', error);
 
-      // 1) Autenticación
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        const rd = encodeURIComponent(`/administrar.html?code=${code}`);
-        return location.href = `login.html?redirect=${rd}`;
-      }
-      document.getElementById('tv-user').innerText = session.user.email;
-
-      // 2) Traer álbumes del usuario
-      const { data: galleries, error } = await supabase
-        .from('galleries')
-        .select('id,name')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) return console.error(error);
-      const listEl = document.getElementById('gallery-list');
-      if (!galleries.length) {
-        document.getElementById('no-galleries').style.display = 'block';
-        return;
-      }
-
-      // 3) Renderizar
-      galleries.forEach(g => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-          <box-icon name='image' size='48px' color='#fff'></box-icon>
-          <span>${g.name}</span>
-        `;
-        li.onclick = async () => {
-          // Actualizar gallery_id y disparar play
-          await supabase
-            .from('tv')
-            .update({ gallery_id: g.id, play: true })
-            .eq('code', code);
-          alert('Álbum seleccionado y slideshow iniciado.');
+      // 3) Dibuja un botón por álbum
+      const cont = document.getElementById('albums');
+      albums.forEach(a => {
+        const btn = document.createElement('button');
+        btn.textContent = a.name;
+        btn.style = 'display:block; margin:.5rem 0; padding:.5rem 1rem;';
+        btn.onclick = async () => {
+          const { error: e2 } = await supabase
+            .from('screens')
+            .update({ current_album_id: a.id })
+            .eq('id', screenId);
+          if (e2) return console.error(e2);
+          alert('Álbum seleccionado correctamente.');
         };
-        listEl.appendChild(li);
+        cont.appendChild(btn);
       });
-    }
+    })();
   </script>
 </body>
 </html>
