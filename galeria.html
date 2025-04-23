@@ -4,7 +4,7 @@
   <base href="/" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>Galerías - Zolian App</title>
+  <title>Galerías – Zolian App</title>
 
   <!-- Estilos y Boxicons -->
   <link rel="stylesheet" href="/style.css" />
@@ -76,19 +76,27 @@
   <script src="/script.js"></script>
   <script>
     async function initGaleria() {
+      // 0) Obtenemos el code de la TV de la URL
+      const params  = new URLSearchParams(location.search);
+      const tvCode  = params.get('code');
+      if (!tvCode) {
+        alert('Falta el parámetro code de TV. Volviendo a Pantallas.');
+        return window.location.href = '/pantallas.html';
+      }
+
       // 1) Sesión
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        const redirect = encodeURIComponent('/galeria');
+        const redirect = encodeURIComponent(`/galeria.html?code=${tvCode}`);
         return window.location.href = `login.html?redirect=${redirect}`;
       }
       const user = session.user;
 
-      // 2) Inyecta email en sidebar
+      // 2) Inyectar usuario en sidebar
       const sidebarUserEl = document.getElementById('sidebar-user');
       if (sidebarUserEl) sidebarUserEl.innerText = user.email;
 
-      // 3) Logout seguro
+      // 3) Logout
       const logoutBtn = document.getElementById('logout');
       if (logoutBtn) {
         logoutBtn.onclick = async (e) => {
@@ -98,10 +106,10 @@
         };
       }
 
-      // 4) Cargar álbumes
+      // 4) Cargar álbumes del usuario
       const { data: galleries, error } = await supabase
         .from('galleries')
-        .select('id,name')
+        .select('id, name')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -114,15 +122,16 @@
         return;
       }
 
-      // 5) Renderizar tarjetas
+      // 5) Renderizar cada álbum como tarjeta
       galleries.forEach(g => {
         const li = document.createElement('li');
         li.innerHTML = `
-          <box-icon name='images' color='white' size='48px'></box-icon>
+          <box-icon name='images' color='white'></box-icon>
           <span>${g.name}</span>
         `;
         li.onclick = () => {
-          window.location.href = `/album.html?code=${g.id}`;
+          // redirige a album.html pasando TV code y gallery id
+          window.location.href = `/album.html?code=${tvCode}&gallery=${g.id}`;
         };
         listEl.appendChild(li);
       });
