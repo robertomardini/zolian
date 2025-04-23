@@ -76,23 +76,22 @@
   <script src="/script.js"></script>
   <script>
     async function initGaleria() {
-      // 0) Obtenemos el code de la TV de la URL
-      const params  = new URLSearchParams(location.search);
-      const tvCode  = params.get('code');
-      if (!tvCode) {
-        alert('Falta el parámetro code de TV. Volviendo a Pantallas.');
-        return window.location.href = '/pantallas.html';
-      }
+      // 0) ¿Viene code de TV?
+      const params = new URLSearchParams(location.search);
+      const tvCode = params.get('code'); // puede ser null
 
-      // 1) Sesión
+      // 1) Verificar sesión
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        const redirect = encodeURIComponent(`/galeria.html?code=${tvCode}`);
+        // si había tvCode, lo preservamos en redirect
+        const redirect = tvCode
+          ? encodeURIComponent(`/galeria.html?code=${tvCode}`)
+          : encodeURIComponent('/galeria.html');
         return window.location.href = `login.html?redirect=${redirect}`;
       }
       const user = session.user;
 
-      // 2) Inyectar usuario en sidebar
+      // 2) Inyectar email en sidebar
       const sidebarUserEl = document.getElementById('sidebar-user');
       if (sidebarUserEl) sidebarUserEl.innerText = user.email;
 
@@ -126,12 +125,17 @@
       galleries.forEach(g => {
         const li = document.createElement('li');
         li.innerHTML = `
-          <box-icon name='images' color='white'></box-icon>
+          <box-icon name='images'></box-icon>
           <span>${g.name}</span>
         `;
         li.onclick = () => {
-          // redirige a album.html pasando TV code y gallery id
-          window.location.href = `/album.html?code=${tvCode}&gallery=${g.id}`;
+          if (tvCode) {
+            // viene de una TV: abrimos album para vincular a esa TV
+            window.location.href = `/album.html?code=${tvCode}&gallery=${g.id}`;
+          } else {
+            // gestión independiente de galerías
+            window.location.href = `/album.html?gallery=${g.id}`;
+          }
         };
         listEl.appendChild(li);
       });
