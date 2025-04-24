@@ -11,14 +11,10 @@
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
-    /* Anula posicionamiento absoluto de .home del CSS global */
+    /* Mantener la lógica de posición/width del sidebar desde style.css */
     .home {
-      position: static !important;
-      left: auto !important;
-      width: auto !important;
-      height: auto !important;
-      background: var(--body-color);
       padding: 20px;
+      transition: left 0.3s, width 0.3s;
     }
     .home .text {
       font-size: 2rem;
@@ -29,13 +25,15 @@
     .section {
       margin-bottom: 24px;
     }
-    /* Nombre + botón en línea */
+    /* Nombre + botón en línea, wrap en móviles */
     .input-group {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
     }
     .input-group input[type="text"] {
       flex: 1;
+      min-width: 0;
       padding: 8px;
       border: 2px solid var(--primary-color);
       border-radius: 6px;
@@ -43,6 +41,7 @@
       color: var(--text-color);
     }
     .input-group button {
+      flex-shrink: 0;
       padding: 8px 16px;
       background: var(--primary-color);
       color: #fff;
@@ -50,7 +49,6 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    /* Duración y type select */
     .section label {
       display: block;
       margin-bottom: 8px;
@@ -67,7 +65,6 @@
       color: var(--text-color);
       box-sizing: border-box;
     }
-    /* Carga de imágenes */
     .section input[type="file"] {
       display: block;
       margin-bottom: 8px;
@@ -157,7 +154,6 @@
       <select id="slideshow-type">
         <option value="fade">Fade</option>
         <option value="slide">Slide</option>
-        <!-- Más opciones en el futuro -->
       </select>
     </div>
 
@@ -175,10 +171,8 @@
       <ul id="images-list"></ul>
     </div>
 
-    <!-- Desvincular / borrar álbum -->
-    <button id="delete-album">
-      Desvincular
-    </button>
+    <!-- Desvincular / borrar álbum entero -->
+    <button id="delete-album">Desvincular</button>
   </section>
 
   <!-- Scripts -->
@@ -194,7 +188,6 @@
         return window.location.href = 'galeria.html';
       }
 
-      // Sesión
       const { data:{ session } } = await supabase.auth.getSession();
       if (!session) {
         const redirect = encodeURIComponent(`/album.html?gallery=${galleryId}`);
@@ -211,7 +204,7 @@
         window.location.href = 'login.html';
       };
 
-      // 1) Cargar los datos de este álbum
+      // 1) Cargar datos del álbum
       const { data: alb, error: albErr } = await supabase
         .from('galleries')
         .select('name,user_id')
@@ -281,7 +274,7 @@
         }
       }
 
-      // 5) Desvincular (borrar) álbum entero
+      // 5) Desvincular álbum entero
       document.getElementById('delete-album').onclick = async () => {
         if (!confirm('¿Estás seguro de desvincular (eliminar) este álbum y sus imágenes?')) return;
         await supabase.from('images').delete().eq('gallery_id', galleryId);
