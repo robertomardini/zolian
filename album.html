@@ -123,6 +123,49 @@
       font-size: 1rem;
       cursor: pointer;
     }
+    .section {
+  display: flex; /* Activa Flexbox */
+  justify-content: space-between; /* Empuja los elementos a los extremos opuestos */
+  align-items: center; /* Centra los elementos verticalmente entre sí */
+  padding: 10px; /* Añade algo de espacio alrededor (opcional) */
+  border: 1px solid #ccc; /* Solo para visualización (opcional) */
+  margin-bottom: 10px; /* Espacio debajo (opcional) */
+}
+
+/* --- Estilo Común (Opcional pero recomendado) --- */
+
+/* Esconder el input de archivo por defecto (práctica común) */
+#file-input {
+  display: none;
+}
+
+/* Estilo para que el label parezca clickeable */
+.section label {
+  cursor: pointer;
+  padding: 8px 12px;
+  background-color: #eee;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-right: 10px; /* Espacio entre label y botón si no usan space-between */
+}
+
+/* Estilo básico para el botón de subida */
+.section button.upload {
+  padding: 5px;
+  background-color: #007bff; /* Un color de ejemplo */
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex; /* Para que el box-icon se alinee bien */
+  align-items: center;
+  justify-content: center;
+}
+
+/* Asegurar que el icono dentro del botón tenga el tamaño adecuado */
+.section button.upload box-icon {
+  width: 24px;
+  height: 24px;
+}
   </style>
 </head>
 <body>
