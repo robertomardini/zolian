@@ -12,7 +12,6 @@
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
 
   <style>
-    /* Mantener la lógica de posición/width del sidebar desde style.css */
     .home {
       padding: 20px;
       transition: left 0.3s, width 0.3s;
@@ -28,143 +27,91 @@
       padding: 10px;
       margin-bottom: 10px;
     }
-    /* Nombre + botón en línea, wrap en móviles */
     .input-group {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
     }
     .input-group input[type="text"] {
-      flex: 1;
-      min-width: 0;
-      padding: 8px;
-      border: none;
-      border-radius: 6px;
+      flex: 1; min-width: 0; padding: 8px;
+      border: none; border-radius: 6px;
       background: var(--sidebar-color);
       color: var(--text-color);
     }
     .input-group button {
-      flex-shrink: 0;
-      padding: 8px 16px;
-      background: var(--primary-color);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+      flex-shrink: 0; padding: 8px 16px;
+      background: var(--primary-color); color: #fff;
+      border: none; border-radius: 6px; cursor: pointer;
     }
     .section label {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--text-color);
-      font-weight: 500;
+      display: block; margin-bottom: 8px;
+      color: var(--text-color); font-weight: 500;
     }
     .section input[type="number"],
-    .section select {
-      width: 100%;
-      padding: 8px;
-      border: none;
-      border-radius: 6px;
-      background: var(--sidebar-color);
-      color: var(--text-color);
-      box-sizing: border-box;
-    }
+    .section select,
     .section input[type="file"] {
-      flex: 1;
-      min-width: 0;
-      padding: 8px;
-      border: none;
-      border-radius: 6px;
-      display: block;
+      width: 100%; padding: 8px;
+      border: none; border-radius: 6px;
       background: var(--sidebar-color);
+      color: var(--text-color); box-sizing: border-box;
     }
     .section button.upload {
-      flex-shrink: 0;
-      padding: 8px 16px;
-      background: var(--primary-color);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+      flex-shrink: 0; padding: 8px 16px;
+      background: var(--primary-color); color: #fff;
+      border: none; border-radius: 6px; cursor: pointer;
     }
-    /* Grid de miniaturas 3x */
     #images-list {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 16px;
       list-style: none;
-      padding: 0;
-      margin: 0;
+      padding: 0; margin: 0;
     }
     #images-list li {
-      position: relative;
-      overflow: hidden;
-      border-radius: 6px;
-      background: #fff;
+      position: relative; overflow: hidden;
+      border-radius: 6px; background: #fff;
     }
     #images-list img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
     }
     #images-list .delete-btn {
-      position: absolute;
-      top: 8px; right: 8px;
-      background: rgba(0,0,0,0.6);
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      width: 24px; height: 24px;
-      font-size: 16px;
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(0,0,0,0.6); color: #fff;
+      border: none; border-radius: 50%;
+      width: 24px; height: 24px; font-size: 16px;
       cursor: pointer;
     }
-    /* Botones finales */
     #save-changes {
-      display: block;
-      width: 100%;
-      margin: 16px 0;
-      padding: 12px;
-      background: var(--primary-color);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 1rem;
-      cursor: pointer;
+      display: block; width: 100%;
+      margin: 16px 0; padding: 12px;
+      background: var(--primary-color); color: #fff;
+      border: none; border-radius: 6px;
+      font-size: 1rem; cursor: pointer;
     }
     #start-tv {
-      display: block;
-      width: 100%;
-      margin-bottom: 16px;
-      padding: 12px;
-      background: #2ecc71;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 1rem;
-      cursor: pointer;
+      display: block; width: 100%;
+      margin-bottom: 16px; padding: 12px;
+      background: #2ecc71; color: #fff;
+      border: none; border-radius: 6px;
+      font-size: 1rem; cursor: pointer;
     }
     #delete-album {
-      display: block;
-      width: 100%;
-      margin-top: 32px;
-      padding: 12px;
-      background: #e74c3c;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 1rem;
-      cursor: pointer;
+      display: block; width: 100%;
+      margin-top: 32px; padding: 12px;
+      background: #e74c3c; color: #fff;
+      border: none; border-radius: 6px;
+      font-size: 1rem; cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <!-- Sidebar inyectado -->
   <div id="sidebar-container"></div>
 
   <section class="home">
     <div class="text">Álbum</div>
 
-    <!-- Renombrar álbum -->
+    <!-- Nombre del álbum -->
     <div class="section">
       <label for="album-name">Nombre del álbum</label>
       <div class="input-group">
@@ -175,13 +122,13 @@
       </div>
     </div>
 
-    <!-- Duración de cada imagen -->
+    <!-- Duración -->
     <div class="section">
       <label for="duration">Duración imagen (segundos)</label>
       <input type="number" id="duration" min="1" value="5"/>
     </div>
 
-    <!-- Tipo de Slideshow -->
+    <!-- Tipo de slideshow (pendiente de futuro) -->
     <div class="section">
       <label for="slideshow-type">Tipo de Slideshow</label>
       <select id="slideshow-type">
@@ -190,7 +137,7 @@
       </select>
     </div>
 
-    <!-- Cargar imágenes -->
+    <!-- Subir imágenes -->
     <div class="section">
       <label for="file-input">Cargar Imágenes</label>
       <div class="input-group">
@@ -201,22 +148,18 @@
       </div>
     </div>
 
-    <!-- Grid de miniaturas -->
+    <!-- Miniaturas -->
     <div class="section">
       <ul id="images-list"></ul>
     </div>
 
-    <!-- Guardar cambios en TV (gallery_id + duration + play) -->
+    <!-- Botones -->
     <button id="save-changes">Guardar cambios</button>
-
-    <!-- Vincular e iniciar TV sin tocar duración -->
     <button id="start-tv" style="display:none;">Vincular y Iniciar TV</button>
-
-    <!-- Desvincular / borrar álbum entero -->
     <button id="delete-album">Desvincular</button>
   </section>
 
-  <!-- Scripts -->
+  <!-- Supabase y script.js -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <script src="/script.js"></script>
@@ -236,14 +179,14 @@
         document.getElementById('start-tv').style.display = 'block';
       }
 
-      // Comprobar sesión
+      // Validar sesión
       const { data:{ session } } = await supabase.auth.getSession();
       if (!session) {
         const redirect = encodeURIComponent(location.pathname + location.search);
         return window.location.href = `login.html?redirect=${redirect}`;
       }
 
-      // Inyectar email y logout
+      // Inyectar usuario en el sidebar
       const su = document.getElementById('sidebar-user');
       if (su) su.innerText = session.user.email;
       const lb = document.getElementById('logout');
@@ -263,7 +206,7 @@
         alert('Álbum no válido o sin permiso.');
         return window.location.href = 'galeria.html';
       }
-      document.getElementById('album-name').value  = alb.name;
+      document.getElementById('album-name').value = alb.name;
 
       // 2) Guardar nombre
       document.getElementById('save-name').onclick = async () => {
@@ -295,7 +238,7 @@
         loadImages();
       };
 
-      // 4) Listar miniaturas
+      // 4) Mostrar miniaturas
       async function loadImages() {
         const { data: imgs } = await supabase
           .from('images')
@@ -324,33 +267,31 @@
         }
       }
 
-      // 5) Guardar cambios (gallery_id + duration + play)
-      if (tvCode) {
-        document.getElementById('save-changes').onclick = async () => {
-          const dur = parseInt(document.getElementById('duration').value) || 5;
-          const { error } = await supabase
-            .from('tv')
-            .update({ gallery_id: galleryId, duration: dur, play: true })
-            .eq('code', tvCode);
-          if (error) return alert('Error guardando cambios: ' + error.message);
-          alert('Cambios guardados y slideshow iniciado.');
-        };
-        // Vincular e iniciar sin tocar duración
-        document.getElementById('start-tv').onclick = async () => {
-          const { error } = await supabase
-            .from('tv')
-            .update({ gallery_id: galleryId, play: true })
-            .eq('code', tvCode);
-          if (error) return alert('Error iniciando TV: ' + error.message);
-          alert('Slideshow iniciado.');
-        };
-      } else {
-        // Si no hay tvCode, ocultar botones
-        document.getElementById('save-changes').style.display = 'none';
-        document.getElementById('start-tv').style.display = 'none';
-      }
+      // 5) Guardar cambios → update tv + duration + play + redirect
+      document.getElementById('save-changes').onclick = async () => {
+        if (!tvCode) return;
+        const dur = parseInt(document.getElementById('duration').value) || 5;
+        const { error } = await supabase
+          .from('tv')
+          .update({ gallery_id: galleryId, duration: dur, play: true })
+          .eq('code', tvCode);
+        if (error) return alert('Error guardando cambios: ' + error.message);
+        // Redirigir a Pantallas
+        location.href = 'pantallas.html';
+      };
 
-      // 6) Desvincular / borrar álbum entero
+      // 6) Vincular e iniciar sin cambiar duración
+      document.getElementById('start-tv').onclick = async () => {
+        if (!tvCode) return;
+        const { error } = await supabase
+          .from('tv')
+          .update({ gallery_id: galleryId, play: true })
+          .eq('code', tvCode);
+        if (error) return alert('Error iniciando TV: ' + error.message);
+        alert('Slideshow iniciado.');
+      };
+
+      // 7) Desvincular álbum entero
       document.getElementById('delete-album').onclick = async () => {
         if (!confirm('¿Estás seguro de desvincular (eliminar) este álbum y sus imágenes?')) return;
         await supabase.from('images').delete().eq('gallery_id', galleryId);
@@ -358,7 +299,7 @@
         window.location.href = 'galeria.html';
       };
 
-      // carga inicial
+      // carga inicial de miniaturas
       await loadImages();
     }
 
