@@ -36,9 +36,9 @@
       flex: 1;
       min-width: 0;
       padding: 8px;
-      border: 2px solid var(--sidebar-color);
+      border: none;
       border-radius: 6px;
-      background: var(--primary-color-light);
+      background: var(--sidebar-color);
       color: var(--text-color);
     }
     .input-group button {
@@ -60,9 +60,9 @@
     .section select {
       width: 100%;
       padding: 8px;
-      border: 2px solid var(--sidebar-color);
+      border: none;
       border-radius: 6px;
-      background: var(--primary-color-light);
+      background: var(--sidebar-color);
       color: var(--text-color);
       box-sizing: border-box;
     }
@@ -72,9 +72,9 @@
     }
     .section button.upload {
       padding: 8px 16px;
-      background: #6d64f5;
+      background: solid var(--sidebar-color);
       color: #fff;
-      border: 2px solid var(--sidebar-color);
+      border: none;
       border-radius: 6px;
       cursor: pointer;
     }
@@ -110,6 +110,18 @@
       font-size: 16px;
       cursor: pointer;
     }
+    /* Estilo básico para el botón de subida */
+.section button.upload {
+  padding: 5px;
+  background: solid var(--sidebar-color);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex; /* Para que el box-icon se alinee bien */
+  align-items: center;
+  justify-content: center;
+}
+    
     /* Botón Desvincular final */
     #delete-album {
       display: block;
@@ -123,17 +135,7 @@
       font-size: 1rem;
       cursor: pointer;
     }
-    /* Estilo básico para el botón de subida */
-.section button.upload {
-  padding: 5px;
-  background-color: #007bff; /* Un color de ejemplo */
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  display: inline-flex; /* Para que el box-icon se alinee bien */
-  align-items: center;
-  justify-content: center;
-}
+
   
   </style>
 </head>
