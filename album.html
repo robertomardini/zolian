@@ -23,7 +23,8 @@
       text-align: center;
     }
     .section {
-      align-items: center;
+      display: flex;
+      flex-direction: column;
       padding: 10px;
       margin-bottom: 10px;
     }
@@ -44,7 +45,7 @@
       border: none; border-radius: 6px; cursor: pointer;
     }
     .section label {
-      display: block; margin-bottom: 8px;
+      margin-bottom: 8px;
       color: var(--text-color); font-weight: 500;
     }
     .section input[type="number"],
@@ -54,11 +55,6 @@
       border: none; border-radius: 6px;
       background: var(--sidebar-color);
       color: var(--text-color); box-sizing: border-box;
-    }
-    .section button.upload {
-      flex-shrink: 0; padding: 8px 16px;
-      background: var(--primary-color); color: #fff;
-      border: none; border-radius: 6px; cursor: pointer;
     }
     #images-list {
       display: grid;
@@ -82,30 +78,28 @@
       width: 24px; height: 24px; font-size: 16px;
       cursor: pointer;
     }
-    #save-changes {
-      display: block; width: 100%;
-      margin: 16px 0; padding: 12px;
-      background: var(--primary-color); color: #fff;
+    #save-changes,
+    #start-tv,
+    #delete-album {
+      display: none; /* se activan según params */
+      width: 100%; margin-top: 16px; padding: 12px;
       border: none; border-radius: 6px;
       font-size: 1rem; cursor: pointer;
+    }
+    #save-changes {
+      background: var(--primary-color); color: #fff;
     }
     #start-tv {
-      display: block; width: 100%;
-      margin-bottom: 16px; padding: 12px;
       background: #2ecc71; color: #fff;
-      border: none; border-radius: 6px;
-      font-size: 1rem; cursor: pointer;
     }
     #delete-album {
-      display: block; width: 100%;
-      margin-top: 32px; padding: 12px;
       background: #e74c3c; color: #fff;
-      border: none; border-radius: 6px;
-      font-size: 1rem; cursor: pointer;
+      margin-bottom: 32px;
     }
   </style>
 </head>
 <body>
+  <!-- Sidebar inyectado -->
   <div id="sidebar-container"></div>
 
   <section class="home">
@@ -128,7 +122,7 @@
       <input type="number" id="duration" min="1" value="5"/>
     </div>
 
-    <!-- Tipo de slideshow (pendiente de futuro) -->
+    <!-- Tipo de Slideshow -->
     <div class="section">
       <label for="slideshow-type">Tipo de Slideshow</label>
       <select id="slideshow-type">
@@ -153,9 +147,9 @@
       <ul id="images-list"></ul>
     </div>
 
-    <!-- Botones -->
+    <!-- Botones de acción -->
     <button id="save-changes">Guardar cambios</button>
-    <button id="start-tv" style="display:none;">Vincular y Iniciar TV</button>
+    <button id="start-tv">Vincular y Iniciar TV</button>
     <button id="delete-album">Desvincular</button>
   </section>
 
@@ -174,9 +168,10 @@
         return window.location.href = 'galeria.html';
       }
 
-      // Mostrar botón start-tv si viene código de TV
+      // Mostrar botones solo si hay código de TV
       if (tvCode) {
-        document.getElementById('start-tv').style.display = 'block';
+        document.getElementById('save-changes').style.display = 'block';
+        document.getElementById('start-tv').style.display    = 'block';
       }
 
       // Validar sesión
@@ -186,7 +181,7 @@
         return window.location.href = `login.html?redirect=${redirect}`;
       }
 
-      // Inyectar usuario en el sidebar
+      // Inyectar usuario en sidebar
       const su = document.getElementById('sidebar-user');
       if (su) su.innerText = session.user.email;
       const lb = document.getElementById('logout');
@@ -208,7 +203,7 @@
       }
       document.getElementById('album-name').value = alb.name;
 
-      // 2) Guardar nombre
+      // 2) Guardar solo nombre
       document.getElementById('save-name').onclick = async () => {
         const nv = document.getElementById('album-name').value.trim();
         if (!nv) return alert('Escribe un nombre.');
@@ -235,10 +230,10 @@
           }
           await supabase.from('images').insert({ gallery_id: galleryId, url: path });
         }
-        loadImages();
+        await loadImages();
       };
 
-      // 4) Mostrar miniaturas
+      // 4) Cargar miniaturas
       async function loadImages() {
         const { data: imgs } = await supabase
           .from('images')
@@ -260,14 +255,14 @@
             if (!confirm('¿Borrar esta imagen?')) return;
             await supabase.from('images').delete().eq('id', id);
             await supabase.storage.from('images').remove([url]);
-            loadImages();
+            await loadImages();
           };
           li.appendChild(btn);
           ul.appendChild(li);
         }
       }
 
-      // 5) Guardar cambios → update tv + duration + play + redirect
+      // 5) Guardar cambios → update tv + duración + play + redirigir
       document.getElementById('save-changes').onclick = async () => {
         if (!tvCode) return;
         const dur = parseInt(document.getElementById('duration').value) || 5;
@@ -276,11 +271,11 @@
           .update({ gallery_id: galleryId, duration: dur, play: true })
           .eq('code', tvCode);
         if (error) return alert('Error guardando cambios: ' + error.message);
-        // Redirigir a Pantallas
+        // volvemos a Pantallas
         location.href = 'pantallas.html';
       };
 
-      // 6) Vincular e iniciar sin cambiar duración
+      // 6) Vincular e iniciar sin tocar duración
       document.getElementById('start-tv').onclick = async () => {
         if (!tvCode) return;
         const { error } = await supabase
@@ -291,9 +286,9 @@
         alert('Slideshow iniciado.');
       };
 
-      // 7) Desvincular álbum entero
+      // 7) Desvincular álbum
       document.getElementById('delete-album').onclick = async () => {
-        if (!confirm('¿Estás seguro de desvincular (eliminar) este álbum y sus imágenes?')) return;
+        if (!confirm('¿Desvincular (eliminar) este álbum y sus imágenes?')) return;
         await supabase.from('images').delete().eq('gallery_id', galleryId);
         await supabase.from('galleries').delete().eq('id', galleryId);
         window.location.href = 'galeria.html';
