@@ -24,13 +24,10 @@
       text-align: center;
     }
     .section {
-  /*display: flex;*/ /* Activa Flexbox */
-  /* justify-content: space-between;*/ /* Empuja los elementos a los extremos opuestos */
-  align-items: center; /* Centra los elementos verticalmente entre sí */
-  padding: 10px; /* Añade algo de espacio alrededor (opcional) */
-  /*border: 1px solid #ccc; */ /* Solo para visualización (opcional) */
-  margin-bottom: 10px; /* Espacio debajo (opcional) */
-}
+      align-items: center;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
     /* Nombre + botón en línea, wrap en móviles */
     .input-group {
       display: flex;
@@ -79,7 +76,6 @@
       border-radius: 6px;
       display: block;
       background: var(--sidebar-color);
-      
     }
     .section button.upload {
       flex-shrink: 0;
@@ -90,7 +86,6 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    
     /* Grid de miniaturas 3x */
     #images-list {
       display: grid;
@@ -123,8 +118,31 @@
       font-size: 16px;
       cursor: pointer;
     }
-    
-    /* Botón Desvincular final */
+    /* Botones finales */
+    #save-changes {
+      display: block;
+      width: 100%;
+      margin: 16px 0;
+      padding: 12px;
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #start-tv {
+      display: block;
+      width: 100%;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: #2ecc71;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
     #delete-album {
       display: block;
       width: 100%;
@@ -137,8 +155,6 @@
       font-size: 1rem;
       cursor: pointer;
     }
-
-  
   </style>
 </head>
 <body>
@@ -178,17 +194,23 @@
     <div class="section">
       <label for="file-input">Cargar Imágenes</label>
       <div class="input-group">
-      <input type="file" id="file-input" multiple accept="image/*"/>
-      <button class="upload" id="upload-btn">
-        <box-icon name='upload' color="#fff"></box-icon>
-      </button>
-    </div>
+        <input type="file" id="file-input" multiple accept="image/*"/>
+        <button class="upload" id="upload-btn">
+          <box-icon name='upload' color="#fff"></box-icon>
+        </button>
       </div>
+    </div>
 
     <!-- Grid de miniaturas -->
     <div class="section">
       <ul id="images-list"></ul>
     </div>
+
+    <!-- Guardar cambios en TV (gallery_id + duration + play) -->
+    <button id="save-changes">Guardar cambios</button>
+
+    <!-- Vincular e iniciar TV sin tocar duración -->
+    <button id="start-tv" style="display:none;">Vincular y Iniciar TV</button>
 
     <!-- Desvincular / borrar álbum entero -->
     <button id="delete-album">Desvincular</button>
@@ -202,18 +224,26 @@
     async function initAlbum() {
       const params    = new URLSearchParams(location.search);
       const galleryId = params.get('gallery');
+      const tvCode    = params.get('code');
+
       if (!galleryId) {
         alert('Falta parámetro «gallery».');
         return window.location.href = 'galeria.html';
       }
 
+      // Mostrar botón start-tv si viene código de TV
+      if (tvCode) {
+        document.getElementById('start-tv').style.display = 'block';
+      }
+
+      // Comprobar sesión
       const { data:{ session } } = await supabase.auth.getSession();
       if (!session) {
-        const redirect = encodeURIComponent(`/album.html?gallery=${galleryId}`);
+        const redirect = encodeURIComponent(location.pathname + location.search);
         return window.location.href = `login.html?redirect=${redirect}`;
       }
 
-      // Inyectar email + logout
+      // Inyectar email y logout
       const su = document.getElementById('sidebar-user');
       if (su) su.innerText = session.user.email;
       const lb = document.getElementById('logout');
@@ -233,7 +263,7 @@
         alert('Álbum no válido o sin permiso.');
         return window.location.href = 'galeria.html';
       }
-      document.getElementById('album-name').value = alb.name;
+      document.getElementById('album-name').value  = alb.name;
 
       // 2) Guardar nombre
       document.getElementById('save-name').onclick = async () => {
@@ -268,7 +298,8 @@
       // 4) Listar miniaturas
       async function loadImages() {
         const { data: imgs } = await supabase
-          .from('images').select('id,url')
+          .from('images')
+          .select('id,url')
           .eq('gallery_id', galleryId)
           .order('created_at',{ ascending:false });
         const ul = document.getElementById('images-list');
@@ -293,7 +324,33 @@
         }
       }
 
-      // 5) Desvincular álbum entero
+      // 5) Guardar cambios (gallery_id + duration + play)
+      if (tvCode) {
+        document.getElementById('save-changes').onclick = async () => {
+          const dur = parseInt(document.getElementById('duration').value) || 5;
+          const { error } = await supabase
+            .from('tv')
+            .update({ gallery_id: galleryId, duration: dur, play: true })
+            .eq('code', tvCode);
+          if (error) return alert('Error guardando cambios: ' + error.message);
+          alert('Cambios guardados y slideshow iniciado.');
+        };
+        // Vincular e iniciar sin tocar duración
+        document.getElementById('start-tv').onclick = async () => {
+          const { error } = await supabase
+            .from('tv')
+            .update({ gallery_id: galleryId, play: true })
+            .eq('code', tvCode);
+          if (error) return alert('Error iniciando TV: ' + error.message);
+          alert('Slideshow iniciado.');
+        };
+      } else {
+        // Si no hay tvCode, ocultar botones
+        document.getElementById('save-changes').style.display = 'none';
+        document.getElementById('start-tv').style.display = 'none';
+      }
+
+      // 6) Desvincular / borrar álbum entero
       document.getElementById('delete-album').onclick = async () => {
         if (!confirm('¿Estás seguro de desvincular (eliminar) este álbum y sus imágenes?')) return;
         await supabase.from('images').delete().eq('gallery_id', galleryId);
