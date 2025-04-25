@@ -1,40 +1,135 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Vídeo – Zolian TV</title>
+  <meta charset="UTF-8"/>
+  <title>Player – Zolian TV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Hls.js y Supabase como antes -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
+  <!-- Boxicons para el icono fullscreen -->
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
-    html, body { margin:0; padding:0; background:#000; overflow:hidden; }
-    #videoPlayer {
-      width:100vw; height:100vh;
-      background:#000;
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+    #fs-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: rgba(255,255,255,0.8);
+      border: none;
+      border-radius: 4px;
+      padding: 6px;
+      cursor: pointer;
+    }
+    #fs-btn i {
+      font-size: 1.5rem;
+      color: #000;
+    }
+    video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      background: #000;
+    }
+    /* Ocultar cursor y botón en fullscreen */
+    :fullscreen body,
+    :-webkit-full-screen body {
+      cursor: none;
+    }
+    :fullscreen #fs-btn,
+    :-webkit-full-screen #fs-btn {
+      display: none !important;
     }
   </style>
 </head>
 <body>
-  <video id="videoPlayer" autoplay muted loop playsinline></video>
+  <!-- Botón fullscreen -->
+  <button id="fs-btn">
+    <i class="bx bx-fullscreen"></i>
+  </button>
+  <!-- Aquí se insertará el vídeo -->
+  <div id="player-container"></div>
 
   <script>
   (async () => {
-    const urlParams = new URLSearchParams(location.search);
-    const src = urlParams.get('hls') || urlParams.get('video');
-    if (!src) return alert('Falta parámetro `hls` o `video` en la URL.');
-
-    const video = document.getElementById('videoPlayer');
-    if (Hls.isSupported() && src.endsWith('.m3u8')) {
-      const hls = new Hls();
-      hls.loadSource(src);
-      hls.attachMedia(video);
-    } else {
-      video.src = src;
+    // 1) Leer parámetro code
+    const code = new URLSearchParams(location.search).get('code');
+    if (!code) {
+      alert('Falta el parámetro ?code en la URL');
+      return;
     }
+
+    // 2) Obtener registro de TV
+    const { data: tv, error: tvErr } = await supabase
+      .from('tv')
+      .select('video_url')
+      .eq('code', code)
+      .maybeSingle();
+
+    if (tvErr || !tv || !tv.video_url) {
+      console.error(tvErr);
+      alert('No hay vídeo asignado a esta pantalla.');
+      return;
+    }
+
+    // 3) Obtener URL pública del vídeo
+    const { data: { publicUrl }, error: urlErr } = supabase
+      .storage
+      .from('videos')
+      .getPublicUrl(tv.video_url);
+
+    if (urlErr || !publicUrl) {
+      console.error(urlErr);
+      alert('Error obteniendo la URL pública del vídeo.');
+      return;
+    }
+
+    // 4) Crear elemento <video>
+    const container = document.getElementById('player-container');
+    const videoEl = document.createElement('video');
+    videoEl.src      = publicUrl;
+    videoEl.autoplay = true;
+    videoEl.loop     = true;
+    videoEl.muted    = true;    // ideal para autoplay sin interacción previa
+    videoEl.playsInline = true; // en móviles
+    container.appendChild(videoEl);
+
+    // 5) Fullscreen al presionar el botón
+    document.getElementById('fs-btn').addEventListener('click', async () => {
+      if (document.fullscreenElement) return;
+      await document.documentElement.requestFullscreen?.();
+    });
+
+    // 6) También arrancar fullscreen al cargar, si ya se está en user gesture
+    //    (opcional, puedes comentarlo si no quieres)
+    //document.documentElement.requestFullscreen?.();
+
+    // 7) Escuchar cambios en la tabla TV (play / cambio de vídeo)
+    supabase
+      .channel(`tv_updates_${code}`)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'tv',
+        filter: `code=eq.${code}`
+      }, ({ new: upd }) => {
+        if (upd.video_url && upd.video_url !== tv.video_url) {
+          // si cambió el vídeo asignado, recargar source
+          const newPublic = supabase
+            .storage.from('videos').getPublicUrl(upd.video_url).data.publicUrl;
+          videoEl.src = newPublic;
+          videoEl.play();
+        }
+      })
+      .subscribe();
   })();
   </script>
 </body>
