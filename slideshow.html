@@ -5,7 +5,6 @@
   <title>Slideshow – Zolian TV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
 
@@ -16,27 +15,29 @@
       padding:8px 12px; background:rgba(255,255,255,0.8);
       border:none; border-radius:4px; cursor:pointer;
     }
-    #slides {
-      position:relative;
-      width:100vw; height:100vh;
-      overflow:hidden;
+    #slides { position:relative; width:100vw; height:100vh; }
+    /* Fade/zoom/kenburns: imágenes absolutas */
+    #slides.fade img,
+    #slides.zoom img,
+    #slides.kenburns img {
+      position:absolute; width:100%; height:100%; object-fit:contain;
+      opacity:0; transform: scale(1);
+      transition: opacity 1s ease-in-out, transform 1s ease-in-out;
     }
-    /* Fade por defecto */
-    #slides img {
-      position:absolute; width:100%; height:100%;
-      object-fit:contain; opacity:0;
-      transition: opacity 1s ease-in-out;
+    #slides.zoom img.show {
+      transform: scale(1.1);
     }
-    /* Slide mode */
-    #slides.slide {
-      display:flex;
+    #slides.kenburns img.show {
+      transform: scale(1.1) translate(5%,5%);
+    }
+    /* Slide: wrapper flex */
+    #slides.slide .wrapper {
+      display:flex; height:100%; width:100%;
       transition: transform 1s ease-in-out;
     }
     #slides.slide img {
-      position:relative;
-      opacity:1 !important; /* ignoramos fade */
+      flex: 0 0 100%;
       width:100%; height:100%; object-fit:contain;
-      flex-shrink:0;
     }
   </style>
 </head>
@@ -47,81 +48,77 @@
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
-    if (!code) {
-      alert('Falta ?code en la URL');
-      return;
-    }
+    if (!code) return alert('Falta ?code en la URL');
 
     const slidesEl = document.getElementById('slides');
     let intervalId = null;
 
     async function arrancar(galleryId, duration, type) {
-      // 1) Limpiar previo
-      clearInterval(intervalId);
+      if (intervalId) { clearInterval(intervalId); intervalId = null; }
+      slidesEl.className = '';  // reset clases
       slidesEl.innerHTML = '';
-      slidesEl.classList.toggle('slide', type==='slide');
-      slidesEl.style.transform = 'translateX(0)';
 
-      // 2) Cargar imágenes
-      const { data: imgs } = await supabase
+      // 1) obtener imágenes
+      const { data: imgs, error: imgErr } = await supabase
         .from('images')
         .select('url')
         .eq('gallery_id', galleryId)
-        .order('created_at', { ascending: true });
-      if (!imgs?.length) return;
+        .order('created_at',{ ascending:true });
+      if (imgErr || !imgs.length) return console.error('No hay imágenes', imgErr);
 
-      // 3) Montar imágenes
-      imgs.forEach((i, idx) => {
-        const img = document.createElement('img');
-        img.src = supabase
-          .storage
-          .from('images')
-          .getPublicUrl(i.url).data.publicUrl;
-        if (type==='fade') {
-          img.style.opacity = idx===0 ? '1':'0';
-        }
-        slidesEl.appendChild(img);
-      });
+      const urls = imgs.map(i=>supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl);
 
-      // 4) Ciclo
-      let idx = 0;
-      intervalId = setInterval(() => {
-        const list = Array.from(slidesEl.querySelectorAll('img'));
-        if (type==='fade') {
-          list[idx].style.opacity = '0';
-          idx = (idx+1)%list.length;
-          list[idx].style.opacity = '1';
-        } else { // slide
-          idx = (idx+1)%list.length;
-          slidesEl.style.transform = `translateX(-${idx*100}%)`;
-        }
-      }, duration * 1000);
+      if (type === 'slide') {
+        slidesEl.classList.add('slide');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'wrapper';
+        slidesEl.appendChild(wrapper);
+        urls.forEach(src=>{
+          const img = document.createElement('img');
+          img.src = src;
+          wrapper.appendChild(img);
+        });
+        let idx = 0;
+        intervalId = setInterval(()=>{
+          idx = (idx + 1) % urls.length;
+          wrapper.style.transform = `translateX(-${idx*100}%)`;
+        }, duration * 1000);
+
+      } else {
+        // fade / zoom / kenburns
+        slidesEl.classList.add(type);
+        urls.forEach((src,i)=>{
+          const img = document.createElement('img');
+          img.src = src;
+          if (i === 0) img.classList.add('show');
+          slidesEl.appendChild(img);
+        });
+        let idx = 0;
+        intervalId = setInterval(()=>{
+          const imgsDOM = slidesEl.querySelectorAll('img');
+          imgsDOM[idx].classList.remove('show');
+          idx = (idx + 1) % imgsDOM.length;
+          imgsDOM[idx].classList.add('show');
+        }, duration * 1000);
+      }
     }
 
-    // Fullscreen
-    document.getElementById('fs-btn').onclick = () => {
+    document.getElementById('fs-btn').addEventListener('click', () => {
       document.documentElement.requestFullscreen?.();
-    };
+    });
 
-    // 1) Cargar configuración de la TV
+    // carga inicial y realtime
     const { data: tv } = await supabase
-      .from('tv')
-      .select('gallery_id,duration,slideshow_type')
-      .eq('code', code)
-      .maybeSingle();
-    if (tv?.gallery_id) {
-      arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
-    }
+      .from('tv').select('gallery_id,duration,slideshow_type')
+      .eq('code', code).maybeSingle();
+    if (tv?.gallery_id) arrancar(tv.gallery_id, tv.duration, tv.slideshow_type);
 
-    // 2) Realtime updates
     supabase
       .channel(`tv_updates_${code}`)
-      .on('postgres_changes', {
+      .on('postgres_changes',{
         event:'UPDATE', schema:'public', table:'tv', filter:`code=eq.${code}`
-      }, ({ new: t }) => {
-        if (t.gallery_id) {
-          arrancar(t.gallery_id, t.duration, t.slideshow_type || 'fade');
-        }
+      }, ({ new: ntv }) => {
+        if (ntv.gallery_id) arrancar(ntv.gallery_id, ntv.duration, ntv.slideshow_type);
       })
       .subscribe();
   })();
