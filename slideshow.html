@@ -24,6 +24,7 @@
       position: absolute; width:100%; height:100%;
       object-fit: contain;
       transition: transform 1s ease-in-out, opacity 1s ease-in-out;
+      z-index: 0;
     }
   </style>
 </head>
@@ -62,27 +63,27 @@
         // estado inicial
         switch (type) {
           case 'fade':
-            img.style.opacity = i === 0 ? '1' : '0';
+            img.style.opacity   = i === 0 ? '1' : '0';
             img.style.transform = 'scale(1)';
             break;
           case 'slide':
-            img.style.opacity = '1';
+            img.style.opacity   = '1';
             img.style.transform = i === 0
               ? 'translateX(0)'
               : 'translateX(100%)';
             break;
           case 'vertical':
-            img.style.opacity = '1';
+            img.style.opacity   = '1';
             img.style.transform = i === 0
               ? 'translateY(0)'
               : 'translateY(100%)';
             break;
           case 'zoom':
-            img.style.opacity = i === 0 ? '1' : '0';
+            img.style.opacity   = i === 0 ? '1' : '0';
             img.style.transform = 'scale(1)';
             break;
           case 'kenburns':
-            img.style.opacity = i === 0 ? '1' : '0';
+            img.style.opacity   = i === 0 ? '1' : '0';
             img.style.transform = 'scale(1) translate(0,0)';
             break;
         }
@@ -98,6 +99,9 @@
         idx = (idx + 1) % items.length;
         const next = items[idx];
 
+        // asegurar posición de z-index
+        items.forEach(img => img.style.zIndex = 0);
+
         switch (type) {
           case 'fade':
             current.style.opacity = '0';
@@ -105,11 +109,15 @@
             break;
 
           case 'slide':
+            // next por encima
+            next.style.zIndex    = 2;
+            current.style.zIndex = 1;
             current.style.transform = 'translateX(-100%)';
             next.style.transform    = 'translateX(0)';
             setTimeout(() => {
               current.style.transition = 'none';
               current.style.transform  = 'translateX(100%)';
+              current.style.zIndex     = 0;
               requestAnimationFrame(() => {
                 current.style.transition = 'transform 1s ease-in-out';
               });
@@ -117,11 +125,14 @@
             break;
 
           case 'vertical':
+            next.style.zIndex    = 2;
+            current.style.zIndex = 1;
             current.style.transform = 'translateY(-100%)';
             next.style.transform    = 'translateY(0)';
             setTimeout(() => {
               current.style.transition = 'none';
               current.style.transform  = 'translateY(100%)';
+              current.style.zIndex     = 0;
               requestAnimationFrame(() => {
                 current.style.transition = 'transform 1s ease-in-out';
               });
@@ -129,7 +140,6 @@
             break;
 
           case 'zoom':
-            // amplía el current y desvanece; restaura a escala 1 tras 1s
             current.style.transform = 'scale(1.2)';
             current.style.opacity   = '0';
             next.style.transform    = 'scale(1)';
@@ -145,7 +155,6 @@
             break;
 
           case 'kenburns':
-            // pan + zoom en current, luego crossfade
             current.style.transform = 'scale(1.2) translate(-10%, -10%)';
             current.style.opacity   = '0';
             next.style.transform    = 'scale(1) translate(0,0)';
@@ -178,7 +187,7 @@
       arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
     }
 
-    // 2) Suscripción Realtime para reaccionar a cambios
+    // 2) Realtime updates
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
