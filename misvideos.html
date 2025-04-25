@@ -31,6 +31,8 @@
 <body>
   <div id="sidebar-container"></div>
   <section class="home">
+    <!-- Verificación de usuario -->
+    <p>Usuario: <strong id="user-email"></strong></p>
     <h2>Mis Vídeos</h2>
 
     <!-- Subir vídeo -->
@@ -58,6 +60,8 @@
       window.location.href = 'login.html';
       return;
     }
+    // Mostrar email para comprobar vinculación
+    document.getElementById('user-email').innerText = session.user.email;
 
     // 2) Función para listar vídeos
     async function loadVideos() {
@@ -81,10 +85,9 @@
 
         status.innerText = '';
         for (let v of vids) {
-          // construimos la URL pública del vídeo
-          const { data: { publicUrl } } = supabase
-            .storage
-            .from('videos')
+          // obtenemos URL pública
+          const { data:{ publicUrl } } = supabase
+            .storage.from('videos')
             .getPublicUrl(v.url);
 
           const li = document.createElement('li');
@@ -95,9 +98,12 @@
               <button class="del">🗑</button>
             </div>
           `;
-          // reproducir en nueva pestaña con la URL pública
+          // reproducir
           li.querySelector('.play').onclick = () => {
-            window.open(`/player.html?video=${encodeURIComponent(publicUrl)}`, '_blank');
+            window.open(
+              `/player.html?video=${encodeURIComponent(publicUrl)}`,
+              '_blank'
+            );
           };
           // borrar
           li.querySelector('.del').onclick = async () => {
@@ -125,32 +131,30 @@
       }
 
       const file = inp.files[0];
-      // ruta en el bucket “videos”
       const path = `videos/${session.user.id}/${Date.now()}_${file.name}`;
 
       // bloqueo + mensaje
-      uploadBtn.disabled      = true;
-      status.innerText        = 'Subiendo vídeo…';
+      uploadBtn.disabled   = true;
+      status.innerText     = 'Subiendo vídeo…';
 
       try {
-        // 3.1) Subir al storage
+        // subir a storage
         const { error: upErr } = await supabase
-          .storage
-          .from('videos')
+          .storage.from('videos')
           .upload(path, file, { upsert: false });
         if (upErr) throw upErr;
 
-        // 3.2) Registrar en la tabla
+        // insertar en tabla
         const { error: dbErr } = await supabase
           .from('videos')
           .insert({
             user_id: session.user.id,
-            url:     path,
-            title:   file.name
+            url: path,
+            title: file.name
           });
         if (dbErr) throw dbErr;
 
-        // recarga lista
+        // recargar lista
         inp.value       = null;
         status.innerText= '';
         await loadVideos();
