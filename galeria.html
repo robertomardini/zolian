@@ -128,15 +128,9 @@
           <box-icon name='images' color='white' size='48px'></box-icon>
           <span>${g.name}</span>
         `;
-        li.onclick = () => {
-          if (tvCode) {
-            // viene de una TV: abrimos album para vincular a esa TV
-            window.location.href = `/album.html?code=${tvCode}&gallery=${g.id}`;
-          } else {
-            // gestión independiente de galerías
-            window.location.href = `/album.html?gallery=${g.id}`;
-          }
-        };
+       li.onclick = () => {
+  window.location.href = `/album.html?gallery=${g.id}`;
+};
         listEl.appendChild(li);
       });
     }
