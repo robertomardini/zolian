@@ -77,6 +77,12 @@
       border: none; border-radius: 6px;
       font-size: 1rem; cursor: pointer;
     }
+    /* Estilo mensaje de carga */
+    #upload-status {
+      margin-left: 12px;
+      font-style: italic;
+      color: var(--text-color);
+    }
   </style>
 </head>
 <body>
@@ -117,6 +123,7 @@
         <button class="upload" id="upload-btn">
           <box-icon name='upload' color="#fff"></box-icon>
         </button>
+        <span id="upload-status"></span>
       </div>
     </div>
 
@@ -162,7 +169,7 @@
         return window.location.href = `login.html?redirect=${redirect}`;
       }
 
-      // Inyectar usuario y logout con comprobación
+      // Inyectar usuario y logout
       const su = document.getElementById('sidebar-user');
       if (su) su.innerText = session.user.email;
       const lb = document.getElementById('logout');
@@ -225,10 +232,17 @@
         alert('Nombre actualizado.');
       });
 
-      // 6) Subir imágenes
-      document.getElementById('upload-btn').addEventListener('click', async () => {
+      // 6) Subir imágenes con bloqueo y mensaje
+      const uploadBtn   = document.getElementById('upload-btn');
+      const uploadStatus = document.getElementById('upload-status');
+      uploadBtn.addEventListener('click', async () => {
         const files = document.getElementById('file-input').files;
         if (!files.length) return alert('Selecciona al menos una imagen.');
+
+        // bloquear y mostrar estado
+        uploadBtn.disabled = true;
+        uploadStatus.textContent = 'Cargando imágenes...';
+
         for (let f of files) {
           const path = `${galleryId}/${Date.now()}_${f.name}`;
           const { error: upErr } = await supabase
@@ -241,6 +255,10 @@
           await supabase.from('images').insert({ gallery_id: galleryId, url: path });
         }
         await loadImages();
+
+        // restablecer
+        uploadBtn.disabled = false;
+        uploadStatus.textContent = '';
       });
 
       // 7) Listar miniaturas
