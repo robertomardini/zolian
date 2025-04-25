@@ -31,7 +31,7 @@
 <body>
   <div id="sidebar-container"></div>
   <section class="home">
-    <!-- 1) Mostrar email para verificar vinculación -->
+    <!-- 1) Mostramos el email para verificar usuario -->
     <p>Usuario: <strong id="user-email"></strong></p>
     <h2>Mis Vídeos</h2>
 
@@ -43,7 +43,7 @@
       <span id="video-status"></span>
     </div>
 
-    <!-- 3) Estado carga lista -->
+    <!-- 3) Estado de carga de lista -->
     <div class="section">
       <span id="list-status"></span>
     </div>
@@ -54,16 +54,17 @@
 
   <script>
   async function initMisVideos() {
-    // --- AUTH: obtenemos directamente el usuario ---
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !user) {
-      // si no hay user, redirigimos a login
-      return window.location.href = 'login.html';
+    // 1) Recuperamos la sesión (igual que en crear-album.html)
+    const { data: { session }, error: sessErr } = await supabase.auth.getSession();
+    if (sessErr || !session) {
+      // no hay sesión, vamos a login
+      const redirect = encodeURIComponent(location.pathname + location.search);
+      return window.location.href = `login.html?redirect=${redirect}`;
     }
-    // mostramos email para comprobar
-    document.getElementById('user-email').innerText = user.email;
+    // mostramos email
+    document.getElementById('user-email').innerText = session.user.email;
 
-    // 1) Función para cargar la lista de vídeos
+    // 2) Función para cargar vídeos
     async function loadVideos() {
       const status = document.getElementById('list-status');
       const ul     = document.getElementById('videos-list');
@@ -74,7 +75,7 @@
         const { data: vids, error } = await supabase
           .from('videos')
           .select('id,url,title')
-          .eq('user_id', user.id)
+          .eq('user_id', session.user.id)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -98,14 +99,14 @@
               <button class="del">🗑</button>
             </div>
           `;
-          // botón de play
+          // play
           li.querySelector('.play').onclick = () => {
             window.open(
               `/player.html?video=${encodeURIComponent(publicUrl)}`,
               '_blank'
             );
           };
-          // botón de borrar
+          // delete
           li.querySelector('.del').onclick = async () => {
             if (!confirm('¿Borrar este vídeo?')) return;
             await supabase.from('videos').delete().eq('id', v.id);
@@ -119,43 +120,41 @@
       }
     }
 
-    // 2) Subir nuevo vídeo con bloqueo de botón e indicador
+    // 3) Subida de vídeo con bloqueo de botón e indicador
     const uploadBtn = document.getElementById('upload-video');
     uploadBtn.addEventListener('click', async () => {
       const inp    = document.getElementById('video-file');
       const status = document.getElementById('video-status');
-
       if (!inp.files.length) {
         alert('Selecciona un archivo.');
         return;
       }
-
       const file = inp.files[0];
-      const path = `videos/${user.id}/${Date.now()}_${file.name}`;
+      const path = `videos/${session.user.id}/${Date.now()}_${file.name}`;
 
-      uploadBtn.disabled   = true;
-      status.innerText     = 'Subiendo vídeo…';
+      uploadBtn.disabled = true;
+      status.innerText   = 'Subiendo vídeo…';
 
       try {
-        // 2a) Subir al bucket "videos"
+        // 3a) Subir al bucket
         const { error: upErr } = await supabase
           .storage.from('videos')
           .upload(path, file, { upsert: false });
         if (upErr) throw upErr;
 
-        // 2b) Insertar metadatos en la tabla
+        // 3b) Insertar en la tabla
         const { error: dbErr } = await supabase
           .from('videos')
           .insert({
-            user_id: user.id,
+            user_id: session.user.id,
             url:     path,
             title:   file.name
           });
         if (dbErr) throw dbErr;
 
-        // 2c) refrescar lista
-        inp.value       = null;
-        status.innerText= '';
+        // 3c) refrescar
+        inp.value     = null;
+        status.innerText = '';
         await loadVideos();
       } catch (err) {
         console.error(err);
@@ -166,7 +165,7 @@
       }
     });
 
-    // 3) Al arrancar, cargamos la lista
+    // 4) Al iniciar, cargamos la lista
     await loadVideos();
   }
 
