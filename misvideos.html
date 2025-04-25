@@ -31,7 +31,7 @@
 <body>
   <div id="sidebar-container"></div>
   <section class="home">
-    <!-- 1) Mostramos el email para verificar usuario -->
+    <!-- 1) Mostrar el email para verificar usuario -->
     <p>Usuario: <strong id="user-email"></strong></p>
     <h2>Mis Vídeos</h2>
 
@@ -54,14 +54,15 @@
 
   <script>
   async function initMisVideos() {
-    // 1) Recuperamos la sesión (igual que en crear-album.html)
-    const { data: { session }, error: sessErr } = await supabase.auth.getSession();
+    // 1) Recuperar sesión
+    const { data:{ session }, error: sessErr } = await supabase.auth.getSession();
     if (sessErr || !session) {
-      // no hay sesión, vamos a login
+      // No hay sesión -> login
       const redirect = encodeURIComponent(location.pathname + location.search);
-      return window.location.href = `login.html?redirect=${redirect}`;
+      window.location.href = `login.html?redirect=${redirect}`;
+      return;
     }
-    // mostramos email
+    // Mostrar email
     document.getElementById('user-email').innerText = session.user.email;
 
     // 2) Función para cargar vídeos
@@ -74,7 +75,7 @@
       try {
         const { data: vids, error } = await supabase
           .from('videos')
-          .select('id,url,title')
+          .select('id, url, title')
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false });
 
@@ -86,8 +87,8 @@
 
         status.innerText = '';
         for (let v of vids) {
-          // obtenemos URL pública del storage
-          const { data: { publicUrl } } = supabase
+          // Obtener URL pública
+          const { data:{ publicUrl } } = supabase
             .storage.from('videos')
             .getPublicUrl(v.url);
 
@@ -99,14 +100,12 @@
               <button class="del">🗑</button>
             </div>
           `;
-          // play
           li.querySelector('.play').onclick = () => {
             window.open(
               `/player.html?video=${encodeURIComponent(publicUrl)}`,
               '_blank'
             );
           };
-          // delete
           li.querySelector('.del').onclick = async () => {
             if (!confirm('¿Borrar este vídeo?')) return;
             await supabase.from('videos').delete().eq('id', v.id);
@@ -142,7 +141,7 @@
           .upload(path, file, { upsert: false });
         if (upErr) throw upErr;
 
-        // 3b) Insertar en la tabla
+        // 3b) Insertar en tabla
         const { error: dbErr } = await supabase
           .from('videos')
           .insert({
@@ -152,8 +151,7 @@
           });
         if (dbErr) throw dbErr;
 
-        // 3c) refrescar
-        inp.value     = null;
+        inp.value       = null;
         status.innerText = '';
         await loadVideos();
       } catch (err) {
