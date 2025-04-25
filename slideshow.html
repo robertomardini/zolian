@@ -12,37 +12,17 @@
   <style>
     html, body { margin:0; padding:0; background:#000; overflow:hidden; }
     #fs-btn {
-      position: absolute; top:10px; right:10px; z-index:1000;
-      padding:8px 12px; background:rgba(255,255,255,0.8);
-      border:none; border-radius:4px; cursor:pointer;
+      position: absolute; top: 10px; right: 10px; z-index: 1000;
+      padding: 8px 12px; background: rgba(255,255,255,0.8);
+      border: none; border-radius: 4px; font-size: 1rem;
+      cursor: pointer;
     }
-    #slides { position:relative; width:100vw; height:100vh; }
-
-    /* Contenedor común de las imágenes */
-    #slides .wrapper {
-      display:flex;
-      transition: transform 1s ease-in-out;
-      width:100%; height:100%;
+    #slides {
+      position: relative; width:100vw; height:100vh;
     }
-
-    /* Estilo para horizontal */
-    #slides.slide .wrapper {
-      flex-direction: row;
-    }
-    #slides.slide img {
-      flex:0 0 100%;
-      width:100%; height:100%;
-      object-fit:contain;
-    }
-
-    /* Estilo para vertical */
-    #slides.vertical .wrapper {
-      flex-direction: column;
-    }
-    #slides.vertical img {
-      flex:0 0 100%;
-      width:100%; height:100%;
-      object-fit:contain;
+    #slides img {
+      position: absolute; width:100%; height:100%;
+      object-fit: contain;
     }
   </style>
 </head>
@@ -53,100 +33,89 @@
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
-    if (!code) return alert('Falta ?code en la URL');
-
+    if (!code) {
+      alert('Falta ?code en la URL');
+      return;
+    }
     const slidesEl = document.getElementById('slides');
     let intervalId = null;
 
-    function clearSlides() {
-      if (intervalId) clearInterval(intervalId);
-      slidesEl.className = '';
+    // función genérica para arrancar el slideshow
+    async function arrancar(galleryId, duration, type) {
+      clearInterval(intervalId);
       slidesEl.innerHTML = '';
-    }
 
-    async function arrancarSlide(galleryId, duration) {
-      clearSlides();
-      slidesEl.classList.add('slide');
+      // 1) Traer imágenes
       const { data: imgs } = await supabase
         .from('images')
         .select('url')
         .eq('gallery_id', galleryId)
-        .order('created_at',{ ascending:true });
-      if (!imgs?.length) return;
+        .order('created_at', { ascending: true });
+      if (!imgs || !imgs.length) return;
 
-      const wrapper = document.createElement('div');
-      wrapper.className = 'wrapper';
-      slidesEl.appendChild(wrapper);
-
-      const urls = imgs.map(i =>
-        supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
+      // 2) Construir elementos
+      const urls = imgs.map(i => supabase
+        .storage.from('images').getPublicUrl(i.url).data.publicUrl
       );
-      urls.forEach(src => {
+      urls.forEach((src, i) => {
         const img = document.createElement('img');
         img.src = src;
-        wrapper.appendChild(img);
-      });
-      // clonamos 1ª para loop suave
-      wrapper.appendChild(wrapper.children[0].cloneNode());
+        img.style.transition = 'transform 1s ease-in-out, opacity 1s ease-in-out';
 
-      let idx = 0;
-      wrapper.style.transform = 'translateX(0)';
-      wrapper.addEventListener('transitionend', () => {
-        if (idx >= urls.length) {
-          wrapper.style.transition = 'none';
-          idx = 0;
-          wrapper.style.transform = 'translateX(0)';
-          void wrapper.offsetWidth;
-          wrapper.style.transition = 'transform 1s ease-in-out';
+        if (type === 'fade') {
+          img.style.opacity = i === 0 ? '1' : '0';
+        } else if (type === 'slide') {
+          img.style.top = '0';
+          img.style.left = '0';
+          img.style.transform = i === 0
+            ? 'translateX(0)'
+            : 'translateX(100%)';
+        } else if (type === 'vertical') {
+          img.style.left = '0';
+          img.style.top = '0';
+          img.style.transform = i === 0
+            ? 'translateY(0)'
+            : 'translateY(100%)';
         }
+
+        slidesEl.appendChild(img);
       });
 
-      intervalId = setInterval(() => {
-        idx++;
-        wrapper.style.transform = `translateX(-${idx * 100}%)`;
-      }, duration * 1000);
-    }
-
-    async function arrancarVertical(galleryId, duration) {
-      clearSlides();
-      slidesEl.classList.add('vertical');
-      const { data: imgs } = await supabase
-        .from('images')
-        .select('url')
-        .eq('gallery_id', galleryId)
-        .order('created_at',{ ascending:true });
-      if (!imgs?.length) return;
-
-      const wrapper = document.createElement('div');
-      wrapper.className = 'wrapper';
-      slidesEl.appendChild(wrapper);
-
-      const urls = imgs.map(i =>
-        supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
-      );
-      urls.forEach(src => {
-        const img = document.createElement('img');
-        img.src = src;
-        wrapper.appendChild(img);
-      });
-      // clonamos 1ª para loop suave
-      wrapper.appendChild(wrapper.children[0].cloneNode());
-
+      // 3) Ciclar
       let idx = 0;
-      wrapper.style.transform = 'translateY(0)';
-      wrapper.addEventListener('transitionend', () => {
-        if (idx >= urls.length) {
-          wrapper.style.transition = 'none';
-          idx = 0;
-          wrapper.style.transform = 'translateY(0)';
-          void wrapper.offsetHeight;
-          wrapper.style.transition = 'transform 1s ease-in-out';
-        }
-      });
-
       intervalId = setInterval(() => {
-        idx++;
-        wrapper.style.transform = `translateY(-${idx * 100}%)`;
+        const items = slidesEl.querySelectorAll('img');
+        const current = items[idx];
+        idx = (idx + 1) % items.length;
+        const next = items[idx];
+
+        if (type === 'fade') {
+          current.style.opacity = '0';
+          next.style.opacity = '1';
+        } else if (type === 'slide') {
+          // mueve el actual hacia la izquierda y el siguiente desde la derecha
+          current.style.transform = 'translateX(-100%)';
+          next.style.transform    = 'translateX(0)';
+          // tras animación, re-coloca el antiguo al fondo a la derecha
+          setTimeout(() => {
+            current.style.transition = 'none';
+            current.style.transform = 'translateX(100%)';
+            // restablecer transición
+            requestAnimationFrame(() => {
+              current.style.transition = 'transform 1s ease-in-out';
+            });
+          }, 1000);
+        } else if (type === 'vertical') {
+          current.style.transform = 'translateY(-100%)';
+          next.style.transform    = 'translateY(0)';
+          setTimeout(() => {
+            current.style.transition = 'none';
+            current.style.transform = 'translateY(100%)';
+            requestAnimationFrame(() => {
+              current.style.transition = 'transform 1s ease-in-out';
+            });
+          }, 1000);
+        }
       }, duration * 1000);
     }
 
@@ -154,32 +123,25 @@
       document.documentElement.requestFullscreen?.();
     });
 
-    // lectura inicial de tv
+    // 1) Leer configuración de la TV
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type')
       .eq('code', code)
       .maybeSingle();
     if (tv?.gallery_id) {
-      if (tv.slideshow_type === 'vertical') {
-        arrancarVertical(tv.gallery_id, tv.duration);
-      } else {
-        // horizontal por defecto
-        arrancarSlide(tv.gallery_id, tv.duration);
-      }
+      arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
     }
 
-    // realtime updates
+    // 2) Suscripción Realtime para actualizar en caliente
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
-        event:'UPDATE', schema:'public', table:'tv', filter:`code=eq.${code}`
-      }, ({ new: ntv }) => {
-        if (!ntv.gallery_id) return;
-        if (ntv.slideshow_type === 'vertical') {
-          arrancarVertical(ntv.gallery_id, ntv.duration);
-        } else {
-          arrancarSlide(ntv.gallery_id, ntv.duration);
+        event: 'UPDATE', schema: 'public', table: 'tv',
+        filter: `code=eq.${code}`
+      }, ({ new: upd }) => {
+        if (upd.gallery_id) {
+          arrancar(upd.gallery_id, upd.duration, upd.slideshow_type || 'fade');
         }
       })
       .subscribe();
