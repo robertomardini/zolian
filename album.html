@@ -80,6 +80,7 @@
   </style>
 </head>
 <body>
+  <!-- Sidebar inyectado -->
   <div id="sidebar-container"></div>
 
   <section class="home">
@@ -149,7 +150,10 @@
   <script>
     async function initAlbum() {
       const params    = new URLSearchParams(location.search);
-      const galleryId = params.get('gallery');
+      // unificamos galleryId ⇐ gallery o code
+      const galleryId = params.get('gallery') || params.get('code');
+      const tvCode    = params.get('code');
+
       if (!galleryId) {
         alert('Falta parámetro «gallery».');
         return window.location.href = 'galeria.html';
@@ -158,7 +162,7 @@
       // 1) Sesión
       const { data:{ session } } = await supabase.auth.getSession();
       if (!session) {
-        const redirect = encodeURIComponent(`/album.html?gallery=${galleryId}`);
+        const redirect = encodeURIComponent(location.pathname + location.search);
         return window.location.href = `login.html?redirect=${redirect}`;
       }
 
@@ -172,21 +176,32 @@
         window.location.href = 'login.html';
       };
 
-      // 2) Cargar datos del álbum (ahora también duration + slideshow_type)
+      // 2) Cargar nombre de álbum
       const { data: alb, error: albErr } = await supabase
         .from('galleries')
-        .select('name,user_id,duration,slideshow_type')
+        .select('name,user_id')
         .eq('id', galleryId)
         .maybeSingle();
       if (albErr || !alb || alb.user_id !== session.user.id) {
         alert('Álbum no válido o sin permiso.');
         return window.location.href = 'galeria.html';
       }
-      document.getElementById('album-name').value      = alb.name;
-      document.getElementById('duration').value        = alb.duration    || 5;
-      document.getElementById('slideshow-type').value  = alb.slideshow_type || 'fade';
+      document.getElementById('album-name').value = alb.name;
 
-      // 3) Guardar nombre
+      // 3) Si viene tvCode, leemos duration y slideshow_type desde TV
+      if (tvCode) {
+        const { data: tv, error: tvErr } = await supabase
+          .from('tv')
+          .select('duration,slideshow_type')
+          .eq('code', tvCode)
+          .maybeSingle();
+        if (!tvErr && tv) {
+          document.getElementById('duration').value       = tv.duration;
+          document.getElementById('slideshow-type').value = tv.slideshow_type;
+        }
+      }
+
+      // 4) Guardar nombre
       document.getElementById('save-name').onclick = async () => {
         const nv = document.getElementById('album-name').value.trim();
         if (!nv) return alert('Escribe un nombre.');
@@ -198,7 +213,7 @@
         alert('Nombre actualizado.');
       };
 
-      // 4) Subir imágenes
+      // 5) Subir imágenes
       document.getElementById('upload-btn').onclick = async () => {
         const files = document.getElementById('file-input').files;
         if (!files.length) return alert('Selecciona al menos una imagen.');
@@ -216,7 +231,7 @@
         await loadImages();
       };
 
-      // 5) Listar miniaturas
+      // 6) Listar miniaturas
       async function loadImages() {
         const { data: imgs } = await supabase
           .from('images')
@@ -242,10 +257,9 @@
           ul.appendChild(li);
         }
       }
-
       await loadImages();
 
-      // 6) Cargar lista de pantallas del usuario
+      // 7) Cargar lista de pantallas del usuario
       const { data: tvs } = await supabase
         .from('tv')
         .select('code,nombre')
@@ -258,28 +272,26 @@
         sel.appendChild(o);
       });
 
-      // 7) Enviar álbum + guardar duración/tipo en la tabla galleries
+      // 8) Enviar álbum a pantalla + guardar configuración en TV
       document.getElementById('send-btn').onclick = async () => {
         const code = sel.value;
         if (!code) return alert('Selecciona una pantalla.');
-        const dur = parseInt(document.getElementById('duration').value) || 5;
-        const type= document.getElementById('slideshow-type').value;
-        // 7a) Guardar en galleries
-        const { error: e1 } = await supabase
-          .from('galleries')
-          .update({ duration: dur, slideshow_type: type })
-          .eq('id', galleryId);
-        if (e1) return alert('Error guardando ajustes: '+e1.message);
-        // 7b) Actualizar TV
-        const { error: e2 } = await supabase
+        const dur  = parseInt(document.getElementById('duration').value) || 5;
+        const type = document.getElementById('slideshow-type').value;
+        const { error } = await supabase
           .from('tv')
-          .update({ gallery_id: galleryId, duration: dur, play: true, slideshow_type: type })
+          .update({
+            gallery_id:      galleryId,
+            duration:        dur,
+            slideshow_type:  type,
+            play:            true
+          })
           .eq('code', code);
-        if (e2) return alert('Error enviando a pantalla: '+e2.message);
+        if (error) return alert('Error enviando a pantalla: '+error.message);
         alert('Álbum enviado y ajustes guardados.');
       };
 
-      // 8) Desvincular álbum entero
+      // 9) Desvincular álbum entero
       document.getElementById('delete-album').onclick = async () => {
         if (!confirm('¿Estás seguro? Se eliminarán todas las imágenes y el álbum.')) return;
         await supabase.from('images').delete().eq('gallery_id', galleryId);
