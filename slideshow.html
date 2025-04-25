@@ -12,19 +12,34 @@
   <style>
     html, body { margin:0; padding:0; background:#000; overflow:hidden; }
     #fs-btn {
-      position: absolute; top: 10px; right: 10px; z-index:1000;
+      position: absolute; top:10px; right:10px; z-index:1000;
       padding:8px 12px; background:rgba(255,255,255,0.8);
       border:none; border-radius:4px; cursor:pointer;
     }
     #slides { position:relative; width:100vw; height:100vh; }
 
-    /* SLIDE */
-    #slides.slide .wrapper {
+    /* Contenedor común de las imágenes */
+    #slides .wrapper {
       display:flex;
-      width:100%; height:100%;
       transition: transform 1s ease-in-out;
+      width:100%; height:100%;
+    }
+
+    /* Estilo para horizontal */
+    #slides.slide .wrapper {
+      flex-direction: row;
     }
     #slides.slide img {
+      flex:0 0 100%;
+      width:100%; height:100%;
+      object-fit:contain;
+    }
+
+    /* Estilo para vertical */
+    #slides.vertical .wrapper {
+      flex-direction: column;
+    }
+    #slides.vertical img {
       flex:0 0 100%;
       width:100%; height:100%;
       object-fit:contain;
@@ -43,14 +58,15 @@
     const slidesEl = document.getElementById('slides');
     let intervalId = null;
 
-    async function arrancarSlide(galleryId, duration) {
-      // detener anterior
+    function clearSlides() {
       if (intervalId) clearInterval(intervalId);
       slidesEl.className = '';
       slidesEl.innerHTML = '';
+    }
 
+    async function arrancarSlide(galleryId, duration) {
+      clearSlides();
       slidesEl.classList.add('slide');
-      // traer imágenes
       const { data: imgs } = await supabase
         .from('images')
         .select('url')
@@ -58,73 +74,113 @@
         .order('created_at',{ ascending:true });
       if (!imgs?.length) return;
 
-      // wrapper y slides
       const wrapper = document.createElement('div');
       wrapper.className = 'wrapper';
       slidesEl.appendChild(wrapper);
 
-      const urls = imgs.map(i => supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl);
-
-      // agregamos todas + clonamos la primera
+      const urls = imgs.map(i =>
+        supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
+      );
       urls.forEach(src => {
         const img = document.createElement('img');
         img.src = src;
         wrapper.appendChild(img);
       });
-      // clon de la primera para loop suave
-      const firstClone = wrapper.children[0].cloneNode();
-      wrapper.appendChild(firstClone);
+      // clonamos 1ª para loop suave
+      wrapper.appendChild(wrapper.children[0].cloneNode());
 
       let idx = 0;
-      wrapper.style.transform = `translateX(0)`;
-
-      // al terminar transición en clon, reseteamos sin animación
+      wrapper.style.transform = 'translateX(0)';
       wrapper.addEventListener('transitionend', () => {
         if (idx >= urls.length) {
-          // llegamos al clon
           wrapper.style.transition = 'none';
           idx = 0;
-          wrapper.style.transform = `translateX(0)`;
-          // forzar repaint
+          wrapper.style.transform = 'translateX(0)';
           void wrapper.offsetWidth;
-          wrapper.style.transition = `transform 1s ease-in-out`;
+          wrapper.style.transition = 'transform 1s ease-in-out';
         }
       });
 
-      // ciclo
       intervalId = setInterval(() => {
         idx++;
         wrapper.style.transform = `translateX(-${idx * 100}%)`;
       }, duration * 1000);
     }
 
-    // fullscreen
+    async function arrancarVertical(galleryId, duration) {
+      clearSlides();
+      slidesEl.classList.add('vertical');
+      const { data: imgs } = await supabase
+        .from('images')
+        .select('url')
+        .eq('gallery_id', galleryId)
+        .order('created_at',{ ascending:true });
+      if (!imgs?.length) return;
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'wrapper';
+      slidesEl.appendChild(wrapper);
+
+      const urls = imgs.map(i =>
+        supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
+      );
+      urls.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src;
+        wrapper.appendChild(img);
+      });
+      // clonamos 1ª para loop suave
+      wrapper.appendChild(wrapper.children[0].cloneNode());
+
+      let idx = 0;
+      wrapper.style.transform = 'translateY(0)';
+      wrapper.addEventListener('transitionend', () => {
+        if (idx >= urls.length) {
+          wrapper.style.transition = 'none';
+          idx = 0;
+          wrapper.style.transform = 'translateY(0)';
+          void wrapper.offsetHeight;
+          wrapper.style.transition = 'transform 1s ease-in-out';
+        }
+      });
+
+      intervalId = setInterval(() => {
+        idx++;
+        wrapper.style.transform = `translateY(-${idx * 100}%)`;
+      }, duration * 1000);
+    }
+
     document.getElementById('fs-btn').addEventListener('click', () => {
       document.documentElement.requestFullscreen?.();
     });
 
-    // carga inicial y realtime
+    // lectura inicial de tv
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type')
       .eq('code', code)
       .maybeSingle();
     if (tv?.gallery_id) {
-      if (tv.slideshow_type === 'slide') {
-        arrancarSlide(tv.gallery_id, tv.duration);
+      if (tv.slideshow_type === 'vertical') {
+        arrancarVertical(tv.gallery_id, tv.duration);
       } else {
-        // tu código para los otros modos...
+        // horizontal por defecto
+        arrancarSlide(tv.gallery_id, tv.duration);
       }
     }
+
+    // realtime updates
     supabase
       .channel(`tv_updates_${code}`)
-      .on('postgres_changes',{
+      .on('postgres_changes', {
         event:'UPDATE', schema:'public', table:'tv', filter:`code=eq.${code}`
       }, ({ new: ntv }) => {
-        if (ntv.gallery_id && ntv.slideshow_type === 'slide') {
+        if (!ntv.gallery_id) return;
+        if (ntv.slideshow_type === 'vertical') {
+          arrancarVertical(ntv.gallery_id, ntv.duration);
+        } else {
           arrancarSlide(ntv.gallery_id, ntv.duration);
         }
-        // ...y similarmente reiniciar otros modos
       })
       .subscribe();
   })();
