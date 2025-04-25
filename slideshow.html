@@ -16,37 +16,49 @@
       padding:8px 12px; background:rgba(255,255,255,0.8);
       border:none; border-radius:4px; cursor:pointer;
     }
-    #slides { position:relative; width:100vw; height:100vh; }
+    #slides {
+      position:relative;
+      width:100vw; height:100vh;
+      overflow: hidden; /* para que todo fuera de contorno se oculte */
+    }
 
-    /* FADE / ZOOM / KENBURNS */
+    /* ===== Fade / Zoom / Ken Burns ===== */
     #slides.fade img,
     #slides.zoom img,
     #slides.kenburns img {
-      position:absolute; width:100%; height:100%;
-      object-fit:contain; opacity:0;
-      transform:scale(1);
+      position:absolute;
+      width:100%; height:100%;
+      object-fit:contain;
+      opacity:0;
       transition: opacity 1s ease-in-out, transform 1s ease-in-out;
+      transform-origin: center center; /* ahora escala desde el centro */
     }
     #slides.fade img.show,
     #slides.zoom img.show,
     #slides.kenburns img.show {
       opacity:1;
     }
+
+    /* Zoom ligero (5%) */
     #slides.zoom img.show {
-      transform:scale(1.1);
-    }
-    #slides.kenburns img.show {
-      transform:scale(1.1) translate(5%,5%);
+      transform: scale(1.05);
     }
 
-    /* SLIDE */
-    #slides.slide { overflow:hidden; }
+    /* Ken Burns suave: zoom + ligero movimiento */
+    #slides.kenburns img.show {
+      transform: scale(1.05) translate(2%, 2%);
+    }
+
+    /* ===== Slide ===== */
     #slides.slide .wrapper {
-      display:flex; height:100%; width:100%;
+      display:flex;
+      height:100%; width:100%;
       transition: transform 1s ease-in-out;
     }
     #slides.slide .wrapper img {
-      flex:0 0 100%; width:100%; height:100%; object-fit:contain;
+      flex:0 0 100%;
+      width:100%; height:100%;
+      object-fit:contain;
     }
   </style>
 </head>
@@ -57,7 +69,10 @@
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
-    if (!code) return alert('Falta ?code en la URL');
+    if (!code) {
+      alert('Falta ?code en la URL');
+      return;
+    }
 
     const slidesEl = document.getElementById('slides');
     let intervalId = null;
@@ -83,15 +98,14 @@
         slidesEl.classList.add('slide');
         const wrapper = document.createElement('div');
         wrapper.className = 'wrapper';
-        // Añadimos cada img...
         urls.forEach(src => {
           const img = document.createElement('img');
           img.src = src;
           wrapper.appendChild(img);
         });
-        // clonamos la primera al final
-        const firstClone = wrapper.children[0].cloneNode();
-        wrapper.appendChild(firstClone);
+        // clonamos la primera al final para loop infinito
+        const clone = wrapper.children[0].cloneNode();
+        wrapper.appendChild(clone);
         slidesEl.appendChild(wrapper);
 
         let idx = 0;
@@ -100,19 +114,16 @@
           idx++;
           wrapper.style.transition = 'transform 1s ease-in-out';
           wrapper.style.transform = `translateX(-${idx * 100}%)`;
-
-          // Si llegamos al clon, tras la transición reseteamos
           if (idx === total) {
             setTimeout(() => {
               wrapper.style.transition = 'none';
               wrapper.style.transform = 'translateX(0)';
               idx = 0;
-            }, 1000); // coincide con la duración de la transición
+            }, 1000);
           }
         }, duration * 1000);
 
       } else {
-        // fade / zoom / kenburns
         slidesEl.classList.add(type);
         urls.forEach((src,i) => {
           const img = document.createElement('img');
@@ -130,12 +141,11 @@
       }
     }
 
-    // fullscreen
     document.getElementById('fs-btn').addEventListener('click', () => {
       document.documentElement.requestFullscreen?.();
     });
 
-    // carga inicial
+    // Carga inicial
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type')
@@ -145,11 +155,12 @@
       arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
     }
 
-    // realtime
+    // Realtime updates
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes',{
-        event:'UPDATE', schema:'public', table:'tv', filter:`code=eq.${code}`
+        event:'UPDATE', schema:'public', table:'tv',
+        filter:`code=eq.${code}`
       }, ({ new: ntv }) => {
         if (ntv.gallery_id) {
           arrancar(ntv.gallery_id, ntv.duration, ntv.slideshow_type || 'fade');
