@@ -12,29 +12,36 @@
   <style>
     html, body { margin:0; padding:0; background:#000; overflow:hidden; }
     #fs-btn {
-      position: absolute;
-      top: 10px; right: 10px;
-      z-index: 1000;
-      padding: 8px 12px;
-      background: rgba(255,255,255,0.8);
-      border: none;
-      border-radius: 4px;
-      font-size: 1rem;
-      cursor: pointer;
+      position: absolute; top: 10px; right: 10px; z-index:1000;
+      padding:8px 12px; background:rgba(255,255,255,0.8);
+      border:none; border-radius:4px; cursor:pointer;
     }
-    #slides { position:relative; width:100vw; height:100vh; }
+    #slides {
+      position:relative;
+      width:100vw; height:100vh;
+      overflow:hidden;
+    }
+    /* Fade por defecto */
     #slides img {
       position:absolute; width:100%; height:100%;
       object-fit:contain; opacity:0;
       transition: opacity 1s ease-in-out;
     }
+    /* Slide mode */
+    #slides.slide {
+      display:flex;
+      transition: transform 1s ease-in-out;
+    }
+    #slides.slide img {
+      position:relative;
+      opacity:1 !important; /* ignoramos fade */
+      width:100%; height:100%; object-fit:contain;
+      flex-shrink:0;
+    }
   </style>
 </head>
 <body>
-  <!-- Botón para activar fullscreen -->
   <button id="fs-btn">Pantalla completa</button>
-
-  <!-- Contenedor del slideshow -->
   <div id="slides"></div>
 
   <script>
@@ -48,89 +55,72 @@
     const slidesEl = document.getElementById('slides');
     let intervalId = null;
 
-    // Función que limpia y arranca un slideshow
-    async function arrancar(galleryId, duration) {
-      // 1) Detener ciclo anterior
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
+    async function arrancar(galleryId, duration, type) {
+      // 1) Limpiar previo
+      clearInterval(intervalId);
       slidesEl.innerHTML = '';
+      slidesEl.classList.toggle('slide', type==='slide');
+      slidesEl.style.transform = 'translateX(0)';
 
-      // 2) Traer imágenes
-      const { data: imgs, error: imgErr } = await supabase
+      // 2) Cargar imágenes
+      const { data: imgs } = await supabase
         .from('images')
         .select('url')
         .eq('gallery_id', galleryId)
         .order('created_at', { ascending: true });
-      if (imgErr) {
-        console.error('Error cargando imágenes:', imgErr);
-        return;
-      }
-      if (!imgs.length) {
-        console.warn('Sin imágenes en el álbum');
-        return;
-      }
+      if (!imgs?.length) return;
 
-      // 3) Obtener URLs públicas
-      const urls = imgs.map(i =>
-        supabase
+      // 3) Montar imágenes
+      imgs.forEach((i, idx) => {
+        const img = document.createElement('img');
+        img.src = supabase
           .storage
           .from('images')
-          .getPublicUrl(i.url)
-          .data
-          .publicUrl
-      );
-
-      // 4) Pintar slides (primero visible, resto ocultos)
-      urls.forEach((src, i) => {
-        const img = document.createElement('img');
-        img.src = src;
-        img.style.opacity = i === 0 ? '1' : '0';
+          .getPublicUrl(i.url).data.publicUrl;
+        if (type==='fade') {
+          img.style.opacity = idx===0 ? '1':'0';
+        }
         slidesEl.appendChild(img);
       });
 
-      // 5) Arrancar el ciclo con la duración indicada
+      // 4) Ciclo
       let idx = 0;
       intervalId = setInterval(() => {
-        const lis = slidesEl.querySelectorAll('img');
-        lis[idx].style.opacity = '0';
-        idx = (idx + 1) % lis.length;
-        lis[idx].style.opacity = '1';
+        const list = Array.from(slidesEl.querySelectorAll('img'));
+        if (type==='fade') {
+          list[idx].style.opacity = '0';
+          idx = (idx+1)%list.length;
+          list[idx].style.opacity = '1';
+        } else { // slide
+          idx = (idx+1)%list.length;
+          slidesEl.style.transform = `translateX(-${idx*100}%)`;
+        }
       }, duration * 1000);
     }
 
-    // Botón “Pantalla completa”
-    document.getElementById('fs-btn').addEventListener('click', () => {
-      document.documentElement.requestFullscreen?.().catch(() => {
-        // Si el navegador la bloquea sin user gesture, simplemente ignoramos
-      });
-    });
+    // Fullscreen
+    document.getElementById('fs-btn').onclick = () => {
+      document.documentElement.requestFullscreen?.();
+    };
 
-    // 1) Carga inicial: gallery_id y duration desde la fila `tv`
-    const { data: tv, error: tvErr } = await supabase
+    // 1) Cargar configuración de la TV
+    const { data: tv } = await supabase
       .from('tv')
-      .select('gallery_id,duration')
+      .select('gallery_id,duration,slideshow_type')
       .eq('code', code)
       .maybeSingle();
-    if (tvErr) {
-      console.error('Error leyendo TV:', tvErr);
-    } else if (tv?.gallery_id) {
-      // Arrancar slideshow incluso sin fullscreen
-      arrancar(tv.gallery_id, tv.duration);
+    if (tv?.gallery_id) {
+      arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
     }
 
-    // 2) Suscripción Realtime a cambios en esa fila `tv`
+    // 2) Realtime updates
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'tv',
-        filter: `code=eq.${code}`
-      }, ({ new: updated }) => {
-        if (updated.gallery_id) {
-          arrancar(updated.gallery_id, updated.duration);
+        event:'UPDATE', schema:'public', table:'tv', filter:`code=eq.${code}`
+      }, ({ new: t }) => {
+        if (t.gallery_id) {
+          arrancar(t.gallery_id, t.duration, t.slideshow_type || 'fade');
         }
       })
       .subscribe();
