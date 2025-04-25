@@ -31,11 +31,11 @@
 <body>
   <div id="sidebar-container"></div>
   <section class="home">
-    <!-- Verificación de usuario -->
+    <!-- 1) Mostrar email para verificar vinculación -->
     <p>Usuario: <strong id="user-email"></strong></p>
     <h2>Mis Vídeos</h2>
 
-    <!-- Subir vídeo -->
+    <!-- 2) Subir vídeo -->
     <div class="section">
       <label for="video-file">Selecciona vídeo</label>
       <input type="file" id="video-file" accept="video/*"/>
@@ -43,27 +43,27 @@
       <span id="video-status"></span>
     </div>
 
-    <!-- Estado carga lista -->
+    <!-- 3) Estado carga lista -->
     <div class="section">
       <span id="list-status"></span>
     </div>
 
-    <!-- Lista de vídeos -->
+    <!-- 4) Lista de vídeos -->
     <ul id="videos-list"></ul>
   </section>
 
   <script>
   async function initMisVideos() {
-    // 1) Sesión
-    const { data:{ session } } = await supabase.auth.getSession();
-    if (!session) {
-      window.location.href = 'login.html';
-      return;
+    // --- AUTH: obtenemos directamente el usuario ---
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      // si no hay user, redirigimos a login
+      return window.location.href = 'login.html';
     }
-    // Mostrar email para comprobar vinculación
-    document.getElementById('user-email').innerText = session.user.email;
+    // mostramos email para comprobar
+    document.getElementById('user-email').innerText = user.email;
 
-    // 2) Función para listar vídeos
+    // 1) Función para cargar la lista de vídeos
     async function loadVideos() {
       const status = document.getElementById('list-status');
       const ul     = document.getElementById('videos-list');
@@ -74,7 +74,7 @@
         const { data: vids, error } = await supabase
           .from('videos')
           .select('id,url,title')
-          .eq('user_id', session.user.id)
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -85,8 +85,8 @@
 
         status.innerText = '';
         for (let v of vids) {
-          // obtenemos URL pública
-          const { data:{ publicUrl } } = supabase
+          // obtenemos URL pública del storage
+          const { data: { publicUrl } } = supabase
             .storage.from('videos')
             .getPublicUrl(v.url);
 
@@ -98,14 +98,14 @@
               <button class="del">🗑</button>
             </div>
           `;
-          // reproducir
+          // botón de play
           li.querySelector('.play').onclick = () => {
             window.open(
               `/player.html?video=${encodeURIComponent(publicUrl)}`,
               '_blank'
             );
           };
-          // borrar
+          // botón de borrar
           li.querySelector('.del').onclick = async () => {
             if (!confirm('¿Borrar este vídeo?')) return;
             await supabase.from('videos').delete().eq('id', v.id);
@@ -119,7 +119,7 @@
       }
     }
 
-    // 3) Subir nuevo vídeo
+    // 2) Subir nuevo vídeo con bloqueo de botón e indicador
     const uploadBtn = document.getElementById('upload-video');
     uploadBtn.addEventListener('click', async () => {
       const inp    = document.getElementById('video-file');
@@ -131,30 +131,29 @@
       }
 
       const file = inp.files[0];
-      const path = `videos/${session.user.id}/${Date.now()}_${file.name}`;
+      const path = `videos/${user.id}/${Date.now()}_${file.name}`;
 
-      // bloqueo + mensaje
       uploadBtn.disabled   = true;
       status.innerText     = 'Subiendo vídeo…';
 
       try {
-        // subir a storage
+        // 2a) Subir al bucket "videos"
         const { error: upErr } = await supabase
           .storage.from('videos')
           .upload(path, file, { upsert: false });
         if (upErr) throw upErr;
 
-        // insertar en tabla
+        // 2b) Insertar metadatos en la tabla
         const { error: dbErr } = await supabase
           .from('videos')
           .insert({
-            user_id: session.user.id,
-            url: path,
-            title: file.name
+            user_id: user.id,
+            url:     path,
+            title:   file.name
           });
         if (dbErr) throw dbErr;
 
-        // recargar lista
+        // 2c) refrescar lista
         inp.value       = null;
         status.innerText= '';
         await loadVideos();
@@ -167,7 +166,7 @@
       }
     });
 
-    // 4) Arrancar
+    // 3) Al arrancar, cargamos la lista
     await loadVideos();
   }
 
