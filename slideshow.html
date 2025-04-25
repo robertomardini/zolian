@@ -12,17 +12,22 @@
   <style>
     html, body { margin:0; padding:0; background:#000; overflow:hidden; }
     #fs-btn {
-      position: absolute; top: 10px; right: 10px; z-index: 1000;
-      padding: 8px 12px; background: rgba(255,255,255,0.8);
-      border: none; border-radius: 4px; font-size: 1rem;
-      cursor: pointer;
+      position: absolute; top: 10px; right: 10px; z-index:1000;
+      padding:8px 12px; background:rgba(255,255,255,0.8);
+      border:none; border-radius:4px; cursor:pointer;
     }
-    #slides {
-      position: relative; width:100vw; height:100vh;
+    #slides { position:relative; width:100vw; height:100vh; }
+
+    /* SLIDE */
+    #slides.slide .wrapper {
+      display:flex;
+      width:100%; height:100%;
+      transition: transform 1s ease-in-out;
     }
-    #slides img {
-      position: absolute; width:100%; height:100%;
-      object-fit: contain;
+    #slides.slide img {
+      flex:0 0 100%;
+      width:100%; height:100%;
+      object-fit:contain;
     }
   </style>
 </head>
@@ -33,116 +38,93 @@
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
-    if (!code) {
-      alert('Falta ?code en la URL');
-      return;
-    }
+    if (!code) return alert('Falta ?code en la URL');
+
     const slidesEl = document.getElementById('slides');
     let intervalId = null;
 
-    // función genérica para arrancar el slideshow
-    async function arrancar(galleryId, duration, type) {
-      clearInterval(intervalId);
+    async function arrancarSlide(galleryId, duration) {
+      // detener anterior
+      if (intervalId) clearInterval(intervalId);
+      slidesEl.className = '';
       slidesEl.innerHTML = '';
 
-      // 1) Traer imágenes
+      slidesEl.classList.add('slide');
+      // traer imágenes
       const { data: imgs } = await supabase
         .from('images')
         .select('url')
         .eq('gallery_id', galleryId)
-        .order('created_at', { ascending: true });
-      if (!imgs || !imgs.length) return;
+        .order('created_at',{ ascending:true });
+      if (!imgs?.length) return;
 
-      // 2) Construir elementos
-      const urls = imgs.map(i => supabase
-        .storage.from('images').getPublicUrl(i.url).data.publicUrl
-      );
-      urls.forEach((src, i) => {
+      // wrapper y slides
+      const wrapper = document.createElement('div');
+      wrapper.className = 'wrapper';
+      slidesEl.appendChild(wrapper);
+
+      const urls = imgs.map(i => supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl);
+
+      // agregamos todas + clonamos la primera
+      urls.forEach(src => {
         const img = document.createElement('img');
         img.src = src;
-        img.style.transition = 'transform 1s ease-in-out, opacity 1s ease-in-out';
+        wrapper.appendChild(img);
+      });
+      // clon de la primera para loop suave
+      const firstClone = wrapper.children[0].cloneNode();
+      wrapper.appendChild(firstClone);
 
-        if (type === 'fade') {
-          img.style.opacity = i === 0 ? '1' : '0';
-        } else if (type === 'slide') {
-          img.style.top = '0';
-          img.style.left = '0';
-          img.style.transform = i === 0
-            ? 'translateX(0)'
-            : 'translateX(100%)';
-        } else if (type === 'vertical') {
-          img.style.left = '0';
-          img.style.top = '0';
-          img.style.transform = i === 0
-            ? 'translateY(0)'
-            : 'translateY(100%)';
+      let idx = 0;
+      wrapper.style.transform = `translateX(0)`;
+
+      // al terminar transición en clon, reseteamos sin animación
+      wrapper.addEventListener('transitionend', () => {
+        if (idx >= urls.length) {
+          // llegamos al clon
+          wrapper.style.transition = 'none';
+          idx = 0;
+          wrapper.style.transform = `translateX(0)`;
+          // forzar repaint
+          void wrapper.offsetWidth;
+          wrapper.style.transition = `transform 1s ease-in-out`;
         }
-
-        slidesEl.appendChild(img);
       });
 
-      // 3) Ciclar
-      let idx = 0;
+      // ciclo
       intervalId = setInterval(() => {
-        const items = slidesEl.querySelectorAll('img');
-        const current = items[idx];
-        idx = (idx + 1) % items.length;
-        const next = items[idx];
-
-        if (type === 'fade') {
-          current.style.opacity = '0';
-          next.style.opacity = '1';
-        } else if (type === 'slide') {
-          // mueve el actual hacia la izquierda y el siguiente desde la derecha
-          current.style.transform = 'translateX(-100%)';
-          next.style.transform    = 'translateX(0)';
-          // tras animación, re-coloca el antiguo al fondo a la derecha
-          setTimeout(() => {
-            current.style.transition = 'none';
-            current.style.transform = 'translateX(100%)';
-            // restablecer transición
-            requestAnimationFrame(() => {
-              current.style.transition = 'transform 1s ease-in-out';
-            });
-          }, 1000);
-        } else if (type === 'vertical') {
-          current.style.transform = 'translateY(-100%)';
-          next.style.transform    = 'translateY(0)';
-          setTimeout(() => {
-            current.style.transition = 'none';
-            current.style.transform = 'translateY(100%)';
-            requestAnimationFrame(() => {
-              current.style.transition = 'transform 1s ease-in-out';
-            });
-          }, 1000);
-        }
+        idx++;
+        wrapper.style.transform = `translateX(-${idx * 100}%)`;
       }, duration * 1000);
     }
 
+    // fullscreen
     document.getElementById('fs-btn').addEventListener('click', () => {
       document.documentElement.requestFullscreen?.();
     });
 
-    // 1) Leer configuración de la TV
+    // carga inicial y realtime
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type')
       .eq('code', code)
       .maybeSingle();
     if (tv?.gallery_id) {
-      arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
+      if (tv.slideshow_type === 'slide') {
+        arrancarSlide(tv.gallery_id, tv.duration);
+      } else {
+        // tu código para los otros modos...
+      }
     }
-
-    // 2) Suscripción Realtime para actualizar en caliente
     supabase
       .channel(`tv_updates_${code}`)
-      .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'tv',
-        filter: `code=eq.${code}`
-      }, ({ new: upd }) => {
-        if (upd.gallery_id) {
-          arrancar(upd.gallery_id, upd.duration, upd.slideshow_type || 'fade');
+      .on('postgres_changes',{
+        event:'UPDATE', schema:'public', table:'tv', filter:`code=eq.${code}`
+      }, ({ new: ntv }) => {
+        if (ntv.gallery_id && ntv.slideshow_type === 'slide') {
+          arrancarSlide(ntv.gallery_id, ntv.duration);
         }
+        // ...y similarmente reiniciar otros modos
       })
       .subscribe();
   })();
