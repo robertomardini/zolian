@@ -78,7 +78,7 @@
       width: 24px; height: 24px; font-size: 16px;
       cursor: pointer;
     }
-    /* Botones ocultos por defecto */
+    /* Botones */
     #save-changes,
     #start-tv,
     #delete-album {
@@ -143,7 +143,7 @@
 
     <!-- Acciones -->
     <button id="save-changes">Guardar cambios</button>
-    <button id="start-tv">Vincular y Iniciar TV</button>
+    <button id="start-tv">Vincular e Iniciar TV</button>
     <button id="delete-album">Desvincular</button>
   </section>
 
@@ -162,12 +162,13 @@
         return window.location.href = 'galeria.html';
       }
 
-      // Solo si hay TV code mostramos botones
+      // Mostrar botones si hay TV code
       if (tvCode) {
         document.getElementById('save-changes').style.display = 'block';
         document.getElementById('start-tv').style.display    = 'block';
+        document.getElementById('delete-album').style.display = 'block';
 
-        // Prefill: carga la duración actual desde tv.duration
+        // Precargar duración existente
         const { data: tvRow } = await supabase
           .from('tv')
           .select('duration')
@@ -181,11 +182,10 @@
       // Sesión
       const { data:{ session } } = await supabase.auth.getSession();
       if (!session) {
-        const redirect = encodeURIComponent(location.pathname + location.search);
+        const redirect = encodeURIComponent(location.pathname+location.search);
         return window.location.href = `login.html?redirect=${redirect}`;
       }
-
-      // Inyectar usuario en sidebar + logout
+      // Inyectar email + logout
       const su = document.getElementById('sidebar-user');
       if (su) su.innerText = session.user.email;
       const lb = document.getElementById('logout');
@@ -207,7 +207,7 @@
       }
       document.getElementById('album-name').value = alb.name;
 
-      // 2) Guardar solo nombre
+      // 2) Renombrar
       document.getElementById('save-name').onclick = async () => {
         const nv = document.getElementById('album-name').value.trim();
         if (!nv) return alert('Escribe un nombre.');
@@ -215,7 +215,7 @@
           .from('galleries')
           .update({ name: nv })
           .eq('id', galleryId);
-        if (error) return alert('Error al renombrar: ' + error.message);
+        if (error) return alert('Error al renombrar: '+error.message);
         alert('Nombre actualizado.');
       };
 
@@ -226,7 +226,7 @@
         for (let f of files) {
           const path = `${galleryId}/${Date.now()}_${f.name}`;
           const { error: upErr } = await supabase
-            .storage.from('images').upload(path, f, { upsert: false });
+            .storage.from('images').upload(path, f, { upsert: false});
           if (upErr) {
             console.error(upErr);
             alert(`Error subiendo ${f.name}: ${upErr.message}`);
@@ -249,9 +249,9 @@
         for (let {id,url} of imgs) {
           const pu = supabase.storage.from('images').getPublicUrl(url).data.publicUrl;
           const li = document.createElement('li');
-          const img = document.createElement('img');
-          img.src = pu;
-          li.appendChild(img);
+          const imgEl = document.createElement('img');
+          imgEl.src = pu;
+          li.appendChild(imgEl);
           const btn = document.createElement('button');
           btn.textContent = '×';
           btn.className = 'delete-btn';
@@ -266,16 +266,15 @@
         }
       }
 
-      // 5) Guardar cambios → update tv + duration + play + redirect
+      // 5) Guardar cambios → asigna album & duración & play, luego Redirige a Pantallas
       document.getElementById('save-changes').onclick = async () => {
         if (!tvCode) return;
-        const dur = parseInt(document.getElementById('duration').value) || 5;
+        const dur = parseInt(document.getElementById('duration').value)||5;
         const { error } = await supabase
           .from('tv')
-          .update({ gallery_id: galleryId, duration: dur, play: true })
+          .update({ gallery_id:galleryId, duration:dur, play:true })
           .eq('code', tvCode);
-        if (error) return alert('Error guardando cambios: ' + error.message);
-        // Volver a Pantallas
+        if (error) return alert('Error guardando cambios: '+error.message);
         location.href = 'pantallas.html';
       };
 
@@ -284,21 +283,21 @@
         if (!tvCode) return;
         const { error } = await supabase
           .from('tv')
-          .update({ gallery_id: galleryId, play: true })
+          .update({ gallery_id:galleryId, play:true })
           .eq('code', tvCode);
-        if (error) return alert('Error iniciando TV: ' + error.message);
+        if (error) return alert('Error iniciando TV: '+error.message);
         alert('Slideshow iniciado.');
       };
 
       // 7) Desvincular álbum
       document.getElementById('delete-album').onclick = async () => {
-        if (!confirm('¿Desvincular (eliminar) este álbum y sus imágenes?')) return;
+        if (!confirm('¿Eliminar álbum y sus imágenes?')) return;
         await supabase.from('images').delete().eq('gallery_id', galleryId);
         await supabase.from('galleries').delete().eq('id', galleryId);
-        window.location.href = 'galeria.html';
+        location.href = 'galeria.html';
       };
 
-      // Carga inicial de miniaturas
+      // carga inicial
       await loadImages();
     }
 
