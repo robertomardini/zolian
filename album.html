@@ -78,34 +78,28 @@
       width: 24px; height: 24px; font-size: 16px;
       cursor: pointer;
     }
+    /* Botones ocultos por defecto */
     #save-changes,
     #start-tv,
     #delete-album {
-      display: none; /* se activan según params */
+      display: none;
       width: 100%; margin-top: 16px; padding: 12px;
       border: none; border-radius: 6px;
       font-size: 1rem; cursor: pointer;
     }
-    #save-changes {
-      background: var(--primary-color); color: #fff;
-    }
-    #start-tv {
-      background: #2ecc71; color: #fff;
-    }
-    #delete-album {
-      background: #e74c3c; color: #fff;
-      margin-bottom: 32px;
-    }
+    #save-changes { background: var(--primary-color); color: #fff; }
+    #start-tv     { background: #2ecc71; color: #fff; }
+    #delete-album { background: #e74c3c; color: #fff; margin-bottom: 32px; }
   </style>
 </head>
 <body>
-  <!-- Sidebar inyectado -->
+  <!-- Sidebar -->
   <div id="sidebar-container"></div>
 
   <section class="home">
     <div class="text">Álbum</div>
 
-    <!-- Nombre del álbum -->
+    <!-- Nombre -->
     <div class="section">
       <label for="album-name">Nombre del álbum</label>
       <div class="input-group">
@@ -122,7 +116,7 @@
       <input type="number" id="duration" min="1" value="5"/>
     </div>
 
-    <!-- Tipo de Slideshow -->
+    <!-- Tipo (pendiente) -->
     <div class="section">
       <label for="slideshow-type">Tipo de Slideshow</label>
       <select id="slideshow-type">
@@ -131,7 +125,7 @@
       </select>
     </div>
 
-    <!-- Subir imágenes -->
+    <!-- Subir -->
     <div class="section">
       <label for="file-input">Cargar Imágenes</label>
       <div class="input-group">
@@ -147,13 +141,13 @@
       <ul id="images-list"></ul>
     </div>
 
-    <!-- Botones de acción -->
+    <!-- Acciones -->
     <button id="save-changes">Guardar cambios</button>
     <button id="start-tv">Vincular y Iniciar TV</button>
     <button id="delete-album">Desvincular</button>
   </section>
 
-  <!-- Supabase y script.js -->
+  <!-- Librerías -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <script src="/script.js"></script>
@@ -168,20 +162,30 @@
         return window.location.href = 'galeria.html';
       }
 
-      // Mostrar botones solo si hay código de TV
+      // Solo si hay TV code mostramos botones
       if (tvCode) {
         document.getElementById('save-changes').style.display = 'block';
         document.getElementById('start-tv').style.display    = 'block';
+
+        // Prefill: carga la duración actual desde tv.duration
+        const { data: tvRow } = await supabase
+          .from('tv')
+          .select('duration')
+          .eq('code', tvCode)
+          .maybeSingle();
+        if (tvRow?.duration) {
+          document.getElementById('duration').value = tvRow.duration;
+        }
       }
 
-      // Validar sesión
+      // Sesión
       const { data:{ session } } = await supabase.auth.getSession();
       if (!session) {
         const redirect = encodeURIComponent(location.pathname + location.search);
         return window.location.href = `login.html?redirect=${redirect}`;
       }
 
-      // Inyectar usuario en sidebar
+      // Inyectar usuario en sidebar + logout
       const su = document.getElementById('sidebar-user');
       if (su) su.innerText = session.user.email;
       const lb = document.getElementById('logout');
@@ -191,7 +195,7 @@
         window.location.href = 'login.html';
       };
 
-      // 1) Cargar datos del álbum
+      // 1) Cargar álbum
       const { data: alb, error: albErr } = await supabase
         .from('galleries')
         .select('name,user_id')
@@ -233,7 +237,7 @@
         await loadImages();
       };
 
-      // 4) Cargar miniaturas
+      // 4) Mostrar miniaturas
       async function loadImages() {
         const { data: imgs } = await supabase
           .from('images')
@@ -262,7 +266,7 @@
         }
       }
 
-      // 5) Guardar cambios → update tv + duración + play + redirigir
+      // 5) Guardar cambios → update tv + duration + play + redirect
       document.getElementById('save-changes').onclick = async () => {
         if (!tvCode) return;
         const dur = parseInt(document.getElementById('duration').value) || 5;
@@ -271,11 +275,11 @@
           .update({ gallery_id: galleryId, duration: dur, play: true })
           .eq('code', tvCode);
         if (error) return alert('Error guardando cambios: ' + error.message);
-        // volvemos a Pantallas
+        // Volver a Pantallas
         location.href = 'pantallas.html';
       };
 
-      // 6) Vincular e iniciar sin tocar duración
+      // 6) Vincular e iniciar sin cambiar duración
       document.getElementById('start-tv').onclick = async () => {
         if (!tvCode) return;
         const { error } = await supabase
@@ -294,7 +298,7 @@
         window.location.href = 'galeria.html';
       };
 
-      // carga inicial de miniaturas
+      // Carga inicial de miniaturas
       await loadImages();
     }
 
