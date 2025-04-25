@@ -18,31 +18,6 @@
     }
     #slides { position:relative; width:100vw; height:100vh; }
 
-    /* FADE / ZOOM / KENBURNS */
-    #slides.fade img,
-    #slides.zoom img,
-    #slides.kenburns img {
-      position:absolute;
-      width:100%; height:100%;
-      object-fit:contain;
-      opacity:0;
-      transform:scale(1);
-      transition: opacity 1s ease-in-out, transform 1s ease-in-out;
-    }
-    /* Esta regla hace visible la img.show */
-    #slides.fade img.show,
-    #slides.zoom img.show,
-    #slides.kenburns img.show {
-      opacity:1;
-    }
-    /* Zoom y Ken Burns añaden escalado/desplazamiento */
-    #slides.zoom img.show {
-      transform:scale(1.1);
-    }
-    #slides.kenburns img.show {
-      transform:scale(1.1) translate(5%,5%);
-    }
-
     /* SLIDE */
     #slides.slide .wrapper {
       display:flex;
@@ -68,57 +43,59 @@
     const slidesEl = document.getElementById('slides');
     let intervalId = null;
 
-    async function arrancar(galleryId, duration, type) {
-      // limpiar slideshow previo
+    async function arrancarSlide(galleryId, duration) {
+      // detener anterior
       if (intervalId) clearInterval(intervalId);
       slidesEl.className = '';
       slidesEl.innerHTML = '';
 
-      // buscar imágenes
-      const { data: imgs, error } = await supabase
+      slidesEl.classList.add('slide');
+      // traer imágenes
+      const { data: imgs } = await supabase
         .from('images')
         .select('url')
         .eq('gallery_id', galleryId)
         .order('created_at',{ ascending:true });
-      if (error || !imgs.length) return console.error('No hay imágenes', error);
+      if (!imgs?.length) return;
 
-      const urls = imgs.map(i => 
-        supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
-      );
+      // wrapper y slides
+      const wrapper = document.createElement('div');
+      wrapper.className = 'wrapper';
+      slidesEl.appendChild(wrapper);
 
-      if (type === 'slide') {
-        slidesEl.classList.add('slide');
-        const wrapper = document.createElement('div');
-        wrapper.className = 'wrapper';
-        slidesEl.appendChild(wrapper);
-        urls.forEach(src => {
-          const img = document.createElement('img');
-          img.src = src;
-          wrapper.appendChild(img);
-        });
-        let idx = 0;
-        intervalId = setInterval(() => {
-          idx = (idx + 1) % urls.length;
-          wrapper.style.transform = `translateX(-${idx*100}%)`;
-        }, duration * 1000);
+      const urls = imgs.map(i => supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl);
 
-      } else {
-        // fade / zoom / kenburns
-        slidesEl.classList.add(type);
-        urls.forEach((src,i) => {
-          const img = document.createElement('img');
-          img.src = src;
-          if (i === 0) img.classList.add('show');
-          slidesEl.appendChild(img);
-        });
-        let idx = 0;
-        intervalId = setInterval(() => {
-          const imgsDOM = slidesEl.querySelectorAll('img');
-          imgsDOM[idx].classList.remove('show');
-          idx = (idx + 1) % imgsDOM.length;
-          imgsDOM[idx].classList.add('show');
-        }, duration * 1000);
-      }
+      // agregamos todas + clonamos la primera
+      urls.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src;
+        wrapper.appendChild(img);
+      });
+      // clon de la primera para loop suave
+      const firstClone = wrapper.children[0].cloneNode();
+      wrapper.appendChild(firstClone);
+
+      let idx = 0;
+      wrapper.style.transform = `translateX(0)`;
+
+      // al terminar transición en clon, reseteamos sin animación
+      wrapper.addEventListener('transitionend', () => {
+        if (idx >= urls.length) {
+          // llegamos al clon
+          wrapper.style.transition = 'none';
+          idx = 0;
+          wrapper.style.transform = `translateX(0)`;
+          // forzar repaint
+          void wrapper.offsetWidth;
+          wrapper.style.transition = `transform 1s ease-in-out`;
+        }
+      });
+
+      // ciclo
+      intervalId = setInterval(() => {
+        idx++;
+        wrapper.style.transform = `translateX(-${idx * 100}%)`;
+      }, duration * 1000);
     }
 
     // fullscreen
@@ -126,25 +103,28 @@
       document.documentElement.requestFullscreen?.();
     });
 
-    // carga inicial
+    // carga inicial y realtime
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type')
       .eq('code', code)
       .maybeSingle();
     if (tv?.gallery_id) {
-      arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
+      if (tv.slideshow_type === 'slide') {
+        arrancarSlide(tv.gallery_id, tv.duration);
+      } else {
+        // tu código para los otros modos...
+      }
     }
-
-    // realtime updates
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes',{
         event:'UPDATE', schema:'public', table:'tv', filter:`code=eq.${code}`
       }, ({ new: ntv }) => {
-        if (ntv.gallery_id) {
-          arrancar(ntv.gallery_id, ntv.duration, ntv.slideshow_type || 'fade');
+        if (ntv.gallery_id && ntv.slideshow_type === 'slide') {
+          arrancarSlide(ntv.gallery_id, ntv.duration);
         }
+        // ...y similarmente reiniciar otros modos
       })
       .subscribe();
   })();
