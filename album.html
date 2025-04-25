@@ -85,7 +85,7 @@
   <section class="home">
     <div class="text">Álbum</div>
 
-    <!-- Renombrar álbum -->
+    <!-- 1) Nombre del álbum -->
     <div class="section">
       <label for="album-name">Nombre del álbum</label>
       <div class="input-group">
@@ -96,13 +96,13 @@
       </div>
     </div>
 
-    <!-- Duración de cada imagen -->
+    <!-- 2) Duración de cada imagen -->
     <div class="section">
       <label for="duration">Duración imagen (segundos)</label>
       <input type="number" id="duration" min="1" value="5"/>
     </div>
 
-    <!-- Tipo de Slideshow -->
+    <!-- 3) Tipo de Slideshow -->
     <div class="section">
       <label for="slideshow-type">Tipo de Slideshow</label>
       <select id="slideshow-type">
@@ -111,7 +111,7 @@
       </select>
     </div>
 
-    <!-- Cargar imágenes -->
+    <!-- 4) Cargar imágenes -->
     <div class="section">
       <label for="file-input">Cargar Imágenes</label>
       <div class="input-group">
@@ -122,12 +122,12 @@
       </div>
     </div>
 
-    <!-- Grid de miniaturas -->
+    <!-- 5) Miniaturas -->
     <div class="section">
       <ul id="images-list"></ul>
     </div>
 
-    <!-- Enviar a pantalla -->
+    <!-- 6) Enviar a pantalla -->
     <div class="section">
       <label for="tv-select">Enviar a pantalla:</label>
       <div class="input-group">
@@ -138,7 +138,7 @@
       </div>
     </div>
 
-    <!-- Desvincular / borrar álbum entero -->
+    <!-- 7) Desvincular / borrar álbum entero -->
     <button id="delete-album">Desvincular</button>
   </section>
 
@@ -172,26 +172,28 @@
         window.location.href = 'login.html';
       };
 
-     // 2) Cargar datos del álbum
-const { data: alb, error: albErr } = await supabase
-  .from('galleries')
-  // Sólo name y user_id, ya no duration
-  .select('name,user_id')
-  .eq('id', galleryId)
-  .maybeSingle();
-if (albErr || !alb || alb.user_id !== session.user.id) {
-  alert('Álbum no válido o sin permiso.');
-  return window.location.href = 'galeria.html';
-}
-document.getElementById('album-name').value = alb.name;
-      document.getElementById('duration').value   = alb.duration || 5;
+      // 2) Cargar datos del álbum (ahora también duration + slideshow_type)
+      const { data: alb, error: albErr } = await supabase
+        .from('galleries')
+        .select('name,user_id,duration,slideshow_type')
+        .eq('id', galleryId)
+        .maybeSingle();
+      if (albErr || !alb || alb.user_id !== session.user.id) {
+        alert('Álbum no válido o sin permiso.');
+        return window.location.href = 'galeria.html';
+      }
+      document.getElementById('album-name').value      = alb.name;
+      document.getElementById('duration').value        = alb.duration    || 5;
+      document.getElementById('slideshow-type').value  = alb.slideshow_type || 'fade';
 
       // 3) Guardar nombre
       document.getElementById('save-name').onclick = async () => {
         const nv = document.getElementById('album-name').value.trim();
         if (!nv) return alert('Escribe un nombre.');
         const { error } = await supabase
-          .from('galleries').update({ name: nv }).eq('id', galleryId);
+          .from('galleries')
+          .update({ name: nv })
+          .eq('id', galleryId);
         if (error) return alert('Error al renombrar: ' + error.message);
         alert('Nombre actualizado.');
       };
@@ -211,13 +213,14 @@ document.getElementById('album-name').value = alb.name;
           }
           await supabase.from('images').insert({ gallery_id: galleryId, url: path });
         }
-        loadImages();
+        await loadImages();
       };
 
       // 5) Listar miniaturas
       async function loadImages() {
         const { data: imgs } = await supabase
-          .from('images').select('id,url')
+          .from('images')
+          .select('id,url')
           .eq('gallery_id', galleryId)
           .order('created_at',{ ascending:false });
         const ul = document.getElementById('images-list');
@@ -233,16 +236,20 @@ document.getElementById('album-name').value = alb.name;
             if (!confirm('¿Borrar esta imagen?')) return;
             await supabase.from('images').delete().eq('id', id);
             await supabase.storage.from('images').remove([url]);
-            loadImages();
+            await loadImages();
           };
           li.appendChild(btn);
           ul.appendChild(li);
         }
       }
 
+      await loadImages();
+
       // 6) Cargar lista de pantallas del usuario
       const { data: tvs } = await supabase
-        .from('tv').select('code,nombre').eq('user_id', session.user.id);
+        .from('tv')
+        .select('code,nombre')
+        .eq('user_id', session.user.id);
       const sel = document.getElementById('tv-select');
       tvs.forEach(t => {
         const o = document.createElement('option');
@@ -251,29 +258,34 @@ document.getElementById('album-name').value = alb.name;
         sel.appendChild(o);
       });
 
-      // 7) Enviar álbum a la pantalla elegida
+      // 7) Enviar álbum + guardar duración/tipo en la tabla galleries
       document.getElementById('send-btn').onclick = async () => {
         const code = sel.value;
         if (!code) return alert('Selecciona una pantalla.');
         const dur = parseInt(document.getElementById('duration').value) || 5;
-        const { error } = await supabase
+        const type= document.getElementById('slideshow-type').value;
+        // 7a) Guardar en galleries
+        const { error: e1 } = await supabase
+          .from('galleries')
+          .update({ duration: dur, slideshow_type: type })
+          .eq('id', galleryId);
+        if (e1) return alert('Error guardando ajustes: '+e1.message);
+        // 7b) Actualizar TV
+        const { error: e2 } = await supabase
           .from('tv')
-          .update({ gallery_id: galleryId, duration: dur, play: true })
+          .update({ gallery_id: galleryId, duration: dur, play: true, slideshow_type: type })
           .eq('code', code);
-        if (error) return alert('Error enviando: ' + error.message);
-        alert('Álbum enviado a la pantalla.');
+        if (e2) return alert('Error enviando a pantalla: '+e2.message);
+        alert('Álbum enviado y ajustes guardados.');
       };
 
       // 8) Desvincular álbum entero
       document.getElementById('delete-album').onclick = async () => {
-        if (!confirm('¿Estás seguro? Se eliminarán todas las imágenes.')) return;
+        if (!confirm('¿Estás seguro? Se eliminarán todas las imágenes y el álbum.')) return;
         await supabase.from('images').delete().eq('gallery_id', galleryId);
         await supabase.from('galleries').delete().eq('id', galleryId);
         window.location.href = 'galeria.html';
       };
-
-      // carga inicial
-      await loadImages();
     }
 
     window.addEventListener('sidebarReady', initAlbum);
