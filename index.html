@@ -10,6 +10,8 @@
   <script src="/supabaseClient.js"></script>
   <!-- QR Code -->
   <script src="/qrcode.min.js"></script>
+  <!-- Boxicons para el icono fullscreen -->
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
     html, body {
@@ -25,17 +27,26 @@
       padding:12px;
       border-radius:8px;
     }
+    /* Botón de iniciar con solo icono */
     #startBtn {
       margin-top:20px;
-      padding:10px 20px;
-      font-size:1rem;
-      cursor:pointer;
+      background: rgba(255,255,255,0.8);
+      border: none;
+      border-radius: 4px;
+      padding: 8px;
+      cursor: pointer;
+    }
+    #startBtn i {
+      font-size: 1.5rem;
+      color: #000;
     }
   </style>
 </head>
 <body>
   <div id="qr"></div>
-  <button id="startBtn">Iniciar TV</button>
+  <button id="startBtn">
+    <i class="bx bx-fullscreen"></i>
+  </button>
 
   <script>
   (()=>{
@@ -54,35 +65,24 @@
       height: 260
     });
 
-    // 3) Suscripción automática a la columna gallery_id
+    // 3) Suscripción automática: en cuanto se defina gallery_id, voy directamente al slideshow
     supabase
       .channel(`tv_link_${code}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public', table: 'tv',
         filter: `code=eq.${code}`
-      }, async ({ new: tv }) => {
+      }, ({ new: tv }) => {
         if (tv.gallery_id) {
-          // Intentar pantalla completa
-          try {
-            await document.documentElement.requestFullscreen();
-          } catch (e) {
-            console.warn('No se pudo entrar en fullscreen automáticamente:', e);
-          }
-          // Redirigir al slideshow
+          // salto automático a slideshow
           location.href = `/slideshow.html?code=${code}`;
         }
       })
       .subscribe();
 
-    // 4) Al hacer click en “Iniciar TV”
+    // 4) Al hacer click en el icono fullscreen
     document.getElementById('startBtn').onclick = async () => {
-      // Pantalla completa con gesto explícito
-      try {
-        await document.documentElement.requestFullscreen();
-      } catch (e) {
-        console.warn('Fullscreen bloqueado:', e);
-      }
+      await document.documentElement.requestFullscreen();
       subscribePlay();
     };
 
@@ -93,13 +93,9 @@
           event: 'UPDATE',
           schema: 'public', table: 'tv',
           filter: `code=eq.${code}`
-        }, async ({ new: tv }) => {
+        }, ({ new: tv }) => {
           if (tv.play) {
-            try {
-              await document.documentElement.requestFullscreen();
-            } catch (e) {
-              console.warn('Fullscreen bloqueado:', e);
-            }
+            // cuando el admin pulse “Iniciar TV” en administrar.html
             location.href = `/slideshow.html?code=${code}`;
           }
         })
