@@ -7,6 +7,22 @@
   <link rel="stylesheet" href="/style.css"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
+  <style>
+    .home { padding: 20px; }
+    h2 { margin-bottom: 12px; }
+    .section { margin-bottom: 16px; }
+    #video-status, #list-status { margin-left: 8px; color: #666; }
+    ul { list-style: none; padding: 0; }
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 4px;
+    }
+    li button { margin-left: 8px; }
+  </style>
 </head>
 <body>
   <div id="sidebar-container"></div>
@@ -21,6 +37,11 @@
       <span id="video-status"></span>
     </div>
 
+    <!-- Estado carga lista -->
+    <div class="section">
+      <span id="list-status"></span>
+    </div>
+
     <!-- Lista de vídeos -->
     <ul id="videos-list"></ul>
   </section>
@@ -31,53 +52,90 @@
     const { data:{ session } } = await supabase.auth.getSession();
     if (!session) return window.location.href = 'login.html';
 
-    // 2) Cargar lista
+    // 2) Cargar lista de vídeos con indicador
     async function loadVideos() {
-      const { data: vids } = await supabase
-        .from('videos').select('id,url,title')
-        .eq('user_id', session.user.id);
+      const status = document.getElementById('list-status');
       const ul = document.getElementById('videos-list');
+      status.innerText = 'Cargando vídeos…';
       ul.innerHTML = '';
-      vids.forEach(v => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-          <strong>${v.title||v.url.split('/').pop()}</strong>
-          <button class="play">▶</button>
-          <button class="del">🗑</button>
-        `;
-        li.querySelector('.play').onclick = () => {
-          // al hacer play → enviamos a player.html
-          window.open(`/player.html?video=${encodeURIComponent(v.url)}`, '_blank');
-        };
-        li.querySelector('.del').onclick = async () => {
-          if (!confirm('Borrar este vídeo?')) return;
-          await supabase.from('videos').delete().eq('id', v.id);
-          loadVideos();
-        };
-        ul.appendChild(li);
-      });
+      try {
+        const { data: vids, error } = await supabase
+          .from('videos')
+          .select('id,url,title')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!vids.length) {
+          status.innerText = 'No tienes vídeos aún.';
+          return;
+        }
+        status.innerText = '';
+        vids.forEach(v => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <span>${v.title || v.url.split('/').pop()}</span>
+            <div>
+              <button class="play">▶</button>
+              <button class="del">🗑</button>
+            </div>
+          `;
+          li.querySelector('.play').onclick = () => {
+            window.open(
+              `/player.html?video=${encodeURIComponent(v.url)}`,
+              '_blank'
+            );
+          };
+          li.querySelector('.del').onclick = async () => {
+            if (!confirm('¿Borrar este vídeo?')) return;
+            await supabase.from('videos').delete().eq('id', v.id);
+            loadVideos();
+          };
+          ul.appendChild(li);
+        });
+      } catch (err) {
+        status.innerText = 'Error cargando vídeos.';
+        console.error(err);
+      }
     }
 
-    // 3) Subir nuevo
-    document.getElementById('upload-video').onclick = async () => {
+    // 3) Subir nuevo vídeo con bloqueo de botón e indicador
+    const uploadBtn = document.getElementById('upload-video');
+    uploadBtn.addEventListener('click', async () => {
       const inp = document.getElementById('video-file');
+      const status = document.getElementById('video-status');
       if (!inp.files.length) return alert('Selecciona un archivo.');
       const file = inp.files[0];
       const path = `videos/${session.user.id}/${Date.now()}_${file.name}`;
-      document.getElementById('video-status').innerText = 'Cargando…';
-      const { error: upErr } = await supabase
-        .storage.from('videos').upload(path, file, { upsert: false });
-      if (upErr) return alert('Error: '+upErr.message);
-      await supabase.from('videos').insert({
-        user_id: session.user.id,
-        url: path,
-        title: file.name
-      });
-      document.getElementById('video-status').innerText = '';
-      inp.value = null;
-      loadVideos();
-    };
 
+      uploadBtn.disabled = true;
+      status.innerText = 'Subiendo vídeo…';
+
+      try {
+        const { error: upErr } = await supabase
+          .storage.from('videos').upload(path, file, { upsert: false });
+        if (upErr) throw upErr;
+
+        const { error: dbErr } = await supabase
+          .from('videos').insert({
+            user_id: session.user.id,
+            url: path,
+            title: file.name
+          });
+        if (dbErr) throw dbErr;
+
+        status.innerText = '';
+        inp.value = null;
+        await loadVideos();
+      } catch (err) {
+        alert('Error al subir vídeo: ' + err.message);
+        console.error(err);
+      } finally {
+        uploadBtn.disabled = false;
+        status.innerText = '';
+      }
+    });
+
+    // iniciar
     await loadVideos();
   }
 
