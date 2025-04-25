@@ -54,26 +54,35 @@
       height: 260
     });
 
-    // 3) Suscripción automática: en cuanto se defina gallery_id, voy directamente al slideshow
+    // 3) Suscripción automática a la columna gallery_id
     supabase
       .channel(`tv_link_${code}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public', table: 'tv',
         filter: `code=eq.${code}`
-      }, ({ new: tv }) => {
+      }, async ({ new: tv }) => {
         if (tv.gallery_id) {
-          // salto automático a slideshow
+          // Intentar pantalla completa
+          try {
+            await document.documentElement.requestFullscreen();
+          } catch (e) {
+            console.warn('No se pudo entrar en fullscreen automáticamente:', e);
+          }
+          // Redirigir al slideshow
           location.href = `/slideshow.html?code=${code}`;
         }
       })
       .subscribe();
 
-    // 4) Al hacer click en “Iniciar TV”:
-    //    * paso a fullscreen (user gesture)
-    //    * empiezo a escuchar el flag `play` para lanzar el slideshow
+    // 4) Al hacer click en “Iniciar TV”
     document.getElementById('startBtn').onclick = async () => {
-      await document.documentElement.requestFullscreen();
+      // Pantalla completa con gesto explícito
+      try {
+        await document.documentElement.requestFullscreen();
+      } catch (e) {
+        console.warn('Fullscreen bloqueado:', e);
+      }
       subscribePlay();
     };
 
@@ -84,15 +93,18 @@
           event: 'UPDATE',
           schema: 'public', table: 'tv',
           filter: `code=eq.${code}`
-        }, ({ new: tv }) => {
+        }, async ({ new: tv }) => {
           if (tv.play) {
-            // cuando el admin pulse “Iniciar TV” en administrar.html
+            try {
+              await document.documentElement.requestFullscreen();
+            } catch (e) {
+              console.warn('Fullscreen bloqueado:', e);
+            }
             location.href = `/slideshow.html?code=${code}`;
           }
         })
         .subscribe();
     }
-
   })();
   </script>
 </body>
