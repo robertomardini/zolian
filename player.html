@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Vídeo – Zolian TV</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Hls.js y Supabase como antes -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+
+  <style>
+    html, body { margin:0; padding:0; background:#000; overflow:hidden; }
+    #videoPlayer {
+      width:100vw; height:100vh;
+      background:#000;
+    }
+  </style>
+</head>
+<body>
+  <video id="videoPlayer" autoplay muted loop playsinline></video>
+
+  <script>
+  (async () => {
+    const urlParams = new URLSearchParams(location.search);
+    const src = urlParams.get('hls') || urlParams.get('video');
+    if (!src) return alert('Falta parámetro `hls` o `video` en la URL.');
+
+    const video = document.getElementById('videoPlayer');
+    if (Hls.isSupported() && src.endsWith('.m3u8')) {
+      const hls = new Hls();
+      hls.loadSource(src);
+      hls.attachMedia(video);
+    } else {
+      video.src = src;
+    }
+  })();
+  </script>
+</body>
+</html>
