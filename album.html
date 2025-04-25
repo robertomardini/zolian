@@ -172,15 +172,18 @@
         window.location.href = 'login.html';
       };
 
-      // 2) Cargar datos del álbum
-      const { data: alb, error: albErr } = await supabase
-        .from('galleries').select('name,user_id,duration')
-        .eq('id', galleryId).maybeSingle();
-      if (albErr || !alb || alb.user_id !== session.user.id) {
-        alert('Álbum no válido o sin permiso.');
-        return window.location.href = 'galeria.html';
-      }
-      document.getElementById('album-name').value = alb.name;
+     // 2) Cargar datos del álbum
+const { data: alb, error: albErr } = await supabase
+  .from('galleries')
+  // Sólo name y user_id, ya no duration
+  .select('name,user_id')
+  .eq('id', galleryId)
+  .maybeSingle();
+if (albErr || !alb || alb.user_id !== session.user.id) {
+  alert('Álbum no válido o sin permiso.');
+  return window.location.href = 'galeria.html';
+}
+document.getElementById('album-name').value = alb.name;
       document.getElementById('duration').value   = alb.duration || 5;
 
       // 3) Guardar nombre
