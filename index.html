@@ -17,28 +17,25 @@
     html, body {
       margin:0; padding:0;
       width:100%; height:100%;
-      display:flex; flex-direction:column;
-      align-items:center; justify-content:center;
       background:#000; color:#fff;
       font-family:Arial,sans-serif;
-      position: relative; /* para posicionar absolute hijos */
+      overflow:hidden;
     }
     #qr {
       background:#fff;
       padding:12px;
       border-radius:8px;
+      margin-bottom: 16px;
     }
-    .qr-instruction {
-      color: #fff;
-      margin-top: 8px;
-      font-size: 0.9rem;
+    #hint {
+      color: #ccc;
+      margin-bottom: 40px;
       text-align: center;
     }
-    /* Botón de iniciar con solo icono, esquina superior derecha */
-    #startBtn {
+    /* Botón fullscreen */
+    #fs-btn {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 10px; right: 10px;
       z-index: 1000;
       background: rgba(255,255,255,0.8);
       border: none;
@@ -46,22 +43,38 @@
       padding: 6px;
       cursor: pointer;
     }
-    #startBtn i {
-      font-size: 3rem;
+    #fs-btn i {
+      font-size: 1.5rem;
       color: #000;
+    }
+    /* Ocultar cursor y botón en fullscreen */
+    :fullscreen body,
+    :-webkit-full-screen body {
+      cursor: none;
+    }
+    :fullscreen #fs-btn,
+    :-webkit-full-screen #fs-btn {
+      display: none !important;
+    }
+    /* Centrar todo */
+    #container {
+      position: absolute;
+      top:50%; left:50%;
+      transform: translate(-50%,-50%);
+      display: flex; flex-direction: column;
+      align-items: center;
     }
   </style>
 </head>
 <body>
-  <div id="qr"></div>
-  <p class="qr-instruction">Escanea con tu móvil para administrar esta pantalla</p>
-
-  <button id="startBtn">
-    <i class="bx bx-fullscreen"></i>
-  </button>
+  <button id="fs-btn"><i class="bx bx-fullscreen"></i></button>
+  <div id="container">
+    <div id="qr"></div>
+    <div id="hint">Escanea con tu móvil para administrar esta pantalla</div>
+  </div>
 
   <script>
-  (()=>{
+  (async () => {
     // 1) Leer o generar el code de esta TV
     const params = new URLSearchParams(location.search);
     let code = params.get('code');
@@ -70,34 +83,40 @@
       history.replaceState(null, '', `?code=${code}`);
     }
 
-    // 2) Mostrar QR para vincular desde el teléfono
+    // 2) Mostrar QR para vincular
     new QRCode('qr', {
       text: `${location.origin}/vincular.html?code=${code}`,
       width: 260,
       height: 260
     });
 
-    // 3) Suscripción automática: en cuanto se defina gallery_id, voy directamente al slideshow
-    supabase
+    // 3) Función común para redirigir según contenido de TV
+    function handleTV(tv) {
+      if (tv.video_url) {
+        // hay vídeo: vamos a player.html
+        location.href = `/player.html?code=${code}`;
+      } else if (tv.gallery_id) {
+        // hay álbum: vamos a slideshow.html
+        location.href = `/slideshow.html?code=${code}`;
+      }
+    }
+
+    // 4) Suscribirse a cambios en la tabla tv
+    await supabase
       .channel(`tv_link_${code}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public', table: 'tv',
         filter: `code=eq.${code}`
       }, ({ new: tv }) => {
-        if (tv.gallery_id) {
-          location.href = `/slideshow.html?code=${code}`;
-        }
+        handleTV(tv);
       })
       .subscribe();
 
-    // 4) Al hacer click en el icono fullscreen
-    document.getElementById('startBtn').onclick = async () => {
-      await document.documentElement.requestFullscreen();
-      subscribePlay();
-    };
-
-    function subscribePlay(){
+    // 5) Botón fullscreen + empezar a escuchar "play"
+    document.getElementById('fs-btn').onclick = async () => {
+      await document.documentElement.requestFullscreen?.();
+      // Suscribirse al flag play (solo tras gesto de usuario)
       supabase
         .channel(`tv_play_${code}`)
         .on('postgres_changes', {
@@ -105,11 +124,19 @@
           schema: 'public', table: 'tv',
           filter: `code=eq.${code}`
         }, ({ new: tv }) => {
-          if (tv.play) {
-            location.href = `/slideshow.html?code=${code}`;
-          }
+          if (tv.play) handleTV(tv);
         })
         .subscribe();
+    };
+
+    // 6) Chequear estado inicial de la TV para redirigir inmediatamente
+    const { data: tv, error } = await supabase
+      .from('tv')
+      .select('gallery_id,video_url,play')
+      .eq('code', code)
+      .maybeSingle();
+    if (tv && (tv.play || tv.gallery_id || tv.video_url)) {
+      handleTV(tv);
     }
   })();
   </script>
