@@ -22,20 +22,16 @@
     #slides.fade img,
     #slides.zoom img,
     #slides.kenburns img {
-      position:absolute;
-      width:100%; height:100%;
-      object-fit:contain;
-      opacity:0;
+      position:absolute; width:100%; height:100%;
+      object-fit:contain; opacity:0;
       transform:scale(1);
       transition: opacity 1s ease-in-out, transform 1s ease-in-out;
     }
-    /* Esta regla hace visible la img.show */
     #slides.fade img.show,
     #slides.zoom img.show,
     #slides.kenburns img.show {
       opacity:1;
     }
-    /* Zoom y Ken Burns añaden escalado/desplazamiento */
     #slides.zoom img.show {
       transform:scale(1.1);
     }
@@ -44,15 +40,13 @@
     }
 
     /* SLIDE */
+    #slides.slide { overflow:hidden; }
     #slides.slide .wrapper {
-      display:flex;
-      width:100%; height:100%;
+      display:flex; height:100%; width:100%;
       transition: transform 1s ease-in-out;
     }
-    #slides.slide img {
-      flex:0 0 100%;
-      width:100%; height:100%;
-      object-fit:contain;
+    #slides.slide .wrapper img {
+      flex:0 0 100%; width:100%; height:100%; object-fit:contain;
     }
   </style>
 </head>
@@ -69,12 +63,11 @@
     let intervalId = null;
 
     async function arrancar(galleryId, duration, type) {
-      // limpiar slideshow previo
       if (intervalId) clearInterval(intervalId);
       slidesEl.className = '';
       slidesEl.innerHTML = '';
 
-      // buscar imágenes
+      // 1) Traer imágenes
       const { data: imgs, error } = await supabase
         .from('images')
         .select('url')
@@ -82,7 +75,7 @@
         .order('created_at',{ ascending:true });
       if (error || !imgs.length) return console.error('No hay imágenes', error);
 
-      const urls = imgs.map(i => 
+      const urls = imgs.map(i =>
         supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
       );
 
@@ -90,16 +83,32 @@
         slidesEl.classList.add('slide');
         const wrapper = document.createElement('div');
         wrapper.className = 'wrapper';
-        slidesEl.appendChild(wrapper);
+        // Añadimos cada img...
         urls.forEach(src => {
           const img = document.createElement('img');
           img.src = src;
           wrapper.appendChild(img);
         });
+        // clonamos la primera al final
+        const firstClone = wrapper.children[0].cloneNode();
+        wrapper.appendChild(firstClone);
+        slidesEl.appendChild(wrapper);
+
         let idx = 0;
+        const total = urls.length;
         intervalId = setInterval(() => {
-          idx = (idx + 1) % urls.length;
-          wrapper.style.transform = `translateX(-${idx*100}%)`;
+          idx++;
+          wrapper.style.transition = 'transform 1s ease-in-out';
+          wrapper.style.transform = `translateX(-${idx * 100}%)`;
+
+          // Si llegamos al clon, tras la transición reseteamos
+          if (idx === total) {
+            setTimeout(() => {
+              wrapper.style.transition = 'none';
+              wrapper.style.transform = 'translateX(0)';
+              idx = 0;
+            }, 1000); // coincide con la duración de la transición
+          }
         }, duration * 1000);
 
       } else {
@@ -136,7 +145,7 @@
       arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
     }
 
-    // realtime updates
+    // realtime
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes',{
