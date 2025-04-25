@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Mis Vídeos – Zolian App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="/style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+</head>
+<body>
+  <div id="sidebar-container"></div>
+  <section class="home">
+    <h2>Mis Vídeos</h2>
+
+    <!-- Subir vídeo -->
+    <div class="section">
+      <label for="video-file">Selecciona vídeo</label>
+      <input type="file" id="video-file" accept="video/*"/>
+      <button id="upload-video">Subir Vídeo</button>
+      <span id="video-status"></span>
+    </div>
+
+    <!-- Lista de vídeos -->
+    <ul id="videos-list"></ul>
+  </section>
+
+  <script>
+  async function initMisVideos() {
+    // 1) Sesión
+    const { data:{ session } } = await supabase.auth.getSession();
+    if (!session) return window.location.href = 'login.html';
+
+    // 2) Cargar lista
+    async function loadVideos() {
+      const { data: vids } = await supabase
+        .from('videos').select('id,url,title')
+        .eq('user_id', session.user.id);
+      const ul = document.getElementById('videos-list');
+      ul.innerHTML = '';
+      vids.forEach(v => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <strong>${v.title||v.url.split('/').pop()}</strong>
+          <button class="play">▶</button>
+          <button class="del">🗑</button>
+        `;
+        li.querySelector('.play').onclick = () => {
+          // al hacer play → enviamos a player.html
+          window.open(`/player.html?video=${encodeURIComponent(v.url)}`, '_blank');
+        };
+        li.querySelector('.del').onclick = async () => {
+          if (!confirm('Borrar este vídeo?')) return;
+          await supabase.from('videos').delete().eq('id', v.id);
+          loadVideos();
+        };
+        ul.appendChild(li);
+      });
+    }
+
+    // 3) Subir nuevo
+    document.getElementById('upload-video').onclick = async () => {
+      const inp = document.getElementById('video-file');
+      if (!inp.files.length) return alert('Selecciona un archivo.');
+      const file = inp.files[0];
+      const path = `videos/${session.user.id}/${Date.now()}_${file.name}`;
+      document.getElementById('video-status').innerText = 'Cargando…';
+      const { error: upErr } = await supabase
+        .storage.from('videos').upload(path, file, { upsert: false });
+      if (upErr) return alert('Error: '+upErr.message);
+      await supabase.from('videos').insert({
+        user_id: session.user.id,
+        url: path,
+        title: file.name
+      });
+      document.getElementById('video-status').innerText = '';
+      inp.value = null;
+      loadVideos();
+    };
+
+    await loadVideos();
+  }
+
+  window.addEventListener('sidebarReady', initMisVideos);
+  </script>
+</body>
+</html>
