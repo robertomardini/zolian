@@ -12,50 +12,34 @@
   <style>
     html, body { margin:0; padding:0; background:#000; overflow:hidden; }
     #fs-btn {
-      position: absolute; top: 10px; right: 10px; z-index:1000;
+      position: absolute; top:10px; right:10px; z-index:1000;
       padding:8px 12px; background:rgba(255,255,255,0.8);
       border:none; border-radius:4px; cursor:pointer;
     }
-    #slides {
-      position:relative;
-      width:100vw; height:100vh;
-      overflow: hidden; /* para que todo fuera de contorno se oculte */
+    #slides { position:relative; width:100vw; height:100vh; }
+
+    /* Contenedor común de las imágenes */
+    #slides .wrapper {
+      display:flex;
+      transition: transform 1s ease-in-out;
+      width:100%; height:100%;
     }
 
-    /* ===== Fade / Zoom / Ken Burns ===== */
-    #slides.fade img,
-    #slides.zoom img,
-    #slides.kenburns img {
-      position:absolute;
+    /* Estilo para horizontal */
+    #slides.slide .wrapper {
+      flex-direction: row;
+    }
+    #slides.slide img {
+      flex:0 0 100%;
       width:100%; height:100%;
       object-fit:contain;
-      opacity:0;
-      transition: opacity 1s ease-in-out, transform 1s ease-in-out;
-      transform-origin: center center; /* ahora escala desde el centro */
-    }
-    #slides.fade img.show,
-    #slides.zoom img.show,
-    #slides.kenburns img.show {
-      opacity:1;
     }
 
-    /* Zoom ligero (5%) */
-    #slides.zoom img.show {
-      transform: scale(1.05);
+    /* Estilo para vertical */
+    #slides.vertical .wrapper {
+      flex-direction: column;
     }
-
-    /* Ken Burns suave: zoom + ligero movimiento */
-    #slides.kenburns img.show {
-      transform: scale(1.05) translate(2%, 2%);
-    }
-
-    /* ===== Slide ===== */
-    #slides.slide .wrapper {
-      display:flex;
-      height:100%; width:100%;
-      transition: transform 1s ease-in-out;
-    }
-    #slides.slide .wrapper img {
+    #slides.vertical img {
       flex:0 0 100%;
       width:100%; height:100%;
       object-fit:contain;
@@ -69,101 +53,133 @@
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
-    if (!code) {
-      alert('Falta ?code en la URL');
-      return;
-    }
+    if (!code) return alert('Falta ?code en la URL');
 
     const slidesEl = document.getElementById('slides');
     let intervalId = null;
 
-    async function arrancar(galleryId, duration, type) {
+    function clearSlides() {
       if (intervalId) clearInterval(intervalId);
       slidesEl.className = '';
       slidesEl.innerHTML = '';
+    }
 
-      // 1) Traer imágenes
-      const { data: imgs, error } = await supabase
+    async function arrancarSlide(galleryId, duration) {
+      clearSlides();
+      slidesEl.classList.add('slide');
+      const { data: imgs } = await supabase
         .from('images')
         .select('url')
         .eq('gallery_id', galleryId)
         .order('created_at',{ ascending:true });
-      if (error || !imgs.length) return console.error('No hay imágenes', error);
+      if (!imgs?.length) return;
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'wrapper';
+      slidesEl.appendChild(wrapper);
 
       const urls = imgs.map(i =>
         supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
       );
+      urls.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src;
+        wrapper.appendChild(img);
+      });
+      // clonamos 1ª para loop suave
+      wrapper.appendChild(wrapper.children[0].cloneNode());
 
-      if (type === 'slide') {
-        slidesEl.classList.add('slide');
-        const wrapper = document.createElement('div');
-        wrapper.className = 'wrapper';
-        urls.forEach(src => {
-          const img = document.createElement('img');
-          img.src = src;
-          wrapper.appendChild(img);
-        });
-        // clonamos la primera al final para loop infinito
-        const clone = wrapper.children[0].cloneNode();
-        wrapper.appendChild(clone);
-        slidesEl.appendChild(wrapper);
-
-        let idx = 0;
-        const total = urls.length;
-        intervalId = setInterval(() => {
-          idx++;
+      let idx = 0;
+      wrapper.style.transform = 'translateX(0)';
+      wrapper.addEventListener('transitionend', () => {
+        if (idx >= urls.length) {
+          wrapper.style.transition = 'none';
+          idx = 0;
+          wrapper.style.transform = 'translateX(0)';
+          void wrapper.offsetWidth;
           wrapper.style.transition = 'transform 1s ease-in-out';
-          wrapper.style.transform = `translateX(-${idx * 100}%)`;
-          if (idx === total) {
-            setTimeout(() => {
-              wrapper.style.transition = 'none';
-              wrapper.style.transform = 'translateX(0)';
-              idx = 0;
-            }, 1000);
-          }
-        }, duration * 1000);
+        }
+      });
 
-      } else {
-        slidesEl.classList.add(type);
-        urls.forEach((src,i) => {
-          const img = document.createElement('img');
-          img.src = src;
-          if (i === 0) img.classList.add('show');
-          slidesEl.appendChild(img);
-        });
-        let idx = 0;
-        intervalId = setInterval(() => {
-          const imgsDOM = slidesEl.querySelectorAll('img');
-          imgsDOM[idx].classList.remove('show');
-          idx = (idx + 1) % imgsDOM.length;
-          imgsDOM[idx].classList.add('show');
-        }, duration * 1000);
-      }
+      intervalId = setInterval(() => {
+        idx++;
+        wrapper.style.transform = `translateX(-${idx * 100}%)`;
+      }, duration * 1000);
+    }
+
+    async function arrancarVertical(galleryId, duration) {
+      clearSlides();
+      slidesEl.classList.add('vertical');
+      const { data: imgs } = await supabase
+        .from('images')
+        .select('url')
+        .eq('gallery_id', galleryId)
+        .order('created_at',{ ascending:true });
+      if (!imgs?.length) return;
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'wrapper';
+      slidesEl.appendChild(wrapper);
+
+      const urls = imgs.map(i =>
+        supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
+      );
+      urls.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src;
+        wrapper.appendChild(img);
+      });
+      // clonamos 1ª para loop suave
+      wrapper.appendChild(wrapper.children[0].cloneNode());
+
+      let idx = 0;
+      wrapper.style.transform = 'translateY(0)';
+      wrapper.addEventListener('transitionend', () => {
+        if (idx >= urls.length) {
+          wrapper.style.transition = 'none';
+          idx = 0;
+          wrapper.style.transform = 'translateY(0)';
+          void wrapper.offsetHeight;
+          wrapper.style.transition = 'transform 1s ease-in-out';
+        }
+      });
+
+      intervalId = setInterval(() => {
+        idx++;
+        wrapper.style.transform = `translateY(-${idx * 100}%)`;
+      }, duration * 1000);
     }
 
     document.getElementById('fs-btn').addEventListener('click', () => {
       document.documentElement.requestFullscreen?.();
     });
 
-    // Carga inicial
+    // lectura inicial de tv
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type')
       .eq('code', code)
       .maybeSingle();
     if (tv?.gallery_id) {
-      arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
+      if (tv.slideshow_type === 'vertical') {
+        arrancarVertical(tv.gallery_id, tv.duration);
+      } else {
+        // horizontal por defecto
+        arrancarSlide(tv.gallery_id, tv.duration);
+      }
     }
 
-    // Realtime updates
+    // realtime updates
     supabase
       .channel(`tv_updates_${code}`)
-      .on('postgres_changes',{
-        event:'UPDATE', schema:'public', table:'tv',
-        filter:`code=eq.${code}`
+      .on('postgres_changes', {
+        event:'UPDATE', schema:'public', table:'tv', filter:`code=eq.${code}`
       }, ({ new: ntv }) => {
-        if (ntv.gallery_id) {
-          arrancar(ntv.gallery_id, ntv.duration, ntv.slideshow_type || 'fade');
+        if (!ntv.gallery_id) return;
+        if (ntv.slideshow_type === 'vertical') {
+          arrancarVertical(ntv.gallery_id, ntv.duration);
+        } else {
+          arrancarSlide(ntv.gallery_id, ntv.duration);
         }
       })
       .subscribe();
