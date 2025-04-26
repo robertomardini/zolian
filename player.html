@@ -13,119 +13,100 @@
 
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      background: #000;
-      overflow: hidden;
-      width: 100%;
-      height: 100%;
+      margin: 0; padding: 0;
+      background: #000; overflow: hidden;
+      width: 100%; height: 100%;
     }
     #fs-btn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
+      position: absolute; top: 10px; right: 10px;
       z-index: 1000;
       background: rgba(255,255,255,0.8);
-      border: none;
-      border-radius: 4px;
-      padding: 6px;
-      cursor: pointer;
+      border: none; border-radius: 4px;
+      padding: 6px; cursor: pointer;
     }
     #fs-btn i {
-      font-size: 1.5rem;
-      color: #000;
+      font-size: 1.5rem; color: #000;
     }
     video {
-      width: 100vw;
-      height: 100vh;
-      object-fit: contain;
-      background: #000;
+      width: 100vw; height: 100vh;
+      object-fit: contain; background: #000;
     }
     /* Ocultar cursor y botón en fullscreen */
-    :fullscreen body,
-    :-webkit-full-screen body {
-      cursor: none;
-    }
-    :fullscreen #fs-btn,
-    :-webkit-full-screen #fs-btn {
-      display: none !important;
-    }
+    :fullscreen body, :-webkit-full-screen body { cursor: none; }
+    :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { display: none !important; }
   </style>
 </head>
 <body>
   <!-- Botón fullscreen -->
-  <button id="fs-btn">
-    <i class="bx bx-fullscreen"></i>
-  </button>
+  <button id="fs-btn"><i class="bx bx-fullscreen"></i></button>
   <!-- Aquí se insertará el vídeo -->
   <div id="player-container"></div>
 
   <script>
   (async () => {
-    // 1) Leer parámetro code
     const code = new URLSearchParams(location.search).get('code');
-    if (!code) {
-      alert('Falta el parámetro ?code en la URL');
-      return;
-    }
+    if (!code) { alert('Falta ?code en la URL'); return; }
 
-    // 2) Obtener registro de TV
+    // Traer tanto video_url como gallery_id para redirecciones
     const { data: tv, error: tvErr } = await supabase
       .from('tv')
-      .select('video_url')
+      .select('video_url, gallery_id')
       .eq('code', code)
       .maybeSingle();
 
     if (tvErr || !tv || !tv.video_url) {
-      console.error(tvErr);
       alert('No hay vídeo asignado a esta pantalla.');
+      console.error(tvErr);
       return;
     }
 
-    // 3) Obtener URL pública del vídeo
+    // Si al entrar ya hay gallery_id → saltamos a slideshow
+    if (tv.gallery_id) {
+      return window.location.href = `/slideshow.html?code=${code}`;
+    }
+
+    // Obtener URL pública
     const { data: { publicUrl }, error: urlErr } = supabase
-      .storage
-      .from('videos')
+      .storage.from('videos')
       .getPublicUrl(tv.video_url);
-
     if (urlErr || !publicUrl) {
+      alert('Error obteniendo URL pública.');
       console.error(urlErr);
-      alert('Error obteniendo la URL pública del vídeo.');
       return;
     }
 
-    // 4) Crear elemento <video>
-    const container = document.getElementById('player-container');
+    // Crear <video>
     const videoEl = document.createElement('video');
-    videoEl.src      = publicUrl;
-    videoEl.autoplay = true;
-    videoEl.loop     = true;
-    videoEl.muted    = true;    // ideal para autoplay sin interacción previa
-    videoEl.playsInline = true; // en móviles
-    container.appendChild(videoEl);
+    videoEl.src         = publicUrl;
+    videoEl.autoplay    = true;
+    videoEl.loop        = true;
+    videoEl.muted       = true;
+    videoEl.playsInline = true;
+    document.getElementById('player-container').appendChild(videoEl);
 
-    // 5) Fullscreen al presionar el botón
+    // Fullscreen
     document.getElementById('fs-btn').addEventListener('click', async () => {
-      if (document.fullscreenElement) return;
-      await document.documentElement.requestFullscreen?.();
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      }
     });
 
-    // 6) También arrancar fullscreen al cargar, si ya se está en user gesture
-    //    (opcional, puedes comentarlo si no quieres)
-    //document.documentElement.requestFullscreen?.();
-
-    // 7) Escuchar cambios en la tabla TV (play / cambio de vídeo)
+    // Escuchar cambios en TV
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'tv',
         filter: `code=eq.${code}`
       }, ({ new: upd }) => {
+        // Si se asigna un álbum, saltar a slideshow
+        if (upd.gallery_id) {
+          location.href = `/slideshow.html?code=${code}`;
+        }
+        // Si cambia el vídeo, recargar fuente
         if (upd.video_url && upd.video_url !== tv.video_url) {
-          // si cambió el vídeo asignado, recargar source
-          const newPublic = supabase
-            .storage.from('videos').getPublicUrl(upd.video_url).data.publicUrl;
-          videoEl.src = newPublic;
+          const newUrl = supabase.storage
+            .from('videos').getPublicUrl(upd.video_url).data.publicUrl;
+          videoEl.src = newUrl;
           videoEl.play();
         }
       })
