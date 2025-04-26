@@ -103,15 +103,18 @@
       }
 
       // 1) Sesión
-      const { data:{ session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         const r = encodeURIComponent(location.pathname + location.search);
         window.location.href = `login.html?redirect=${r}`;
         return;
       }
 
-      // Inyectar email en sidebar (si existe)
-      document.getElementById('sidebar-user')?.innerText = session.user.email;
+      // Inyectar email en sidebar, si existe el elemento
+      const sidebarUser = document.getElementById('sidebar-user');
+      if (sidebarUser) {
+        sidebarUser.innerText = session.user.email;
+      }
 
       // 2) Cargar datos del álbum
       const { data: alb, error: albErr } = await supabase
@@ -132,7 +135,10 @@
         const name = document.getElementById('album-name').value.trim();
         const dur  = parseInt(document.getElementById('duration').value) || 5;
         const type = document.getElementById('slideshow-type').value;
-        if (!name) { alert('Escribe un nombre.'); return; }
+        if (!name) {
+          alert('Escribe un nombre.');
+          return;
+        }
         const { error } = await supabase
           .from('galleries')
           .update({ name, duration: dur, slideshow_type: type })
@@ -146,8 +152,12 @@
       uploadBtn.onclick = async () => {
         const inp = document.getElementById('file-input');
         const stat = document.getElementById('upload-status');
-        if (!inp.files.length) { alert('Selecciona alguna imagen'); return; }
-        uploadBtn.disabled = true; stat.innerText = 'Subiendo...';
+        if (!inp.files.length) {
+          alert('Selecciona alguna imagen');
+          return;
+        }
+        uploadBtn.disabled = true;
+        stat.innerText = 'Subiendo...';
         for (let f of inp.files) {
           const path = `${galleryId}/${Date.now()}_${f.name}`;
           const { error: upErr } = await supabase
@@ -159,7 +169,9 @@
           }
           await supabase.from('images').insert({ gallery_id: galleryId, url: path });
         }
-        inp.value = ''; stat.innerText = ''; uploadBtn.disabled = false;
+        inp.value = '';
+        stat.innerText = '';
+        uploadBtn.disabled = false;
         await loadImages();
       };
 
@@ -177,7 +189,10 @@
             .storage.from('images')
             .getPublicUrl(img.url).data.publicUrl;
           const li = document.createElement('li');
-          li.innerHTML = `<img src="${publicUrl}"><button class="delete-btn">×</button>`;
+          li.innerHTML = `
+            <img src="${publicUrl}">
+            <button class="delete-btn">×</button>
+          `;
           li.querySelector('button').onclick = async () => {
             if (!confirm('Borrar imagen?')) return;
             await supabase.from('images').delete().eq('id',img.id);
@@ -197,15 +212,19 @@
       const sel = document.getElementById('tv-select');
       tvs.forEach(t => {
         const o = document.createElement('option');
-        o.value = t.code; o.textContent = t.nombre || t.code;
+        o.value = t.code;
+        o.textContent = t.nombre || t.code;
         sel.appendChild(o);
       });
 
       // 7) Enviar a TV
       document.getElementById('send-btn').onclick = async () => {
         const code = sel.value;
-        if (!code) { alert('Selecciona una pantalla'); return; }
-        const dur  = parseInt(document.getElementById('duration').value)||5;
+        if (!code) {
+          alert('Selecciona una pantalla');
+          return;
+        }
+        const dur  = parseInt(document.getElementById('duration').value) || 5;
         const type = document.getElementById('slideshow-type').value;
         const { error } = await supabase
           .from('tv')
