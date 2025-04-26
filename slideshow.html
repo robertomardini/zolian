@@ -8,29 +8,31 @@
   <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
-  <!-- Boxicons para fullscreen -->
+  <!-- Boxicons para el icono fullscreen -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
     html, body {
-      margin:0; padding:0;
-      background:#000; overflow:hidden;
+      margin: 0; padding: 0;
+      background: #000; overflow: hidden;
     }
     #fs-btn {
-      position:absolute; top:10px; right:10px;
-      z-index:1000;
-      background:rgba(255,255,255,0.6);
-      border:none; border-radius:4px;
-      padding:6px; cursor:pointer;
+      position: absolute; top: 10px; right: 10px;
+      z-index: 1000;
+      background: rgba(255,255,255,0.6);
+      border: none; border-radius: 4px;
+      padding: 6px; cursor: pointer;
     }
-    #fs-btn i { font-size:3rem; color:#000; }
-    #slides { position:relative; width:100vw; height:100vh; }
+    #fs-btn i { font-size: 3rem; color: #000; }
+    #slides {
+      position: relative; width: 100vw; height: 100vh;
+    }
     #slides img {
-      position:absolute; width:100%; height:100%;
-      object-fit:contain;
-      transition:transform 1s ease-in-out, opacity 1s ease-in-out;
-      z-index:0;
+      position: absolute; width: 100%; height: 100%;
+      object-fit: contain;
+      transition: transform 1s ease-in-out, opacity 1s ease-in-out;
     }
+    /* Ocultar cursor y botón en fullscreen */
     :fullscreen body, :-webkit-full-screen body { cursor: none; }
     :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { display: none !important; }
   </style>
@@ -58,33 +60,24 @@
         .order('created_at', { ascending: true });
       if (!imgs?.length) return;
 
-      const urls = imgs.map(i =>
+      // Construir elementos con estilos iniciales
+      const publicUrls = imgs.map(i =>
         supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
       );
-      urls.forEach((src, i) => {
+      publicUrls.forEach((src, i) => {
         const img = document.createElement('img');
         img.src = src;
+        img.style.zIndex = i === 0 ? '2' : '0';
+        img.style.opacity = (type === 'fade' ? (i===0?'1':'0') : '1');
         switch (type) {
-          case 'fade':
-            img.style.opacity = i===0?'1':'0';
-            img.style.transform = 'scale(1)';
-            break;
           case 'slide':
-            img.style.opacity = '1';
             img.style.transform = i===0?'translateX(0)':'translateX(100%)';
             break;
           case 'vertical':
-            img.style.opacity = '1';
             img.style.transform = i===0?'translateY(0)':'translateY(100%)';
             break;
-          case 'zoom':
-            img.style.opacity = i===0?'1':'0';
+          default:
             img.style.transform = 'scale(1)';
-            break;
-          case 'kenburns':
-            img.style.opacity = i===0?'1':'0';
-            img.style.transform = 'scale(1) translate(0,0)';
-            break;
         }
         slidesEl.appendChild(img);
       });
@@ -94,69 +87,52 @@
         const items = slidesEl.querySelectorAll('img');
         const current = items[idx];
         idx = (idx + 1) % items.length;
-        const next    = items[idx];
-        items.forEach(img => img.style.zIndex = 0);
+        const next = items[idx];
+
+        // Reset zIndex de todos
+        items.forEach(img => img.style.zIndex = '0');
 
         switch (type) {
           case 'fade':
+            current.style.zIndex = '1';
+            next.style.zIndex    = '2';
             current.style.opacity = '0';
             next.style.opacity    = '1';
             break;
           case 'slide':
-            next.style.zIndex    = 2;
-            current.style.zIndex = 1;
+            current.style.zIndex = '1';
+            next.style.zIndex    = '2';
             current.style.transform = 'translateX(-100%)';
             next.style.transform    = 'translateX(0)';
             setTimeout(() => {
               current.style.transition = 'none';
               current.style.transform  = 'translateX(100%)';
-              current.style.zIndex     = 0;
+              current.style.zIndex     = '0';
               requestAnimationFrame(() => {
                 current.style.transition = 'transform 1s ease-in-out';
               });
             }, 1000);
             break;
           case 'vertical':
-            next.style.zIndex    = 2;
-            current.style.zIndex = 1;
+            current.style.zIndex = '1';
+            next.style.zIndex    = '2';
             current.style.transform = 'translateY(-100%)';
             next.style.transform    = 'translateY(0)';
             setTimeout(() => {
               current.style.transition = 'none';
               current.style.transform  = 'translateY(100%)';
-              current.style.zIndex     = 0;
+              current.style.zIndex     = '0';
               requestAnimationFrame(() => {
                 current.style.transition = 'transform 1s ease-in-out';
               });
             }, 1000);
             break;
-          case 'zoom':
-            current.style.transform = 'scale(1.2)';
-            current.style.opacity   = '0';
-            next.style.transform    = 'scale(1)';
-            next.style.opacity      = '1';
-            setTimeout(() => {
-              current.style.transition = 'none';
-              current.style.transform  = 'scale(1)';
-              current.style.opacity    = '0';
-              requestAnimationFrame(() => {
-                current.style.transition = 'transform 1s ease-in-out, opacity 1s ease-in-out';
-              });
-            }, 1000);
-            break;
-          case 'kenburns':
-            current.style.transform = 'scale(1.2) translate(-10%,-10%)';
-            current.style.opacity   = '0';
-            next.style.transform    = 'scale(1) translate(0,0)';
-            next.style.opacity      = '1';
-            setTimeout(() => {
-              current.style.transition = 'none';
-              current.style.transform  = 'scale(1) translate(0,0)';
-              current.style.opacity    = '0';
-              requestAnimationFrame(() => {
-                current.style.transition = 'transform 1s ease-in-out, opacity 1s ease-in-out';
-              });
-            }, 1000);
+          default:
+            // zoom / kenburns crossfade
+            current.style.zIndex = '1';
+            next.style.zIndex    = '2';
+            current.style.opacity = '0';
+            next.style.opacity    = '1';
             break;
         }
       }, duration * 1000);
@@ -166,36 +142,33 @@
       document.documentElement.requestFullscreen?.();
     });
 
-    // Obtener configuración inicial (gallery + vídeo)
+    // Traer configuración inicial
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type,video_url')
       .eq('code', code)
       .maybeSingle();
 
-    // Si ya hay vídeo asignado, saltar a player
+    // si hay video, saltar a player
     if (tv?.video_url) {
       return window.location.href = `/player.html?code=${code}`;
     }
-    // Si hay álbum, arrancar slideshow
+    // si hay galería, lanzar slideshow
     if (tv?.gallery_id) {
       arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
     }
 
-    // Escuchar cambios en TV
+    // Escuchar cambios
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'tv',
         filter: `code=eq.${code}`
       }, ({ new: upd }) => {
-        // cambio de álbum
-        if (upd.gallery_id) {
-          arrancar(upd.gallery_id, upd.duration, upd.slideshow_type || 'fade');
-        }
-        // cambio de vídeo
         if (upd.video_url) {
           window.location.href = `/player.html?code=${code}`;
+        } else if (upd.gallery_id) {
+          arrancar(upd.gallery_id, upd.duration, upd.slideshow_type || 'fade');
         }
       })
       .subscribe();
