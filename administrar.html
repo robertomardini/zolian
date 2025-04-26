@@ -1,19 +1,18 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <title>Administrar Pantalla – Zolian App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    h1, h2 { margin-bottom: 12px; }
-    ul { list-style: none; padding: 0; margin-bottom: 16px; }
-    li { padding: 8px; border: 1px solid #ccc; margin-bottom: 4px; cursor: pointer; }
-    li:hover { background: #f0f0f0; }
-    button, p { margin-top: 12px; }
-    #unlink { color: red; cursor: pointer; }
+    body { font-family:Arial,sans-serif; padding:20px; }
+    h1,h2 { margin-bottom:12px; }
+    ul { list-style:none; padding:0; margin-bottom:16px; }
+    li { padding:8px; border:1px solid #ccc; margin-bottom:4px; cursor:pointer; }
+    li:hover { background:#f0f0f0; }
+    button { margin-top:8px; padding:8px 12px; }
   </style>
 </head>
 <body>
@@ -21,91 +20,108 @@
   <p>Pantalla: <strong id="screenName"></strong></p>
   <p>Usuario: <strong id="userEmail"></strong></p>
 
-  <h2 id="albumsTitle">Selecciona un álbum:</h2>
+  <h2>Selecciona un álbum:</h2>
   <ul id="galleryList"></ul>
+  <button id="createAlbum">➕ Crear nuevo álbum</button>
 
-  <button id="createAlbum">Crear nuevo álbum</button>
-  <p id="unlink">Desvincular esta pantalla</p>
+  <h2>Selecciona un vídeo:</h2>
+  <ul id="videoList"></ul>
+  <button id="createVideo">➕ Subir nuevo vídeo</button>
+
+  <p id="unlink" style="color:red; margin-top:24px; cursor:pointer;">🔗 Desvincular esta pantalla</p>
 
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
     if (!code) {
-      alert('Falta el parámetro code de TV. Volviendo a Mis Pantallas.');
-      return location.href = 'pantallas.html';
+      alert('Falta code de TV'); location.href='pantallas.html';
+      return;
     }
 
-    // 1) Sesión
-    const { data: { session } } = await supabase.auth.getSession();
+    // Sesión
+    const { data:{ session } } = await supabase.auth.getSession();
     if (!session) {
-      const redirect = encodeURIComponent(`/administrar.html?code=${code}`);
-      return location.href = `login.html?redirect=${redirect}`;
+      const r = encodeURIComponent(location.pathname+location.search);
+      location.href = `login.html?redirect=${r}`;
+      return;
     }
     document.getElementById('userEmail').innerText = session.user.email;
 
-    // 2) Datos de la TV
+    // Datos de la TV
     const { data: tv, error: tvErr } = await supabase
-      .from('tv')
-      .select('nombre,user_id')
-      .eq('code', code)
-      .maybeSingle();
-    if (tvErr || !tv || tv.user_id !== session.user.id) {
-      alert('Pantalla no válida o sin permisos. Volviendo a Mis Pantallas.');
-      return location.href = 'pantallas.html';
+      .from('tv').select('nombre,user_id').eq('code',code).maybeSingle();
+    if (tvErr || !tv || tv.user_id!==session.user.id) {
+      alert('Pantalla no válida'); location.href='pantallas.html';
+      return;
     }
     document.getElementById('screenName').innerText = tv.nombre;
 
-    // 3) Cargar sólo id y name de galleries
-    const { data: galleries, error } = await supabase
+    // 1) Listar álbumes con sus ajustes
+    const { data: galleries } = await supabase
       .from('galleries')
-      .select('id,name')
+      .select('id,name,duration,slideshow_type')
       .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false });
-    if (error) {
-      document.getElementById('albumsTitle').innerText = 'Error cargando álbumes';
-    }
-    const ul = document.getElementById('galleryList');
-    ul.innerHTML = '';
+      .order('created_at',{ ascending:false });
+    const gl = document.getElementById('galleryList');
     galleries.forEach(g => {
       const li = document.createElement('li');
-      li.textContent = g.name;
+      li.textContent = `${g.name} (${g.slideshow_type}, ${g.duration}s)`;
       li.onclick = async () => {
-        // Asignar álbum, limpiar posible video y lanzar slideshow
-        const { error: updateErr } = await supabase
-          .from('tv')
-          .update({
-            gallery_id: g.id,
-            play:       true,
-            video_url:  null
+        const { error } = await supabase
+          .from('tv').update({
+            gallery_id:      g.id,
+            duration:        g.duration,
+            slideshow_type:  g.slideshow_type,
+            play:            true,
+            video_url:       null
           })
           .eq('code', code);
-        if (updateErr) {
-          alert('Error al asignar álbum: ' + updateErr.message);
-        } else {
-          alert(`La TV empezará el slideshow de "${g.name}".`);
-        }
+        if (error) return alert('Error asignando álbum: '+error.message);
+        alert('Álbum asignado con éxito.');
       };
-      ul.appendChild(li);
+      gl.appendChild(li);
     });
 
-    // 4) Crear nuevo álbum
-    document.getElementById('createAlbum').onclick = () => {
-      location.href = `crear-album.html?code=${code}`;
-    };
+    // 2) Listar vídeos
+    const { data: vids } = await supabase
+      .from('videos')
+      .select('id,url,title')
+      .eq('user_id', session.user.id)
+      .order('created_at',{ ascending:false });
+    const vl = document.getElementById('videoList');
+    vids.forEach(v => {
+      const li = document.createElement('li');
+      li.textContent = v.title || v.url.split('/').pop();
+      li.onclick = async () => {
+        const { error } = await supabase
+          .from('tv').update({
+            video_url:  v.url,
+            play:       true,
+            gallery_id: null
+          })
+          .eq('code', code);
+        if (error) return alert('Error asignando vídeo: '+error.message);
+        alert('Vídeo asignado con éxito.');
+      };
+      vl.appendChild(li);
+    });
 
-    // 5) Desvincular pantalla
+    // Crear nuevo álbum
+    document.getElementById('createAlbum').onclick = () =>
+      location.href = `crear-album.html?code=${code}`;
+
+    // Subir nuevo vídeo
+    document.getElementById('createVideo').onclick = () =>
+      location.href = `misvideos.html`;
+
+    // Desvincular
     document.getElementById('unlink').onclick = async () => {
-      if (!confirm('¿Seguro que quieres desvincular esta pantalla?')) return;
-      const { error: unlinkErr } = await supabase
+      if (!confirm('¿Desvincular pantalla?')) return;
+      await supabase
         .from('tv')
-        .update({ user_id: null, gallery_id: null, play: false, video_url: null })
-        .eq('code', code);
-      if (unlinkErr) {
-        alert('Error al desvincular: ' + unlinkErr.message);
-      } else {
-        alert('Pantalla desvinculada.');
-        location.href = 'pantallas.html';
-      }
+        .update({ user_id:null, gallery_id:null, video_url:null, play:false })
+        .eq('code',code);
+      alert('Pantalla desvinculada.'); location.href='pantallas.html';
     };
   })();
   </script>
