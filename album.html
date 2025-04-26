@@ -130,14 +130,16 @@
       const tvCode    = params.get('code');
       if (!galleryId) {
         alert('Falta parámetro gallery.');
-        return window.location.href = 'galeria.html';
+        window.location.href = 'galeria.html';
+        return;
       }
 
       // Sesión
       const { data:{ session } } = await supabase.auth.getSession();
       if (!session) {
         const r = encodeURIComponent(location.pathname + location.search);
-        return window.location.href = `login.html?redirect=${r}`;
+        window.location.href = `login.html?redirect=${r}`;
+        return;
       }
 
       // Mostrar email
@@ -163,13 +165,19 @@
         const name = document.getElementById('album-name').value.trim();
         const dur  = parseInt(document.getElementById('duration').value) || 5;
         const type = document.getElementById('slideshow-type').value;
-        if (!name) return alert('Escribe un nombre.');
+        if (!name) {
+          alert('Escribe un nombre.');
+          return;
+        }
         const { error } = await supabase
           .from('galleries')
           .update({ name, duration: dur, slideshow_type: type })
           .eq('id', galleryId);
-        if (error) alert('Error guardando: ' + error.message);
-        else alert('Cambios guardados correctamente.');
+        if (error) {
+          alert('Error guardando: ' + error.message);
+        } else {
+          alert('Cambios guardados correctamente.');
+        }
       };
 
       // Subir imágenes
@@ -177,19 +185,25 @@
       uploadBtn.onclick = async () => {
         const inp = document.getElementById('file-input');
         const stat = document.getElementById('upload-status');
-        if (!inp.files.length) return alert('Selecciona alguna imagen');
+        if (!inp.files.length) {
+          alert('Selecciona alguna imagen');
+          return;
+        }
         uploadBtn.disabled = true;
         stat.innerText     = 'Subiendo...';
 
         for (let f of inp.files) {
           const path = `${galleryId}/${Date.now()}_${f.name}`;
-          const { error: upErr } = await supabase.storage.from('images').upload(path, f);
+          const { error: upErr } = await supabase
+            .storage.from('images').upload(path, f);
           if (upErr) {
             console.error(upErr);
             alert(`Error subiendo ${f.name}: ${upErr.message}`);
             continue;
           }
-          await supabase.from('images').insert({ gallery_id: galleryId, url: path });
+          await supabase
+            .from('images')
+            .insert({ gallery_id: galleryId, url: path });
         }
 
         inp.value = '';
@@ -204,11 +218,12 @@
           .from('images')
           .select('id,url')
           .eq('gallery_id', galleryId)
-          .order('created_at',{ ascending:false });
+          .order('created_at', { ascending:false });
         const ul = document.getElementById('images-list');
         ul.innerHTML = '';
         for (let img of imgs) {
-          const publicUrl = supabase.storage.from('images').getPublicUrl(img.url).data.publicUrl;
+          const publicUrl = supabase
+            .storage.from('images').getPublicUrl(img.url).data.publicUrl;
           const li = document.createElement('li');
           li.innerHTML = `
             <img src="${publicUrl}">
@@ -241,7 +256,10 @@
       // Enviar a TV
       document.getElementById('send-btn').onclick = async () => {
         const code = sel.value;
-        if (!code) return alert('Selecciona una pantalla');
+        if (!code) {
+          alert('Selecciona una pantalla');
+          return;
+        }
         const dur  = parseInt(document.getElementById('duration').value) || 5;
         const type = document.getElementById('slideshow-type').value;
         const { error } = await supabase
@@ -254,8 +272,11 @@
             video_url:      null
           })
           .eq('code', code);
-        if (error) alert('Error al enviar: ' + error.message);
-        else alert('¡Listo! La TV mostrará este álbum.');
+        if (error) {
+          alert('Error al enviar: ' + error.message);
+        } else {
+          alert('¡Listo! La TV mostrará este álbum.');
+        }
       };
 
       // Eliminar álbum
@@ -267,8 +288,8 @@
       };
     }
 
-    document.addEventListener('DOMContentLoaded', initAlbum);
-    window.addEventListener('sidebarReady',      initAlbum);
+    // Solo inicializamos cuando el sidebar se inyecte
+    window.addEventListener('sidebarReady', initAlbum);
   </script>
 </body>
 </html>
