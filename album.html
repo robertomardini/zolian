@@ -1,332 +1,232 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <base href="/" />
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Álbum – Zolian App</title>
-
-  <!-- Estilos globales y Boxicons -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="stylesheet" href="/style.css"/>
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
-
   <style>
-    .home {
-      padding: 20px;
-      transition: left 0.3s, width 0.3s;
-    }
-    .home .text {
-      font-size: 2rem; margin-bottom: 24px;
-      color: var(--text-color); text-align: center;
-    }
-    .section {
-      align-items: center; padding: 10px;
-      margin-bottom: 10px;
-    }
-    .input-group {
-      display: flex; flex-wrap: wrap; gap: 8px;
-    }
+    .home { padding: 20px; transition: left .3s, width .3s; }
+    .home .text { font-size: 2rem; margin-bottom: 24px; color: var(--text-color); text-align: center; }
+    .section { margin-bottom: 16px; }
+    .input-group { display: flex; gap: 8px; }
     .input-group input,
-    .input-group select {
-      flex: 1; min-width: 0; padding: 8px;
-      border: none; border-radius: 6px;
-      background: var(--sidebar-color);
-      color: var(--text-color);
-    }
-    .input-group button {
-      flex-shrink: 0; padding: 8px 16px;
-      background: var(--primary-color); color: #fff;
-      border: none; border-radius: 6px; cursor: pointer;
-    }
-    .section label {
-      display: block; margin-bottom: 8px;
-      color: var(--text-color); font-weight: 500;
-    }
-    #images-list {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px; list-style: none; padding: 0; margin: 0;
-    }
-    #images-list li {
-      position: relative; overflow: hidden;
-      border-radius: 6px; background: #fff;
-    }
-    #images-list img {
-      width: 100%; height: 100%;
-      object-fit: cover; display: block;
-    }
-    .delete-btn {
-      position: absolute; top: 8px; right: 8px;
-      background: rgba(0,0,0,0.6); color: #fff;
-      border: none; border-radius: 50%;
-      width: 24px; height: 24px; font-size: 16px;
-      cursor: pointer;
-    }
-    #send-btn {
-      display: block; width: 100%;
-      margin: 16px 0; padding: 12px;
-      background: #27ae60; color: #fff;
-      border: none; border-radius: 6px;
-      font-size: 1rem; cursor: pointer;
-    }
-    #delete-album {
-      display: block; width: 100%;
-      margin-top: 32px; padding: 12px;
-      background: #e74c3c; color: #fff;
-      border: none; border-radius: 6px;
-      font-size: 1rem; cursor: pointer;
-    }
-    /* Estilo mensaje de carga */
-    #upload-status {
-      margin-left: 12px;
-      font-style: italic;
-      color: var(--text-color);
-    }
+    .input-group select { flex: 1; padding: 8px; border: none; border-radius: 6px; background: var(--sidebar-color); color: var(--text-color); }
+    .input-group button { padding: 8px 16px; background: var(--primary-color); color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+    #images-list { display: grid; grid-template-columns: repeat(3,1fr); gap:16px; list-style:none; padding:0; }
+    #images-list li { position: relative; border-radius:6px; overflow:hidden; background:#fff; }
+    #images-list img { width:100%; height:100%; object-fit:cover; }
+    .delete-btn { position:absolute; top:8px; right:8px; background:rgba(0,0,0,.6); color:#fff; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; }
+    button:disabled { opacity:.6; cursor:not-allowed; }
   </style>
 </head>
 <body>
-  <!-- Sidebar inyectado -->
   <div id="sidebar-container"></div>
-
   <section class="home">
     <div class="text">Álbum</div>
 
-    <!-- 1) Nombre del álbum -->
+    <!-- Nombre + ajustes de slideshow -->
     <div class="section">
       <label for="album-name">Nombre del álbum</label>
       <div class="input-group">
         <input type="text" id="album-name" placeholder="Mi álbum de fotos"/>
-        <button id="save-name">
-          <box-icon name='edit' color="#fff"></box-icon>
-        </button>
       </div>
     </div>
-
-    <!-- 2) Duración de cada imagen -->
     <div class="section">
       <label for="duration">Duración imagen (segundos)</label>
       <input type="number" id="duration" min="1" value="5"/>
     </div>
-
-    <!-- 3) Tipo de Slideshow (poblado dinámicamente) -->
     <div class="section">
       <label for="slideshow-type">Tipo de Slideshow</label>
-      <select id="slideshow-type"></select>
+      <select id="slideshow-type">
+        <option value="fade">Fade</option>
+        <option value="slide">Slide Horizontal</option>
+        <option value="vertical">Slide Vertical</option>
+        <option value="zoom">Zoom</option>
+        <option value="kenburns">Ken Burns</option>
+      </select>
+    </div>
+    <div class="section">
+      <button id="save-settings">💾 Guardar cambios</button>
     </div>
 
-    <!-- 4) Cargar imágenes -->
+    <!-- Subir imágenes -->
     <div class="section">
       <label for="file-input">Cargar Imágenes</label>
       <div class="input-group">
         <input type="file" id="file-input" multiple accept="image/*"/>
-        <button class="upload" id="upload-btn">
-          <box-icon name='upload' color="#fff"></box-icon>
-        </button>
+        <button id="upload-btn">⬆️ Subir</button>
         <span id="upload-status"></span>
       </div>
     </div>
 
-    <!-- 5) Miniaturas -->
+    <!-- Miniaturas -->
     <div class="section">
       <ul id="images-list"></ul>
     </div>
 
-    <!-- 6) Enviar a pantalla -->
+    <!-- Enviar a pantalla -->
     <div class="section">
-      <label for="tv-select">Enviar a pantalla:</label>
+      <label for="tv-select">Enviar a pantalla</label>
       <div class="input-group">
         <select id="tv-select">
-          <option value="">— Selecciona una pantalla —</option>
+          <option value="">— Selecciona pantalla —</option>
         </select>
-        <button id="send-btn">Enviar</button>
+        <button id="send-btn">▶️ Enviar</button>
       </div>
     </div>
 
-    <!-- 7) Desvincular / borrar álbum entero -->
-    <button id="delete-album">Desvincular</button>
+    <!-- Desvincular / borrar -->
+    <div class="section">
+      <button id="delete-album" style="background:#e74c3c;">🗑 Desvincular/Eliminar álbum</button>
+    </div>
   </section>
 
-  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
-  <script src="/script.js"></script>
   <script>
-    async function initAlbum() {
-      const params    = new URLSearchParams(location.search);
-      const galleryId = params.get('gallery');
-      const tvCode    = params.get('code');
+  async function initAlbum() {
+    const params    = new URLSearchParams(location.search);
+    const galleryId = params.get('gallery');
+    const tvCode    = params.get('code');
+    if (!galleryId) return alert('Falta parámetro gallery'), location.href='galeria.html';
 
-      if (!galleryId) {
-        alert('Falta parámetro «gallery».');
-        return window.location.href = 'galeria.html';
-      }
-
-      // 1) Sesión
-      const { data:{ session } } = await supabase.auth.getSession();
-      if (!session) {
-        const redirect = encodeURIComponent(location.pathname + location.search);
-        return window.location.href = `login.html?redirect=${redirect}`;
-      }
-
-      // Inyectar usuario y logout
-      const su = document.getElementById('sidebar-user');
-      if (su) su.innerText = session.user.email;
-      const lb = document.getElementById('logout');
-      if (lb) lb.addEventListener('click', async e => {
-        e.preventDefault();
-        await supabase.auth.signOut();
-        window.location.href = 'login.html';
-      });
-
-      // 2) Poblamos dropdown de tipos
-      const tipos = [
-        { value: 'fade', label: 'Fade' },
-        { value: 'slide', label: 'Slide Horizontal' },
-        { value: 'vertical', label: 'Slide Vertical' },
-        { value: 'zoom', label: 'Zoom' },
-        { value: 'kenburns', label: 'Ken Burns' }
-      ];
-      const slideSel = document.getElementById('slideshow-type');
-      tipos.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.value;
-        opt.textContent = t.label;
-        slideSel.appendChild(opt);
-      });
-
-      // 3) Cargar nombre de álbum
-      const { data: alb, error: albErr } = await supabase
-        .from('galleries')
-        .select('name,user_id')
-        .eq('id', galleryId)
-        .maybeSingle();
-      if (albErr || !alb || alb.user_id !== session.user.id) {
-        alert('Álbum no válido o sin permiso.');
-        return window.location.href = 'galeria.html';
-      }
-      document.getElementById('album-name').value = alb.name;
-
-      // 4) Si viene tvCode, leemos duration y slideshow_type desde TV
-      if (tvCode) {
-        const { data: tv, error: tvErr } = await supabase
-          .from('tv')
-          .select('duration,slideshow_type')
-          .eq('code', tvCode)
-          .maybeSingle();
-        if (!tvErr && tv) {
-          document.getElementById('duration').value       = tv.duration;
-          slideSel.value = tv.slideshow_type || 'fade';
-        }
-      }
-
-      // 5) Guardar nombre
-      document.getElementById('save-name').addEventListener('click', async () => {
-        const nv = document.getElementById('album-name').value.trim();
-        if (!nv) return alert('Escribe un nombre.');
-        const { error } = await supabase
-          .from('galleries')
-          .update({ name: nv })
-          .eq('id', galleryId);
-        if (error) return alert('Error al renombrar: ' + error.message);
-        alert('Nombre actualizado.');
-      });
-
-      // 6) Subir imágenes con bloqueo y mensaje
-      const uploadBtn   = document.getElementById('upload-btn');
-      const uploadStatus = document.getElementById('upload-status');
-      uploadBtn.addEventListener('click', async () => {
-        const files = document.getElementById('file-input').files;
-        if (!files.length) return alert('Selecciona al menos una imagen.');
-
-        // bloquear y mostrar estado
-        uploadBtn.disabled = true;
-        uploadStatus.textContent = 'Cargando imágenes...';
-
-        for (let f of files) {
-          const path = `${galleryId}/${Date.now()}_${f.name}`;
-          const { error: upErr } = await supabase
-            .storage.from('images').upload(path, f, { upsert: false });
-          if (upErr) {
-            console.error(upErr);
-            alert(`Error subiendo ${f.name}: ${upErr.message}`);
-            continue;
-          }
-          await supabase.from('images').insert({ gallery_id: galleryId, url: path });
-        }
-        await loadImages();
-
-        // restablecer
-        uploadBtn.disabled = false;
-        uploadStatus.textContent = '';
-      });
-
-      // 7) Listar miniaturas
-      async function loadImages() {
-        const { data: imgs } = await supabase
-          .from('images')
-          .select('id,url')
-          .eq('gallery_id', galleryId)
-          .order('created_at',{ ascending:false });
-        const ul = document.getElementById('images-list');
-        ul.innerHTML = '';
-        for (let {id,url} of imgs) {
-          const pu = supabase.storage.from('images').getPublicUrl(url).data.publicUrl;
-          const li = document.createElement('li');
-          li.innerHTML = `<img src="${pu}"><button class="delete-btn">×</button>`;
-          li.querySelector('button').onclick = async () => {
-            if (!confirm('¿Borrar esta imagen?')) return;
-            await supabase.from('images').delete().eq('id', id);
-            await supabase.storage.from('images').remove([url]);
-            await loadImages();
-          };
-          ul.appendChild(li);
-        }
-      }
-      await loadImages();
-
-      // 8) Cargar lista de pantallas del usuario
-      const { data: tvs } = await supabase
-        .from('tv')
-        .select('code,nombre')
-        .eq('user_id', session.user.id);
-      const sel = document.getElementById('tv-select');
-      tvs.forEach(t => {
-        const o = document.createElement('option');
-        o.value = t.code;
-        o.textContent = t.nombre || t.code;
-        sel.appendChild(o);
-      });
-
-      // 9) Enviar álbum a pantalla + guardar configuración en TV
-      document.getElementById('send-btn').addEventListener('click', async () => {
-        const code = sel.value;
-        if (!code) return alert('Selecciona una pantalla.');
-        const dur  = parseInt(document.getElementById('duration').value) || 5;
-        const type = slideSel.value;
-        const { error } = await supabase
-          .from('tv')
-          .update({
-            gallery_id:      galleryId,
-            duration:        dur,
-            slideshow_type:  type,
-            play:            true
-          })
-          .eq('code', code);
-        if (error) return alert('Error enviando a pantalla: '+error.message);
-        alert('Álbum enviado y ajustes guardados.');
-      });
-
-      // 10) Desvincular álbum entero
-      document.getElementById('delete-album').addEventListener('click', async () => {
-        if (!confirm('¿Estás seguro? Se eliminarán todas las imágenes y el álbum.')) return;
-        await supabase.from('images').delete().eq('gallery_id', galleryId);
-        await supabase.from('galleries').delete().eq('id', galleryId);
-        window.location.href = 'galeria.html';
-      });
+    // Sesión
+    const { data:{ session } } = await supabase.auth.getSession();
+    if (!session) {
+      const redir = encodeURIComponent(location.pathname+location.search);
+      return location.href = `login.html?redirect=${redir}`;
     }
 
-    window.addEventListener('sidebarReady', initAlbum);
+    // Inyectar email en sidebar
+    document.getElementById('sidebar-user')?.innerText = session.user.email;
+
+    // 1) Cargar datos del álbum
+    const { data: alb, error: albErr } = await supabase
+      .from('galleries')
+      .select('name,duration,slideshow_type')
+      .eq('id', galleryId)
+      .maybeSingle();
+    if (albErr || !alb) return alert('No pude cargar el álbum.');
+
+    // Rellenar el formulario
+    document.getElementById('album-name').value     = alb.name;
+    document.getElementById('duration').value       = alb.duration;
+    document.getElementById('slideshow-type').value = alb.slideshow_type;
+
+    // 2) Guardar ajustes
+    document.getElementById('save-settings').onclick = async () => {
+      const name = document.getElementById('album-name').value.trim();
+      const dur  = parseInt(document.getElementById('duration').value) || 5;
+      const type = document.getElementById('slideshow-type').value;
+      if (!name) return alert('Escribe un nombre');
+
+      const { error } = await supabase
+        .from('galleries')
+        .update({ name, duration:dur, slideshow_type:type })
+        .eq('id', galleryId);
+      if (error) return alert('Error guardando: '+error.message);
+      alert('Cambios guardados.');
+    };
+
+    // 3) Subir imágenes
+    const uploadBtn = document.getElementById('upload-btn');
+    uploadBtn.onclick = async () => {
+      const inp = document.getElementById('file-input');
+      const stat = document.getElementById('upload-status');
+      if (!inp.files.length) return alert('Selecciona al menos una imagen');
+      uploadBtn.disabled = true;
+      stat.innerText = 'Subiendo...';
+
+      for (let f of inp.files) {
+        const path = `${galleryId}/${Date.now()}_${f.name}`;
+        const { error: upErr } = await supabase
+          .storage.from('images').upload(path, f);
+        if (upErr) {
+          alert('Error subiendo '+f.name+': '+upErr.message);
+          continue;
+        }
+        await supabase
+          .from('images')
+          .insert({ gallery_id:galleryId, url:path });
+      }
+      inp.value = '';
+      stat.innerText = '';
+      uploadBtn.disabled = false;
+      await loadImages();
+    };
+
+    // 4) Cargar miniaturas
+    async function loadImages() {
+      const { data: imgs } = await supabase
+        .from('images')
+        .select('id,url')
+        .eq('gallery_id', galleryId)
+        .order('created_at',{ ascending:false });
+      const ul = document.getElementById('images-list');
+      ul.innerHTML = '';
+      for (let img of imgs) {
+        const publicUrl = supabase
+          .storage.from('images')
+          .getPublicUrl(img.url).data.publicUrl;
+        const li = document.createElement('li');
+        li.innerHTML = `<img src="${publicUrl}"><button class="delete-btn">×</button>`;
+        li.querySelector('button').onclick = async () => {
+          if (!confirm('Borrar esta imagen?')) return;
+          await supabase.from('images').delete().eq('id',img.id);
+          await supabase.storage.from('images').remove([img.url]);
+          await loadImages();
+        };
+        ul.appendChild(li);
+      }
+    }
+    await loadImages();
+
+    // 5) Listar pantallas del usuario
+    const { data: tvs } = await supabase
+      .from('tv')
+      .select('code,nombre')
+      .eq('user_id', session.user.id);
+    const sel = document.getElementById('tv-select');
+    tvs.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.code;
+      o.textContent = t.nombre||t.code;
+      sel.appendChild(o);
+    });
+
+    // 6) Enviar a pantalla
+    document.getElementById('send-btn').onclick = async () => {
+      const code = sel.value;
+      if (!code) return alert('Selecciona una pantalla');
+      const dur  = parseInt(document.getElementById('duration').value)||5;
+      const type = document.getElementById('slideshow-type').value;
+      const { error } = await supabase
+        .from('tv')
+        .update({
+          gallery_id:      galleryId,
+          duration:        dur,
+          slideshow_type:  type,
+          play:            true,
+          video_url:       null
+        })
+        .eq('code', code);
+      if (error) return alert('Error enviando: '+error.message);
+      alert('¡Listo! La TV mostrará este álbum.');
+    };
+
+    // 7) Desvincular / borrar álbum
+    document.getElementById('delete-album').onclick = async () => {
+      if (!confirm('Eliminar todas las imágenes y el álbum?')) return;
+      await supabase.from('images').delete().eq('gallery_id',galleryId);
+      await supabase.from('galleries').delete().eq('id',galleryId);
+      location.href = 'galeria.html';
+    };
+  }
+
+  window.addEventListener('sidebarReady', initAlbum);
   </script>
 </body>
 </html>
