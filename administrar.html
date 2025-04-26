@@ -10,28 +10,9 @@
     body { font-family: Arial, sans-serif; padding: 20px; }
     h1, h2 { margin-bottom: 12px; }
     ul { list-style: none; padding: 0; margin-bottom: 16px; }
-    li {
-      padding: 8px;
-      border: 1px solid #ccc;
-      margin-bottom: 4px;
-      cursor: pointer;
-    }
+    li { padding: 8px; border: 1px solid #ccc; margin-bottom: 4px; cursor: pointer; }
     li:hover { background: #f0f0f0; }
-    button {
-      margin-bottom: 16px;
-      padding: 10px 16px;
-      font-size: 1rem;
-      cursor: pointer;
-      border: none;
-      border-radius: 4px;
-      background: #695CFE;
-      color: #fff;
-    }
-    #unlink {
-      color: #e74c3c;
-      text-decoration: underline;
-      cursor: pointer;
-    }
+    button, p { margin-top: 12px; }
   </style>
 </head>
 <body>
@@ -39,18 +20,11 @@
   <p>Pantalla: <strong id="screenName"></strong></p>
   <p>Usuario: <strong id="userEmail"></strong></p>
 
-  <!-- Sección Álbumes -->
-  <h2>Selecciona un álbum:</h2>
+  <h2 id="albumsTitle">Selecciona un álbum:</h2>
   <ul id="galleryList"></ul>
+
   <button id="createAlbum">Crear nuevo álbum</button>
-
-  <!-- Sección Vídeos -->
-  <h2>Selecciona un vídeo:</h2>
-  <ul id="videoList"></ul>
-  <button id="manageVideos">Gestionar vídeos</button>
-
-  <!-- Desvincular -->
-  <p id="unlink">Desvincular esta pantalla</p>
+  <p id="unlink" style="color: red; cursor: pointer;">Desvincular esta pantalla</p>
 
   <script>
   (async () => {
@@ -61,92 +35,74 @@
     }
 
     // 1) Sesión
-    const { data:{ session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       const redirect = encodeURIComponent(`/administrar.html?code=${code}`);
       return location.href = `login.html?redirect=${redirect}`;
     }
     document.getElementById('userEmail').innerText = session.user.email;
 
-    // 2) Datos de la pantalla
+    // 2) Leer datos de la pantalla
     const { data: tv, error: tvErr } = await supabase
-      .from('tv').select('nombre,user_id')
-      .eq('code', code).maybeSingle();
+      .from('tv')
+      .select('nombre,user_id')
+      .eq('code', code)
+      .maybeSingle();
     if (tvErr || !tv || tv.user_id !== session.user.id) {
       alert('Pantalla no válida o sin permisos. Volviendo a Mis Pantallas.');
       return location.href = 'pantallas.html';
     }
     document.getElementById('screenName').innerText = tv.nombre;
 
-    // 3) Cargar álbumes
-    const { data: galleries, error: galErr } = await supabase
+    // 3) Cargar álbumes del usuario (con duración y tipo)
+    const { data: galleries, error } = await supabase
       .from('galleries')
-      .select('id,name')
+      .select('id,name,duration,slideshow_type')
       .eq('user_id', session.user.id)
-      .order('created_at',{ ascending:false });
-    const galleryList = document.getElementById('galleryList');
-    if (galErr) {
-      galleryList.innerHTML = '<li>Error cargando álbumes</li>';
-    } else {
-      galleries.forEach(g => {
-        const li = document.createElement('li');
-        li.textContent = g.name;
-        li.onclick = async () => {
-          const { error } = await supabase
-            .from('tv')
-            .update({ gallery_id: g.id, video_url: null, play: true })
-            .eq('code', code);
-          if (error) alert('Error al asignar álbum: ' + error.message);
-          else alert('¡Listo! La TV arrancará el slideshow.');
-        };
-        galleryList.appendChild(li);
-      });
+      .order('created_at', { ascending: false });
+    if (error) {
+      document.getElementById('albumsTitle').innerText = 'Error cargando álbumes';
     }
+    const ul = document.getElementById('galleryList');
+    galleries.forEach(g => {
+      const li = document.createElement('li');
+      li.textContent = `${g.name} — (${g.slideshow_type}, ${g.duration}s)`;
+      li.onclick = async () => {
+        //  Actualizar TV: asignar álbum y sus ajustes + desactivar vídeo
+        const { error: updateErr } = await supabase
+          .from('tv')
+          .update({
+            gallery_id:      g.id,
+            duration:        g.duration,
+            slideshow_type:  g.slideshow_type,
+            play:            true,
+            video_url:       null
+          })
+          .eq('code', code);
+        if (updateErr) {
+          alert('Error al asignar álbum: ' + updateErr.message);
+        } else {
+          alert('¡Listo! La TV arrancará el slideshow de "'+g.name+'".');
+        }
+      };
+      ul.appendChild(li);
+    });
 
-    // 4) Botón Crear álbum
+    // 4) Botón "Crear nuevo álbum"
     document.getElementById('createAlbum').onclick = () => {
-      location.href = 'crear-album.html';
+      location.href = `crear-album.html?code=${code}`;
     };
 
-    // 5) Cargar vídeos
-    const { data: videos, error: vidErr } = await supabase
-      .from('videos')
-      .select('id,url,title')
-      .eq('user_id', session.user.id)
-      .order('created_at',{ ascending:false });
-    const videoList = document.getElementById('videoList');
-    if (vidErr) {
-      videoList.innerHTML = '<li>Error cargando vídeos</li>';
-    } else {
-      videos.forEach(v => {
-        const li = document.createElement('li');
-        li.textContent = v.title || v.url.split('/').pop();
-        li.onclick = async () => {
-          const { error } = await supabase
-            .from('tv')
-            .update({ video_url: v.url, gallery_id: null, play: true })
-            .eq('code', code);
-          if (error) alert('Error al asignar vídeo: ' + error.message);
-          else alert('Vídeo asignado y reproducirá en bucle.');
-        };
-        videoList.appendChild(li);
-      });
-    }
-
-    // 6) Botón Gestionar vídeos
-    document.getElementById('manageVideos').onclick = () => {
-      location.href = 'misvideos.html';
-    };
-
-    // 7) Desvincular pantalla
+    // 5) Desvincular pantalla
     document.getElementById('unlink').onclick = async () => {
       if (!confirm('¿Estás seguro de desvincular esta pantalla?')) return;
-      const { error } = await supabase
+      const { error: unlinkErr } = await supabase
         .from('tv')
-        .update({ user_id: null, gallery_id: null, video_url: null, play: false })
+        .update({ user_id: null, gallery_id: null, play: false, video_url: null })
         .eq('code', code);
-      if (error) alert('Error al desvincular: ' + error.message);
-      else {
+      if (unlinkErr) {
+        alert('Error al desvincular: ' + unlinkErr.message);
+      } else {
         alert('Pantalla desvinculada correctamente.');
         location.href = 'pantallas.html';
       }
