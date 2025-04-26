@@ -13,6 +13,7 @@
     li { padding: 8px; border: 1px solid #ccc; margin-bottom: 4px; cursor: pointer; }
     li:hover { background: #f0f0f0; }
     button, p { margin-top: 12px; }
+    #unlink { color: red; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -24,7 +25,7 @@
   <ul id="galleryList"></ul>
 
   <button id="createAlbum">Crear nuevo álbum</button>
-  <p id="unlink" style="color: red; cursor: pointer;">Desvincular esta pantalla</p>
+  <p id="unlink">Desvincular esta pantalla</p>
 
   <script>
   (async () => {
@@ -42,7 +43,7 @@
     }
     document.getElementById('userEmail').innerText = session.user.email;
 
-    // 2) Leer datos de la pantalla
+    // 2) Datos de la TV
     const { data: tv, error: tvErr } = await supabase
       .from('tv')
       .select('nombre,user_id')
@@ -54,48 +55,47 @@
     }
     document.getElementById('screenName').innerText = tv.nombre;
 
-    // 3) Cargar álbumes del usuario (con duración y tipo)
+    // 3) Cargar sólo id y name de galleries
     const { data: galleries, error } = await supabase
       .from('galleries')
-      .select('id,name,duration,slideshow_type')
+      .select('id,name')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
     if (error) {
       document.getElementById('albumsTitle').innerText = 'Error cargando álbumes';
     }
     const ul = document.getElementById('galleryList');
+    ul.innerHTML = '';
     galleries.forEach(g => {
       const li = document.createElement('li');
-      li.textContent = `${g.name} — (${g.slideshow_type}, ${g.duration}s)`;
+      li.textContent = g.name;
       li.onclick = async () => {
-        //  Actualizar TV: asignar álbum y sus ajustes + desactivar vídeo
+        // Asignar álbum, limpiar posible video y lanzar slideshow
         const { error: updateErr } = await supabase
           .from('tv')
           .update({
-            gallery_id:      g.id,
-            duration:        g.duration,
-            slideshow_type:  g.slideshow_type,
-            play:            true,
-            video_url:       null
+            gallery_id: g.id,
+            play:       true,
+            video_url:  null
           })
           .eq('code', code);
         if (updateErr) {
           alert('Error al asignar álbum: ' + updateErr.message);
         } else {
-          alert('¡Listo! La TV arrancará el slideshow de "'+g.name+'".');
+          alert(`La TV empezará el slideshow de "${g.name}".`);
         }
       };
       ul.appendChild(li);
     });
 
-    // 4) Botón "Crear nuevo álbum"
+    // 4) Crear nuevo álbum
     document.getElementById('createAlbum').onclick = () => {
       location.href = `crear-album.html?code=${code}`;
     };
 
     // 5) Desvincular pantalla
     document.getElementById('unlink').onclick = async () => {
-      if (!confirm('¿Estás seguro de desvincular esta pantalla?')) return;
+      if (!confirm('¿Seguro que quieres desvincular esta pantalla?')) return;
       const { error: unlinkErr } = await supabase
         .from('tv')
         .update({ user_id: null, gallery_id: null, play: false, video_url: null })
@@ -103,7 +103,7 @@
       if (unlinkErr) {
         alert('Error al desvincular: ' + unlinkErr.message);
       } else {
-        alert('Pantalla desvinculada correctamente.');
+        alert('Pantalla desvinculada.');
         location.href = 'pantallas.html';
       }
     };
