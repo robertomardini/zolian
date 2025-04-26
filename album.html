@@ -14,31 +14,12 @@
     .home .text { font-size:2rem; margin-bottom:24px; color:var(--text-color); text-align:center; }
     .section { margin-bottom:16px; }
     .input-group { display:flex; gap:8px; }
-    .input-group input, .input-group select {
-      flex:1; padding:8px; border:none; border-radius:6px;
-      background:var(--sidebar-color); color:var(--text-color);
-    }
-    .input-group button {
-      padding:8px 16px; background:var(--primary-color);
-      color:#fff; border:none; border-radius:6px; cursor:pointer;
-    }
-    #images-list {
-      display:grid; grid-template-columns:repeat(3,1fr);
-      gap:16px; list-style:none; padding:0;
-    }
-    #images-list li {
-      position:relative; border-radius:6px;
-      overflow:hidden; background:#fff;
-    }
-    #images-list img {
-      width:100%; height:100%; object-fit:cover;
-    }
-    .delete-btn {
-      position:absolute; top:8px; right:8px;
-      background:rgba(0,0,0,.6); color:#fff;
-      border:none; border-radius:50%; width:24px;
-      height:24px; cursor:pointer;
-    }
+    .input-group input, .input-group select { flex:1; padding:8px; border:none; border-radius:6px; background:var(--sidebar-color); color:var(--text-color); }
+    .input-group button { padding:8px 16px; background:var(--primary-color); color:#fff; border:none; border-radius:6px; cursor:pointer; }
+    #images-list { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; list-style:none; padding:0; }
+    #images-list li { position:relative; border-radius:6px; overflow:hidden; background:#fff; }
+    #images-list img { width:100%; height:100%; object-fit:cover; }
+    .delete-btn { position:absolute; top:8px; right:8px; background:rgba(0,0,0,.6); color:#fff; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; }
     button:disabled { opacity:.6; cursor:not-allowed; }
   </style>
 </head>
@@ -49,7 +30,7 @@
   <section class="home">
     <div class="text">Administrar Álbum</div>
 
-    <!-- Comprobar usuario logueado -->
+    <!-- Mostramos email para comprobar que la sesión existe -->
     <p>Usuario: <strong id="user-email"></strong></p>
 
     <!-- Nombre y ajustes -->
@@ -103,42 +84,46 @@
       </div>
     </div>
 
-    <!-- Eliminar álbum -->
+    <!-- Desvincular/Eliminar álbum -->
     <div class="section">
-      <button id="delete-album" style="background:#e74c3c;">
-        🗑 Eliminar álbum
-      </button>
+      <button id="delete-album" style="background:#e74c3c;">🗑 Eliminar álbum</button>
     </div>
   </section>
 
-  <!-- 1) Inyecta sidebar -->
+  <!-- 1) Script de sidebar (inyecta el mismo sidebar de todas las páginas) -->
   <script src="/script.js"></script>
-  <!-- 2) Supabase -->
+  <!-- 2) Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
 
   <script>
     async function initAlbum() {
-      const params    = new URLSearchParams(location.search);
+      // Leer parámetros
+      const params = new URLSearchParams(window.location.search);
       const galleryId = params.get('gallery');
       const tvCode    = params.get('code');
       if (!galleryId) {
         alert('Falta parámetro gallery.');
-        return window.location.href = 'galeria.html';
+        window.location.href = 'galeria.html';
+        return;
       }
 
-      // Sesión
-      const { data:{ session } } = await supabase.auth.getSession();
+      // Sesión de Supabase
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         const r = encodeURIComponent(location.pathname + location.search);
-        return window.location.href = `login.html?redirect=${r}`;
+        window.location.href = `login.html?redirect=${r}`;
+        return;
       }
 
-      // Mostrar email
+      // Mostrar email en la página
       document.getElementById('user-email').innerText = session.user.email;
-      document.getElementById('sidebar-user')?.innerText = session.user.email;
 
-      // 2) Leer datos de galleries
+      // Inyectar en el sidebar también
+      const sidebarUser = document.getElementById('sidebar-user');
+      if (sidebarUser) sidebarUser.innerText = session.user.email;
+
+      // 2) Cargar datos del álbum
       const { data: alb, error: albErr } = await supabase
         .from('galleries')
         .select('name,duration,slideshow_type')
@@ -152,7 +137,7 @@
       document.getElementById('duration').value       = alb.duration;
       document.getElementById('slideshow-type').value = alb.slideshow_type;
 
-      // 3) **Guardar ajustes** (nombre, duración y tipo)
+      // 3) Guardar ajustes
       document.getElementById('save-settings').onclick = async () => {
         const name = document.getElementById('album-name').value.trim();
         const dur  = parseInt(document.getElementById('duration').value) || 5;
@@ -163,7 +148,7 @@
           .update({ name, duration: dur, slideshow_type: type })
           .eq('id', galleryId);
         if (error) alert('Error guardando: ' + error.message);
-        else alert('Ajustes guardados correctamente.');
+        else alert('Ajustes guardados.');
       };
 
       // 4) Subir imágenes
@@ -171,9 +156,11 @@
       uploadBtn.onclick = async () => {
         const inp = document.getElementById('file-input');
         const stat = document.getElementById('upload-status');
-        if (!inp.files.length) return alert('Selecciona alguna imagen');
+        if (!inp.files.length) {
+          return alert('Selecciona alguna imagen');
+        }
         uploadBtn.disabled = true;
-        stat.innerText     = 'Subiendo...';
+        stat.innerText = 'Subiendo...';
 
         for (let f of inp.files) {
           const path = `${galleryId}/${Date.now()}_${f.name}`;
@@ -186,8 +173,8 @@
           await supabase.from('images').insert({ gallery_id: galleryId, url: path });
         }
 
-        inp.value          = '';
-        stat.innerText     = '';
+        inp.value = '';
+        stat.innerText = '';
         uploadBtn.disabled = false;
         await loadImages();
       };
@@ -198,7 +185,7 @@
           .from('images')
           .select('id,url')
           .eq('gallery_id', galleryId)
-          .order('created_at',{ ascending:false });
+          .order('created_at', { ascending:false });
         const ul = document.getElementById('images-list');
         ul.innerHTML = '';
         for (let img of imgs) {
@@ -227,7 +214,7 @@
       const sel = document.getElementById('tv-select');
       tvs.forEach(t => {
         const o = document.createElement('option');
-        o.value       = t.code;
+        o.value = t.code;
         o.textContent = t.nombre || t.code;
         sel.appendChild(o);
       });
@@ -235,7 +222,9 @@
       // 7) Enviar a TV
       document.getElementById('send-btn').onclick = async () => {
         const code = sel.value;
-        if (!code) return alert('Selecciona una pantalla');
+        if (!code) {
+          return alert('Selecciona una pantalla');
+        }
         const dur  = parseInt(document.getElementById('duration').value) || 5;
         const type = document.getElementById('slideshow-type').value;
         const { error } = await supabase
@@ -252,7 +241,7 @@
         else alert('¡Listo! La TV mostrará este álbum.');
       };
 
-      // 8) Eliminar álbum
+      // 8) Eliminar álbum completo
       document.getElementById('delete-album').onclick = async () => {
         if (!confirm('Eliminar álbum y todas sus imágenes?')) return;
         await supabase.from('images').delete().eq('gallery_id', galleryId);
@@ -261,9 +250,10 @@
       };
     }
 
-    // Ejecutamos al cargar y también tras inyectar el sidebar
+    // Llamamos siempre a initAlbum al cargar la página
     document.addEventListener('DOMContentLoaded', initAlbum);
-    window.addEventListener('sidebarReady',      initAlbum);
+    // Y también cuando el sidebar esté listo
+    window.addEventListener('sidebarReady', initAlbum);
   </script>
 </body>
 </html>
