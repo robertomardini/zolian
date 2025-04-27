@@ -14,7 +14,7 @@
   <style>
     html, body {
       margin: 0; padding: 0;
-      /* Fondo Zolian detrás de todas las imágenes */
+      /* fondo Zolian */
       background: url('/Zolian-BG.png') center center / cover no-repeat;
       overflow: hidden;
       width: 100%; height: 100%;
@@ -69,7 +69,6 @@
         supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
       );
 
-      // Crear elementos <img>
       publicUrls.forEach((src, i) => {
         const img = document.createElement('img');
         img.src = src;
@@ -92,8 +91,8 @@
       });
 
       intervalId = setInterval(() => {
-        const items = slidesEl.querySelectorAll('img');
-        let curr = Array.from(items).findIndex(x => getComputedStyle(x).zIndex === '2');
+        const items = Array.from(slidesEl.querySelectorAll('img'));
+        let curr = items.findIndex(x => getComputedStyle(x).zIndex === '2');
         if (curr < 0) curr = 0;
         const next = (curr + 1) % items.length;
 
@@ -104,26 +103,27 @@
 
         switch (type) {
           case 'fade':
-            // Crossfade
+            // crossfade
             items[curr].style.opacity = '0';
             items[next].style.opacity = '1';
             break;
 
           case 'slide':
-            // Desplazar fuera
+            // desplazar fuera manteniendo opacidad
             items[curr].style.transform = 'translateX(-100%)';
-            // Mostrar siguiente
             items[next].style.transform = 'translateX(0)';
-            // Tras completar (1s), reposicionar oculto todo el tiempo
             setTimeout(() => {
+              // al terminar, quitar transición para reposicionar sin animar
               items[curr].style.transition = 'none';
-              items[curr].style.transform  = 'translateX(100%)';
-              // ocultar mientras viaja de vuelta
+              // ocultar
               items[curr].style.opacity    = '0';
+              // reposicionar al final
+              items[curr].style.transform  = 'translateX(100%)';
               items[curr].style.zIndex     = '0';
-              // Restaurar transición
+              // restaurar transición y opacidad para el siguiente ciclo (pero fuera de pantalla)
               requestAnimationFrame(() => {
                 items[curr].style.transition = 'transform 1s ease-in-out, opacity 1s ease-in-out';
+                items[curr].style.opacity    = '1';
               });
             }, 1000);
             break;
@@ -133,17 +133,18 @@
             items[next].style.transform = 'translateY(0)';
             setTimeout(() => {
               items[curr].style.transition = 'none';
-              items[curr].style.transform  = 'translateY(100%)';
               items[curr].style.opacity    = '0';
+              items[curr].style.transform  = 'translateY(100%)';
               items[curr].style.zIndex     = '0';
               requestAnimationFrame(() => {
                 items[curr].style.transition = 'transform 1s ease-in-out, opacity 1s ease-in-out';
+                items[curr].style.opacity    = '1';
               });
             }, 1000);
             break;
 
           default:
-            // zoom / kenburns: simple crossfade
+            // zoom / kenburns crossfade
             items[curr].style.opacity = '0';
             items[next].style.opacity = '1';
             break;
@@ -156,7 +157,7 @@
       document.documentElement.requestFullscreen();
     });
 
-    // Config inicial
+    // Configuración inicial
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type,video_url')
@@ -170,15 +171,15 @@
       arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
     }
 
-    // Suscripción a cambios
+    // Suscribir a cambios en TV
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'tv',
-        filter: `code=eq.${code}`
+        event:'UPDATE', schema:'public', table:'tv',
+        filter:`code=eq.${code}`
       }, ({ new: upd }) => {
         if (upd.video_url) {
-          window.location.href = `/player.html?code=${code}`;
+          location.href = `/player.html?code=${code}`;
         } else if (upd.gallery_id) {
           arrancar(upd.gallery_id, upd.duration, upd.slideshow_type || 'fade');
         }
