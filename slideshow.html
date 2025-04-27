@@ -14,7 +14,9 @@
   <style>
     html, body {
       margin: 0; padding: 0;
-      background: #000; overflow: hidden;
+      /* Fondo Zolian detrás de todas las imágenes */
+      background: url('/Zolian-BG.png') center center / cover no-repeat;
+      overflow: hidden;
       width: 100%; height: 100%;
     }
     #fs-btn {
@@ -26,7 +28,7 @@
     }
     #fs-btn i { font-size: 2rem; color: #000; }
     #slides {
-      position: absolute; top:0; left:0;
+      position: absolute; top: 0; left: 0;
       width: 100%; height: 100%;
     }
     #slides img {
@@ -67,25 +69,24 @@
         supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
       );
 
-      // Crear imágenes
+      // Crear elementos <img>
       publicUrls.forEach((src, i) => {
         const img = document.createElement('img');
         img.src = src;
-        if (type === 'fade') {
-          img.style.opacity   = i === 0 ? '1' : '0';
-          img.style.transform = 'scale(1)';
-        } else if (type === 'slide') {
-          img.style.opacity   = '1';
-          img.style.transform = i === 0 ? 'translateX(0)' : 'translateX(100%)';
+        img.style.opacity   = type === 'fade'
+          ? (i === 0 ? '1' : '0')
+          : '1';
+        if (type === 'slide') {
+          img.style.transform = i === 0
+            ? 'translateX(0)'
+            : 'translateX(100%)';
         } else if (type === 'vertical') {
-          img.style.opacity   = '1';
-          img.style.transform = i === 0 ? 'translateY(0)' : 'translateY(100%)';
+          img.style.transform = i === 0
+            ? 'translateY(0)'
+            : 'translateY(100%)';
         } else {
-          // zoom / kenburns
-          img.style.opacity   = i === 0 ? '1' : '0';
           img.style.transform = 'scale(1)';
         }
-        // Primera imagen arranca en frente
         if (i === 0) img.style.zIndex = '2';
         slidesEl.appendChild(img);
       });
@@ -96,27 +97,31 @@
         if (curr < 0) curr = 0;
         const next = (curr + 1) % items.length;
 
-        // Reset zIndex
+        // Reset z-index
         items.forEach(x => x.style.zIndex = '0');
         items[curr].style.zIndex = '1';
         items[next].style.zIndex = '2';
 
         switch (type) {
           case 'fade':
+            // Crossfade
             items[curr].style.opacity = '0';
             items[next].style.opacity = '1';
             break;
 
           case 'slide':
-            // Desplaza fuera y oculta
+            // Desplazar fuera
             items[curr].style.transform = 'translateX(-100%)';
-            items[curr].style.opacity   = '0';
+            // Mostrar siguiente
             items[next].style.transform = 'translateX(0)';
+            // Tras completar (1s), reposicionar oculto todo el tiempo
             setTimeout(() => {
-              // Reposiciona y restaura visibilidad
               items[curr].style.transition = 'none';
               items[curr].style.transform  = 'translateX(100%)';
-              items[curr].style.opacity    = '1';
+              // ocultar mientras viaja de vuelta
+              items[curr].style.opacity    = '0';
+              items[curr].style.zIndex     = '0';
+              // Restaurar transición
               requestAnimationFrame(() => {
                 items[curr].style.transition = 'transform 1s ease-in-out, opacity 1s ease-in-out';
               });
@@ -125,12 +130,12 @@
 
           case 'vertical':
             items[curr].style.transform = 'translateY(-100%)';
-            items[curr].style.opacity   = '0';
             items[next].style.transform = 'translateY(0)';
             setTimeout(() => {
               items[curr].style.transition = 'none';
               items[curr].style.transform  = 'translateY(100%)';
-              items[curr].style.opacity    = '1';
+              items[curr].style.opacity    = '0';
+              items[curr].style.zIndex     = '0';
               requestAnimationFrame(() => {
                 items[curr].style.transition = 'transform 1s ease-in-out, opacity 1s ease-in-out';
               });
@@ -138,7 +143,7 @@
             break;
 
           default:
-            // zoom / kenburns crossfade
+            // zoom / kenburns: simple crossfade
             items[curr].style.opacity = '0';
             items[next].style.opacity = '1';
             break;
@@ -151,7 +156,7 @@
       document.documentElement.requestFullscreen();
     });
 
-    // Configuración inicial
+    // Config inicial
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type,video_url')
@@ -173,23 +178,23 @@
         filter: `code=eq.${code}`
       }, ({ new: upd }) => {
         if (upd.video_url) {
-          location.href = `/player.html?code=${code}`;
+          window.location.href = `/player.html?code=${code}`;
         } else if (upd.gallery_id) {
           arrancar(upd.gallery_id, upd.duration, upd.slideshow_type || 'fade');
         }
       })
       .subscribe();
 
-    // Detectar fullscreen en padre para ocultar botón y cursor
+    // Ocultar botón y cursor si ya hay fullscreen en el padre
     function checkFull() {
       let fs = false;
       try { fs = !!window.parent.document.fullscreenElement; } catch {}
       const btn = document.getElementById('fs-btn');
       if (fs) {
-        btn.style.display = 'none';
+        btn.style.display      = 'none';
         document.body.style.cursor = 'none';
       } else {
-        btn.style.display = '';
+        btn.style.display      = '';
         document.body.style.cursor = '';
       }
     }
