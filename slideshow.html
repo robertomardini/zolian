@@ -5,42 +5,65 @@
   <title>Slideshow – Zolian TV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Splide CSS y plugin fade -->
+  <!-- Splide CSS -->
   <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.3/dist/css/splide.min.css"
-  />
-  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.3/dist/js/splide.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide-extension-fade@0.5.0/dist/js/splide-extension-fade.min.js"></script>
-
-  <!-- Supabase client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
+  >
+  <!-- Boxicons para el icono fullscreen -->
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
     html, body {
       margin: 0; padding: 0;
       width: 100%; height: 100%;
-      background: #000 url('/Zolian-BG.png') center/cover no-repeat;
       overflow: hidden;
+      background: url('/Zolian-BG.png') center/cover no-repeat;
     }
-    /* Ajusta el contenedor para pantalla completa */
+    #fs-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      z-index: 1000;
+      background: rgba(255,255,255,0.6);
+      border: none; border-radius: 4px;
+      padding: 6px; cursor: pointer;
+    }
+    #fs-btn i { font-size: 2rem; color: #000; }
+
+    /* Ocultar cursor y botón en fullscreen */
+    :fullscreen body, :-webkit-full-screen body {
+      cursor: none;
+    }
+    :fullscreen #fs-btn, :-webkit-full-screen #fs-btn {
+      display: none !important;
+    }
+
+    /* Nuestro contenedor Splide ocupando toda la pantalla */
     #splide {
-      width: 100vw;
-      height: 100vh;
+      width: 100vw; height: 100vh;
     }
-    #splide .splide__slide img {
+    .splide__slide img {
       object-fit: contain;
       width: 100%; height: 100%;
     }
   </style>
 </head>
 <body>
+  <!-- Botón fullscreen -->
+  <button id="fs-btn"><i class="bx bx-fullscreen"></i></button>
+
+  <!-- Splide structure -->
   <div id="splide" class="splide">
     <div class="splide__track">
       <ul id="slides-list" class="splide__list"></ul>
     </div>
   </div>
+
+  <!-- Supabase y Splide JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.3/dist/js/splide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide-extension-fade@0.3.1/dist/js/splide-extension-fade.min.js"></script>
 
   <script>
   (async () => {
@@ -50,22 +73,27 @@
       return;
     }
 
-    // 1) Lee la configuración de la pantalla
+    // Fullscreen
+    document.getElementById('fs-btn').addEventListener('click', () => {
+      document.documentElement.requestFullscreen?.();
+    });
+
+    // 1) Cargar configuración de la TV
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type,video_url')
       .eq('code', code)
       .maybeSingle();
 
+    // Si hay vídeo, redirijo a player
     if (tv?.video_url) {
-      // Si viene un vídeo, redirige a player
       return location.href = `/player.html?code=${code}`;
     }
     if (!tv?.gallery_id) {
-      return alert('No hay álbum asignado');
+      return alert('No hay álbum asignado a esta pantalla.');
     }
 
-    // 2) Trae las imágenes de Supabase
+    // 2) Cargar URLs de las imágenes
     const { data: imgs } = await supabase
       .from('images')
       .select('url')
@@ -73,58 +101,63 @@
       .order('created_at', { ascending: true });
 
     if (!imgs?.length) {
-      return alert('Este álbum está vacío');
+      return alert('Este álbum no tiene imágenes aún.');
     }
 
-    // 3) Rellena el <ul> de Splide
     const list = document.getElementById('slides-list');
-    for (let i = 0; i < imgs.length; i++) {
+    imgs.forEach(({ url }) => {
       const publicUrl = supabase
         .storage.from('images')
-        .getPublicUrl(imgs[i].url).data.publicUrl;
+        .getPublicUrl(url).data.publicUrl;
       const li = document.createElement('li');
       li.className = 'splide__slide';
-      li.innerHTML = `<img src="${publicUrl}" alt="Slide ${i+1}">`;
+      li.innerHTML = `<img src="${publicUrl}" alt="slide">`;
       list.appendChild(li);
+    });
+
+    // 3) Configurar Splide
+    const options = {
+      type         : 'loop',
+      perPage      : 1,
+      autoplay     : true,
+      interval     : (tv.duration || 5) * 1000,
+      pauseOnHover : false,
+      pauseOnFocus : false,
+      arrows       : false,
+      pagination   : false,
+      height       : '100vh',
+      cover        : false,
+    };
+
+    // si es vertical, cambio la dirección
+    if (tv.slideshow_type === 'vertical') {
+      options.direction = 'ttb';
     }
 
-    // 4) Inicializa Splide con el efecto deseado
-    new Splide( '#splide', {
-      type       : 'loop',
-      autoplay   : true,
-      interval   : (tv.duration  || 5) * 1000,
-      pauseOnHover: false,
-      pauseOnFocus: false,
-      height     : '100vh',
-      cover      : false,
-      perPage    : 1,
-      speed      : 1000,
-      direction  : 'ltr',                // 'ltr' (desplazamiento horizontal)
-      // Para vertical sustituye por 'ttb'
-      // direction: tv.slideshow_type === 'vertical' ? 'ttb' : 'ltr',
-      // Fade plugin solamente si slideshow_type === 'fade'
-      ...(tv.slideshow_type === 'fade' && { 
-        rewind    : true,
-        pagination: false,
-        arrows    : false,
-        speed     : 2000,
-        // monta el plugin
-        extensions: { Fade: Splide.Fade },
-      }),
-    } ).mount( tv.slideshow_type === 'fade' ? { Fade: Splide.Fade } : {} );
+    const splide = new Splide( '#splide', options );
 
-    // 5) Escucha cambios para recargar o redirigir
+    // si es fade, monto la extensión
+    if (tv.slideshow_type === 'fade') {
+      splide.mount( { Fade: Splide.Fade } );
+    } else {
+      splide.mount();
+    }
+
+    // 4) Escuchar cambios en la tabla TV
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'tv',
+        event:  'UPDATE',
+        schema: 'public',
+        table:  'tv',
         filter: `code=eq.${code}`
       }, ({ new: upd }) => {
         if (upd.video_url) {
+          // si ahora asignan vídeo, salto a player
           location.href = `/player.html?code=${code}`;
         }
-        if (upd.gallery_id) {
-          // recarga la página para rehacer el slideshow
+        else if (upd.gallery_id && upd.gallery_id !== tv.gallery_id) {
+          // si cambian de álbum o tipo, recargo la página
           location.reload();
         }
       })
