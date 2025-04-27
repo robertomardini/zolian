@@ -1,69 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Vincular TV – Zolian App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- Supabase JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
-  <!-- QR Code -->
-  <script src="/qrcode.min.js"></script>
-  <!-- Boxicons para el icono fullscreen -->
-  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
-
+  <meta charset="UTF-8"/>
+  <title>Zolian TV</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <style>
-    html, body {
-      margin:0; padding:0;
-      width:100%; height:100%;
-      background:#000; color:#fff;
-      font-family:Arial,sans-serif;
-      overflow:hidden;
-    }
-    #qr {
-      background:#fff;
-      padding:12px;
-      border-radius:8px;
-      margin-bottom: 16px;
-    }
-    #hint {
-      color: #ccc;
-      margin-bottom: 40px;
-      text-align: center;
-    }
-    /* Botón fullscreen */
-    #fs-btn {
-      position: absolute;
-      top: 10px; right: 10px;
-      z-index: 1000;
-      background: rgba(255,255,255,0.8);
-      border: none;
-      border-radius: 4px;
-      padding: 6px;
-      cursor: pointer;
-    }
-    #fs-btn i {
-      font-size: 2.5rem;
-      color: #000;
-    }
-    /* Ocultar cursor y botón en fullscreen */
-    :fullscreen body,
-    :-webkit-full-screen body {
-      cursor: none;
-    }
-    :fullscreen #fs-btn,
-    :-webkit-full-screen #fs-btn {
-      display: none !important;
-    }
-    /* Centrar todo */
-    #container {
-      position: absolute;
-      top:50%; left:50%;
-      transform: translate(-50%,-50%);
-      display: flex; flex-direction: column;
-      align-items: center;
-    }
+    html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#000;color:#fff;}
+    #controls{position:absolute;top:0;left:0;width:100%;text-align:center;padding:20px;z-index:10;}
+    #qr{margin-bottom:12px;background:#fff;padding:8px;border-radius:8px;display:inline-block;}
+    #fs-btn{padding:8px 16px;font-size:1rem;cursor:pointer;}
+    #viewer-frame{display:none;width:100%;height:100%;border:none;}
   </style>
 </head>
 <body>
