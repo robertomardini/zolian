@@ -5,169 +5,115 @@
   <title>Slideshow – Zolian TV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+  <!-- Splide CSS y plugin fade -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.3/dist/css/splide.min.css"
+  />
+  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.3/dist/js/splide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide-extension-fade@0.5.0/dist/js/splide-extension-fade.min.js"></script>
+
   <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
-  <!-- Boxicons para icono fullscreen -->
-  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
     html, body {
       margin: 0; padding: 0;
       width: 100%; height: 100%;
+      background: #000 url('/Zolian-BG.png') center/cover no-repeat;
       overflow: hidden;
-      /* fondo fijo detrás del slideshow */
-      background: url('/Zolian-BG.png') center center / cover no-repeat;
     }
-    #fs-btn {
-      position: absolute; top: 10px; right: 10px;
-      z-index: 1000;
-      background: rgba(255,255,255,0.6);
-      border: none; border-radius: 4px;
-      padding: 6px; cursor: pointer;
+    /* Ajusta el contenedor para pantalla completa */
+    #splide {
+      width: 100vw;
+      height: 100vh;
     }
-    #fs-btn i { font-size: 2rem; color: #000; }
-    #slides {
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
-    }
-    #slides img {
-      position: absolute;
-      width: 100%; height: 100%;
+    #splide .splide__slide img {
       object-fit: contain;
+      width: 100%; height: 100%;
     }
   </style>
 </head>
 <body>
-  <button id="fs-btn"><i class="bx bx-fullscreen"></i></button>
-  <div id="slides"></div>
+  <div id="splide" class="splide">
+    <div class="splide__track">
+      <ul id="slides-list" class="splide__list"></ul>
+    </div>
+  </div>
 
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
-    if (!code) { alert('Falta ?code en la URL'); return; }
-
-    const slidesEl = document.getElementById('slides');
-    let intervalId = null;
-
-    // Helper para ejecutar un paso de slide o vertical
-    function hacerSlide(items, currIdx, type, duration) {
-      const curr = items[currIdx];
-      const next = items[(currIdx + 1) % items.length];
-
-      // preajustar sin transiciones
-      items.forEach(i => i.style.transition = 'none');
-      // aseguro z-index
-      items.forEach(i => i.style.zIndex = '0');
-      curr.style.zIndex = '2';
-      next.style.zIndex = '1';
-
-      if (type === 'slide') {
-        // siguiente fuera a la derecha
-        next.style.transform = 'translateX(100%)';
-      } else if (type === 'vertical') {
-        next.style.transform = 'translateY(100%)';
-      } else {
-        // fade: opacidades
-        items.forEach(i => i.style.opacity = '0');
-        curr.style.opacity = '1';
-      }
-
-      // fuerza reflow
-      void curr.offsetHeight;
-
-      // aplicar transiciones
-      items.forEach(i => {
-        i.style.transition = (type === 'fade')
-          ? 'opacity 1s ease-in-out'
-          : 'transform 1s ease-in-out';
-      });
-
-      // disparar movimiento
-      if (type === 'slide') {
-        curr.style.transform = 'translateX(-100%)';
-        next.style.transform = 'translateX(0)';
-      } else if (type === 'vertical') {
-        curr.style.transform = 'translateY(-100%)';
-        next.style.transform = 'translateY(0)';
-      } else { // fade
-        curr.style.opacity = '0';
-        next.style.opacity = '1';
-      }
-
-      // cuando termina la transición del actual
-      curr.addEventListener('transitionend', () => {
-        // si no es fade, removemos y reinsertamos
-        if (type === 'slide' || type === 'vertical') {
-          curr.remove();
-          // quitamos transición para reposicionarlo al fondo
-          curr.style.transition = 'none';
-          curr.style.zIndex = '0';
-          if (type === 'slide') curr.style.transform = 'translateX(100%)';
-          else curr.style.transform = 'translateY(100%)';
-          slidesEl.appendChild(curr);
-        }
-      }, { once: true });
+    if (!code) {
+      alert('Falta el parámetro ?code en la URL');
+      return;
     }
 
-    async function arrancar(galleryId, duration, type) {
-      clearInterval(intervalId);
-      slidesEl.innerHTML = '';
-
-      const { data: imgs } = await supabase
-        .from('images')
-        .select('url')
-        .eq('gallery_id', galleryId)
-        .order('created_at', { ascending: true });
-      if (!imgs?.length) return;
-
-      const publicUrls = imgs.map(i =>
-        supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
-      );
-
-      // crear imágenes en DOM
-      publicUrls.forEach((src, i) => {
-        const img = document.createElement('img');
-        img.src = src;
-        img.style.zIndex = i === 0 ? '2' : '0';
-        if (type === 'fade') {
-          img.style.opacity = i === 0 ? '1' : '0';
-        } else {
-          img.style.opacity = '1';
-          if (type === 'slide') img.style.transform = i === 0 ? 'translateX(0)' : 'translateX(100%)';
-          if (type === 'vertical') img.style.transform = i === 0 ? 'translateY(0)' : 'translateY(100%)';
-        }
-        slidesEl.appendChild(img);
-      });
-
-      let idx = 0;
-      intervalId = setInterval(() => {
-        const items = Array.from(slidesEl.querySelectorAll('img'));
-        hacerSlide(items, idx, type, duration);
-        idx = (idx + 1) % items.length;
-      }, duration * 1000);
-    }
-
-    // fullscreen
-    document.getElementById('fs-btn').addEventListener('click', () => {
-      document.documentElement.requestFullscreen?.();
-    });
-
-    // cargar config inicial
+    // 1) Lee la configuración de la pantalla
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type,video_url')
       .eq('code', code)
       .maybeSingle();
+
     if (tv?.video_url) {
-      // si hay vídeo, redirige a player
+      // Si viene un vídeo, redirige a player
       return location.href = `/player.html?code=${code}`;
     }
-    if (tv?.gallery_id) {
-      arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
+    if (!tv?.gallery_id) {
+      return alert('No hay álbum asignado');
     }
 
-    // escuchar cambios
+    // 2) Trae las imágenes de Supabase
+    const { data: imgs } = await supabase
+      .from('images')
+      .select('url')
+      .eq('gallery_id', tv.gallery_id)
+      .order('created_at', { ascending: true });
+
+    if (!imgs?.length) {
+      return alert('Este álbum está vacío');
+    }
+
+    // 3) Rellena el <ul> de Splide
+    const list = document.getElementById('slides-list');
+    for (let i = 0; i < imgs.length; i++) {
+      const publicUrl = supabase
+        .storage.from('images')
+        .getPublicUrl(imgs[i].url).data.publicUrl;
+      const li = document.createElement('li');
+      li.className = 'splide__slide';
+      li.innerHTML = `<img src="${publicUrl}" alt="Slide ${i+1}">`;
+      list.appendChild(li);
+    }
+
+    // 4) Inicializa Splide con el efecto deseado
+    new Splide( '#splide', {
+      type       : 'loop',
+      autoplay   : true,
+      interval   : (tv.duration  || 5) * 1000,
+      pauseOnHover: false,
+      pauseOnFocus: false,
+      height     : '100vh',
+      cover      : true,
+      perPage    : 1,
+      speed      : 1000,
+      direction  : 'ltr',                // 'ltr' (desplazamiento horizontal)
+      // Para vertical sustituye por 'ttb'
+      // direction: tv.slideshow_type === 'vertical' ? 'ttb' : 'ltr',
+      // Fade plugin solamente si slideshow_type === 'fade'
+      ...(tv.slideshow_type === 'fade' && { 
+        rewind    : true,
+        pagination: false,
+        arrows    : false,
+        speed     : 2000,
+        // monta el plugin
+        extensions: { Fade: Splide.Fade },
+      }),
+    } ).mount( tv.slideshow_type === 'fade' ? { Fade: Splide.Fade } : {} );
+
+    // 5) Escucha cambios para recargar o redirigir
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
@@ -176,12 +122,13 @@
       }, ({ new: upd }) => {
         if (upd.video_url) {
           location.href = `/player.html?code=${code}`;
-        } else if (upd.gallery_id) {
-          arrancar(upd.gallery_id, upd.duration, upd.slideshow_type || 'fade');
+        }
+        if (upd.gallery_id) {
+          // recarga la página para rehacer el slideshow
+          location.reload();
         }
       })
       .subscribe();
-
   })();
   </script>
 </body>
