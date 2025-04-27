@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Slideshow – Zolian TV</title>
+  <meta charset="UTF-8"/>
+  <title>Player – Zolian TV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
-  <!-- Boxicons para icono fullscreen -->
+  <!-- Boxicons para el icono fullscreen -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
@@ -17,24 +17,20 @@
       background: #000; overflow: hidden;
       width: 100%; height: 100%;
     }
-    /* Fullscreen button */
+    /* Botón fullscreen */
     #fs-btn {
       position: absolute; top: 10px; right: 10px;
       z-index: 1000;
-      background: rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.8);
       border: none; border-radius: 4px;
       padding: 6px; cursor: pointer;
     }
-    #fs-btn i { font-size: 2rem; color: #000; }
-    #slides {
-      position: absolute; top:0; left:0;
-      width: 100%; height: 100%;
+    #fs-btn i {
+      font-size: 1.5rem; color: #000;
     }
-    #slides img {
-      position: absolute;
-      width: 100%; height: 100%;
-      object-fit: contain;
-      transition: transform 1s ease-in-out, opacity 1s ease-in-out;
+    video {
+      width: 100vw; height: 100vh;
+      object-fit: contain; background: #000;
     }
     /* En fullscreen ocultar cursor y botón */
     :fullscreen body, :-webkit-full-screen body { cursor: none; }
@@ -42,8 +38,9 @@
   </style>
 </head>
 <body>
+  <!-- Fullscreen button -->
   <button id="fs-btn"><i class="bx bx-fullscreen"></i></button>
-  <div id="slides"></div>
+  <div id="player-container"></div>
 
   <script>
   (async () => {
@@ -53,127 +50,76 @@
       return;
     }
 
-    const slidesEl = document.getElementById('slides');
-    let intervalId = null;
-
-    // Función principal para arrancar slideshow
-    async function arrancar(galleryId, duration, type) {
-      clearInterval(intervalId);
-      slidesEl.innerHTML = '';
-
-      const { data: imgs } = await supabase
-        .from('images')
-        .select('url')
-        .eq('gallery_id', galleryId)
-        .order('created_at', { ascending: true });
-      if (!imgs?.length) return;
-
-      // Prepara imágenes y estilos iniciales
-      const publicUrls = imgs.map(i =>
-        supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
-      );
-      publicUrls.forEach((src, i) => {
-        const img = document.createElement('img');
-        img.src = src;
-        img.style.zIndex = i === 0 ? '2' : '0';
-        if (type === 'fade') {
-          img.style.opacity = i === 0 ? '1' : '0';
-          img.style.transform = 'scale(1)';
-        } else if (type === 'slide') {
-          img.style.opacity = '1';
-          img.style.transform = i===0 ? 'translateX(0)' : 'translateX(100%)';
-        } else if (type === 'vertical') {
-          img.style.opacity = '1';
-          img.style.transform = i===0 ? 'translateY(0)' : 'translateY(100%)';
-        } else {
-          // zoom / kenburns
-          img.style.opacity = i===0 ? '1' : '0';
-          img.style.transform = 'scale(1)';
-        }
-        slidesEl.appendChild(img);
-      });
-
-      // Intervalo de cambio
-      intervalId = setInterval(() => {
-        const items = slidesEl.querySelectorAll('img');
-        let current = Array.from(items).findIndex((_, idx) => items[idx].style.zIndex==='2');
-        if (current < 0) current = 0;
-        const next = (current + 1) % items.length;
-
-        items.forEach(i => i.style.zIndex = '0');
-        items[current].style.zIndex = '1';
-        items[next].style.zIndex    = '2';
-
-        switch (type) {
-          case 'fade':
-            items[current].style.opacity = '0';
-            items[next].style.opacity    = '1';
-            break;
-          case 'slide':
-            items[current].style.transform = 'translateX(-100%)';
-            items[next].style.transform    = 'translateX(0)';
-            setTimeout(() => {
-              items[current].style.transition = 'none';
-              items[current].style.transform  = 'translateX(100%)';
-              items[current].style.zIndex     = '0';
-              requestAnimationFrame(() => {
-                items[current].style.transition = 'transform 1s ease-in-out';
-              });
-            }, 1000);
-            break;
-          case 'vertical':
-            items[current].style.transform = 'translateY(-100%)';
-            items[next].style.transform    = 'translateY(0)';
-            setTimeout(() => {
-              items[current].style.transition = 'none';
-              items[current].style.transform  = 'translateY(100%)';
-              items[current].style.zIndex     = '0';
-              requestAnimationFrame(() => {
-                items[current].style.transition = 'transform 1s ease-in-out';
-              });
-            }, 1000);
-            break;
-          default:
-            // zoom / kenburns crossfade
-            items[current].style.opacity = '0';
-            items[next].style.opacity    = '1';
-            break;
-        }
-      }, duration * 1000);
-    }
-
-    // Fullscreen button
-    document.getElementById('fs-btn').addEventListener('click', () => {
-      document.documentElement.requestFullscreen();
-    });
-
-    // Carga inicial de configuración TV
-    const { data: tv } = await supabase
+    // 1) Traer registro TV (video_url + gallery_id)
+    const { data: tv, error: tvErr } = await supabase
       .from('tv')
-      .select('gallery_id,duration,slideshow_type,video_url')
+      .select('video_url, gallery_id')
       .eq('code', code)
       .maybeSingle();
 
-    // Si hay vídeo asignado → redirigir a player
-    if (tv?.video_url) {
-      return location.href = `/player.html?code=${code}`;
-    }
-    // Si hay galería → arrancar slideshow
-    if (tv?.gallery_id) {
-      arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
+    if (tvErr || !tv) {
+      console.error(tvErr);
+      alert('No hay datos de esta pantalla.');
+      return;
     }
 
-    // Escuchar cambios en TV
+    // 2) Si ya asignaron un álbum, redirigir a slideshow
+    if (tv.gallery_id) {
+      return location.href = `/slideshow.html?code=${code}`;
+    }
+
+    // 3) Si no hay vídeo, mostrar error
+    if (!tv.video_url) {
+      alert('No hay vídeo asignado a esta pantalla.');
+      return;
+    }
+
+    // 4) Obtener URL pública
+    const { data: { publicUrl }, error: urlErr } = supabase
+      .storage.from('videos')
+      .getPublicUrl(tv.video_url);
+    if (urlErr || !publicUrl) {
+      console.error(urlErr);
+      alert('Error obteniendo URL pública.');
+      return;
+    }
+
+    // 5) Crear <video>
+    const videoEl = document.createElement('video');
+    videoEl.src         = publicUrl;
+    videoEl.autoplay    = true;
+    videoEl.loop        = true;
+    videoEl.muted       = true;
+    videoEl.playsInline = true;
+    document.getElementById('player-container').appendChild(videoEl);
+
+    // 6) Botón fullscreen
+    document.getElementById('fs-btn').addEventListener('click', async () => {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      }
+    });
+
+    // 7) Escuchar cambios en TV
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'tv',
         filter: `code=eq.${code}`
       }, ({ new: upd }) => {
-        if (upd.video_url) {
-          location.href = `/player.html?code=${code}`;
-        } else if (upd.gallery_id) {
-          arrancar(upd.gallery_id, upd.duration, upd.slideshow_type || 'fade');
+        // Si cambian a álbum → slideshow
+        if (upd.gallery_id) {
+          location.href = `/slideshow.html?code=${code}`;
+          return;
+        }
+        // Si cambian vídeo diferente → recargar fuente
+        if (upd.video_url && upd.video_url !== tv.video_url) {
+          const newPublic = supabase
+            .storage.from('videos')
+            .getPublicUrl(upd.video_url)
+            .data.publicUrl;
+          videoEl.src = newPublic;
+          videoEl.play();
         }
       })
       .subscribe();
