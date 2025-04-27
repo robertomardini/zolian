@@ -14,10 +14,10 @@
   <style>
     html, body {
       margin: 0; padding: 0;
-      /* fondo Zolian */
-      background: url('/Zolian-BG.png') center center / cover no-repeat;
-      overflow: hidden;
       width: 100%; height: 100%;
+      overflow: hidden;
+      /* fondo fijo detrás del slideshow */
+      background: url('/Zolian-BG.png') center center / cover no-repeat;
     }
     #fs-btn {
       position: absolute; top: 10px; right: 10px;
@@ -35,7 +35,6 @@
       position: absolute;
       width: 100%; height: 100%;
       object-fit: contain;
-      transition: transform 1s ease-in-out, opacity 1s ease-in-out;
     }
   </style>
 </head>
@@ -46,13 +45,70 @@
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
-    if (!code) {
-      alert('Falta ?code en la URL');
-      return;
-    }
+    if (!code) { alert('Falta ?code en la URL'); return; }
 
     const slidesEl = document.getElementById('slides');
     let intervalId = null;
+
+    // Helper para ejecutar un paso de slide o vertical
+    function hacerSlide(items, currIdx, type, duration) {
+      const curr = items[currIdx];
+      const next = items[(currIdx + 1) % items.length];
+
+      // preajustar sin transiciones
+      items.forEach(i => i.style.transition = 'none');
+      // aseguro z-index
+      items.forEach(i => i.style.zIndex = '0');
+      curr.style.zIndex = '2';
+      next.style.zIndex = '1';
+
+      if (type === 'slide') {
+        // siguiente fuera a la derecha
+        next.style.transform = 'translateX(100%)';
+      } else if (type === 'vertical') {
+        next.style.transform = 'translateY(100%)';
+      } else {
+        // fade: opacidades
+        items.forEach(i => i.style.opacity = '0');
+        curr.style.opacity = '1';
+      }
+
+      // fuerza reflow
+      void curr.offsetHeight;
+
+      // aplicar transiciones
+      items.forEach(i => {
+        i.style.transition = (type === 'fade')
+          ? 'opacity 1s ease-in-out'
+          : 'transform 1s ease-in-out';
+      });
+
+      // disparar movimiento
+      if (type === 'slide') {
+        curr.style.transform = 'translateX(-100%)';
+        next.style.transform = 'translateX(0)';
+      } else if (type === 'vertical') {
+        curr.style.transform = 'translateY(-100%)';
+        next.style.transform = 'translateY(0)';
+      } else { // fade
+        curr.style.opacity = '0';
+        next.style.opacity = '1';
+      }
+
+      // cuando termina la transición del actual
+      curr.addEventListener('transitionend', () => {
+        // si no es fade, removemos y reinsertamos
+        if (type === 'slide' || type === 'vertical') {
+          curr.remove();
+          // quitamos transición para reposicionarlo al fondo
+          curr.style.transition = 'none';
+          curr.style.zIndex = '0';
+          if (type === 'slide') curr.style.transform = 'translateX(100%)';
+          else curr.style.transform = 'translateY(100%)';
+          slidesEl.appendChild(curr);
+        }
+      }, { once: true });
+    }
 
     async function arrancar(galleryId, duration, type) {
       clearInterval(intervalId);
@@ -69,114 +125,54 @@
         supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
       );
 
+      // crear imágenes en DOM
       publicUrls.forEach((src, i) => {
         const img = document.createElement('img');
         img.src = src;
-        img.style.opacity   = type === 'fade'
-          ? (i === 0 ? '1' : '0')
-          : '1';
-        if (type === 'slide') {
-          img.style.transform = i === 0
-            ? 'translateX(0)'
-            : 'translateX(100%)';
-        } else if (type === 'vertical') {
-          img.style.transform = i === 0
-            ? 'translateY(0)'
-            : 'translateY(100%)';
+        img.style.zIndex = i === 0 ? '2' : '0';
+        if (type === 'fade') {
+          img.style.opacity = i === 0 ? '1' : '0';
         } else {
-          img.style.transform = 'scale(1)';
+          img.style.opacity = '1';
+          if (type === 'slide') img.style.transform = i === 0 ? 'translateX(0)' : 'translateX(100%)';
+          if (type === 'vertical') img.style.transform = i === 0 ? 'translateY(0)' : 'translateY(100%)';
         }
-        if (i === 0) img.style.zIndex = '2';
         slidesEl.appendChild(img);
       });
 
+      let idx = 0;
       intervalId = setInterval(() => {
         const items = Array.from(slidesEl.querySelectorAll('img'));
-        let curr = items.findIndex(x => getComputedStyle(x).zIndex === '2');
-        if (curr < 0) curr = 0;
-        const next = (curr + 1) % items.length;
-
-        // Reset z-index
-        items.forEach(x => x.style.zIndex = '0');
-        items[curr].style.zIndex = '1';
-        items[next].style.zIndex = '2';
-
-        switch (type) {
-          case 'fade':
-            // crossfade
-            items[curr].style.opacity = '0';
-            items[next].style.opacity = '1';
-            break;
-
-          case 'slide':
-            // desplazar fuera manteniendo opacidad
-            items[curr].style.transform = 'translateX(-100%)';
-            items[next].style.transform = 'translateX(0)';
-            setTimeout(() => {
-              // al terminar, quitar transición para reposicionar sin animar
-              items[curr].style.transition = 'none';
-              // ocultar
-              items[curr].style.opacity    = '0';
-              // reposicionar al final
-              items[curr].style.transform  = 'translateX(100%)';
-              items[curr].style.zIndex     = '0';
-              // restaurar transición y opacidad para el siguiente ciclo (pero fuera de pantalla)
-              requestAnimationFrame(() => {
-                items[curr].style.transition = 'transform 1s ease-in-out, opacity 1s ease-in-out';
-                items[curr].style.opacity    = '1';
-              });
-            }, 1000);
-            break;
-
-          case 'vertical':
-            items[curr].style.transform = 'translateY(-100%)';
-            items[next].style.transform = 'translateY(0)';
-            setTimeout(() => {
-              items[curr].style.transition = 'none';
-              items[curr].style.opacity    = '0';
-              items[curr].style.transform  = 'translateY(100%)';
-              items[curr].style.zIndex     = '0';
-              requestAnimationFrame(() => {
-                items[curr].style.transition = 'transform 1s ease-in-out, opacity 1s ease-in-out';
-                items[curr].style.opacity    = '1';
-              });
-            }, 1000);
-            break;
-
-          default:
-            // zoom / kenburns crossfade
-            items[curr].style.opacity = '0';
-            items[next].style.opacity = '1';
-            break;
-        }
+        hacerSlide(items, idx, type, duration);
+        idx = (idx + 1) % items.length;
       }, duration * 1000);
     }
 
-    // Fullscreen
+    // fullscreen
     document.getElementById('fs-btn').addEventListener('click', () => {
-      document.documentElement.requestFullscreen();
+      document.documentElement.requestFullscreen?.();
     });
 
-    // Configuración inicial
+    // cargar config inicial
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type,video_url')
       .eq('code', code)
       .maybeSingle();
-
     if (tv?.video_url) {
+      // si hay vídeo, redirige a player
       return location.href = `/player.html?code=${code}`;
     }
     if (tv?.gallery_id) {
       arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
     }
 
-    // Suscribir a cambios en TV
+    // escuchar cambios
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
-        event:'UPDATE', schema:'public', table:'tv',
-        filter:`code=eq.${code}`
+        event: 'UPDATE', schema: 'public', table: 'tv',
+        filter: `code=eq.${code}`
       }, ({ new: upd }) => {
         if (upd.video_url) {
           location.href = `/player.html?code=${code}`;
@@ -185,23 +181,6 @@
         }
       })
       .subscribe();
-
-    // Ocultar botón y cursor si ya hay fullscreen en el padre
-    function checkFull() {
-      let fs = false;
-      try { fs = !!window.parent.document.fullscreenElement; } catch {}
-      const btn = document.getElementById('fs-btn');
-      if (fs) {
-        btn.style.display      = 'none';
-        document.body.style.cursor = 'none';
-      } else {
-        btn.style.display      = '';
-        document.body.style.cursor = '';
-      }
-    }
-    setInterval(checkFull, 300);
-    window.parent.document.addEventListener('fullscreenchange', checkFull);
-    document.addEventListener('DOMContentLoaded', checkFull);
 
   })();
   </script>
