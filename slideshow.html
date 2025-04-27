@@ -29,28 +29,11 @@
       position: absolute; top:0; left:0;
       width: 100%; height: 100%;
     }
-    /* Máscara central con tu fondo */
-    #slides::before {
-      content: "";
-      position: absolute;
-      top: 0; left: calc(50% - 150px);
-      width: 300px; height: 100%;
-      background: url('/Zolian-BG.png') no-repeat center center;
-      background-size: contain;
-      z-index: 3;
-      pointer-events: none;
-    }
-    /* Imágenes básicas */
     #slides img {
       position: absolute;
       width: 100%; height: 100%;
       object-fit: contain;
       transition: transform 1s ease-in-out, opacity 1s ease-in-out;
-      z-index: 2;
-    }
-    /* La imagen activa va por encima de la máscara */
-    #slides img.active {
-      z-index: 4;
     }
   </style>
 </head>
@@ -77,49 +60,37 @@
         .order('created_at', { ascending: true });
       if (!imgs?.length) return;
 
-      // Crear los <img>
       const publicUrls = imgs.map(i =>
         supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
       );
       publicUrls.forEach((src, i) => {
         const img = document.createElement('img');
         img.src = src;
-        // Estado inicial según tipo
+        img.style.zIndex = i === 0 ? '2' : '0';
         if (type === 'fade') {
-          img.style.opacity = i===0?'1':'0';
-          img.style.transform = 'scale(1)';
+          img.style.opacity = i===0?'1':'0'; img.style.transform = 'scale(1)';
         } else if (type === 'slide') {
-          img.style.opacity = '1';
-          img.style.transform = i===0?'translateX(0)':'translateX(100%)';
+          img.style.opacity = '1'; img.style.transform = i===0?'translateX(0)':'translateX(100%)';
         } else if (type === 'vertical') {
-          img.style.opacity = '1';
-          img.style.transform = i===0?'translateY(0)':'translateY(100%)';
+          img.style.opacity = '1'; img.style.transform = i===0?'translateY(0)':'translateY(100%)';
         } else {
-          // zoom y kenburns
-          img.style.opacity = i===0?'1':'0';
-          img.style.transform = 'scale(1)';
+          img.style.opacity = i===0?'1':'0'; img.style.transform = 'scale(1)';
         }
-        // La primera imagen arranca como activa
-        if (i === 0) img.classList.add('active');
         slidesEl.appendChild(img);
       });
 
       intervalId = setInterval(() => {
-        const items = Array.from(slidesEl.querySelectorAll('img'));
-        // Índice actual por clase
-        let curr = items.findIndex(x => x.classList.contains('active'));
+        const items = slidesEl.querySelectorAll('img');
+        let curr = Array.from(items).findIndex(x => x.style.zIndex==='2');
         if (curr < 0) curr = 0;
         const next = (curr + 1) % items.length;
+        items.forEach(x => x.style.zIndex = '0');
+        items[curr].style.zIndex = '1';
+        items[next].style.zIndex = '2';
 
-        // Cambiamos clases
-        items[curr].classList.remove('active');
-        items[next].classList.add('active');
-
-        // Animaciones según tipo
         switch (type) {
           case 'fade':
-            items[curr].style.opacity = '0';
-            items[next].style.opacity = '1';
+            items[curr].style.opacity = '0'; items[next].style.opacity = '1';
             break;
           case 'slide':
             items[curr].style.transform = 'translateX(-100%)';
@@ -127,6 +98,7 @@
             setTimeout(() => {
               items[curr].style.transition = 'none';
               items[curr].style.transform  = 'translateX(100%)';
+              items[curr].style.zIndex     = '0';
               requestAnimationFrame(() => {
                 items[curr].style.transition = 'transform 1s ease-in-out';
               });
@@ -138,21 +110,18 @@
             setTimeout(() => {
               items[curr].style.transition = 'none';
               items[curr].style.transform  = 'translateY(100%)';
+              items[curr].style.zIndex     = '0';
               requestAnimationFrame(() => {
                 items[curr].style.transition = 'transform 1s ease-in-out';
               });
             }, 1000);
             break;
           default:
-            // zoom / kenburns
-            items[curr].style.opacity = '0';
-            items[next].style.opacity = '1';
-            break;
+            items[curr].style.opacity = '0'; items[next].style.opacity = '1';
         }
       }, duration * 1000);
     }
 
-    // Fullscreen
     document.getElementById('fs-btn').addEventListener('click', () => {
       document.documentElement.requestFullscreen();
     });
@@ -163,33 +132,31 @@
       .select('gallery_id,duration,slideshow_type,video_url')
       .eq('code', code)
       .maybeSingle();
-
     if (tv?.video_url) {
-      return location.href = `/player.html?code=${code}`;
+      return location.href = /player.html?code=${code};
     }
     if (tv?.gallery_id) {
       arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
     }
 
-    // Escuchar cambios
     supabase
-      .channel(`tv_updates_${code}`)
+      .channel(tv_updates_${code})
       .on('postgres_changes', {
         event:'UPDATE', schema:'public', table:'tv',
-        filter:`code=eq.${code}`
+        filter:code=eq.${code}
       }, ({ new: upd }) => {
         if (upd.video_url) {
-          location.href = `/player.html?code=${code}`;
+          location.href = /player.html?code=${code};
         } else if (upd.gallery_id) {
           arrancar(upd.gallery_id, upd.duration, upd.slideshow_type || 'fade');
         }
       })
       .subscribe();
 
-    // Adaptar el botón si ya estamos en fullscreen (anidado en iframe)
+    // Polling para ocultar botón y cursor si el padre está en fullscreen
     function checkFull() {
       let fs = false;
-      try { fs = !!window.parent.document.fullscreenElement; } catch {}
+      try { fs = !!window.parent.document.fullscreenElement; } catch { }
       const btn = document.getElementById('fs-btn');
       if (fs) {
         btn.style.display = 'none';
@@ -202,7 +169,6 @@
     setInterval(checkFull, 300);
     window.parent.document.addEventListener('fullscreenchange', checkFull);
     document.addEventListener('DOMContentLoaded', checkFull);
-
   })();
   </script>
 </body>
