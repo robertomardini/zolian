@@ -116,13 +116,10 @@
             items[next].style.transform = 'translateX(0)';
             // Tras completar (1s), reposicionar oculto todo el tiempo
             setTimeout(() => {
-              items[curr].style.opacity    = '0';
               items[curr].style.transition = 'none';
-              items[curr].style.transform  = 'translateX(101%)';
+              items[curr].style.transform  = 'translateX(100%)';
               // ocultar mientras viaja de vuelta
               items[curr].style.opacity    = '0';
-              items[curr].style.transform  = 'translateX(100%)';
-              items[curr].style.opacity    = '1'
               items[curr].style.zIndex     = '0';
               // Restaurar transición
               requestAnimationFrame(() => {
