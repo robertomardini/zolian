@@ -3,111 +3,89 @@
 <head>
   <meta charset="UTF-8"/>
   <title>Player – Zolian TV</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- Supabase client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
-  <!-- Boxicons para el icono fullscreen -->
-  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
-
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <style>
     html, body {
       margin: 0; padding: 0;
-      background: #000; overflow: hidden;
       width: 100%; height: 100%;
-    }
-    #fs-btn {
-      position: absolute; top: 10px; right: 10px;
-      z-index: 1000;
-      background: rgba(255,255,255,0.8);
-      border: none; border-radius: 4px;
-      padding: 6px; cursor: pointer;
-    }
-    #fs-btn i {
-      font-size: 1.5rem; color: #000;
+      background: #000;
+      overflow: hidden;
     }
     video {
-      width: 100vw; height: 100vh;
-      object-fit: contain; background: #000;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      background: #000;
     }
-    /* Ocultar cursor y botón en fullscreen */
-    :fullscreen body, :-webkit-full-screen body { cursor: none; }
-    :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { display: none !important; }
   </style>
 </head>
 <body>
-  <!-- Botón fullscreen -->
-  <button id="fs-btn"><i class="bx bx-fullscreen"></i></button>
-  <!-- Aquí se insertará el vídeo -->
   <div id="player-container"></div>
 
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
-    if (!code) { alert('Falta ?code en la URL'); return; }
+    if (!code) {
+      alert('Falta el parámetro ?code en la URL');
+      return;
+    }
 
-    // Traer tanto video_url como gallery_id para redirecciones
+    // Traer registro de TV
     const { data: tv, error: tvErr } = await supabase
       .from('tv')
       .select('video_url, gallery_id')
       .eq('code', code)
       .maybeSingle();
-
     if (tvErr || !tv || !tv.video_url) {
-      alert('No hay vídeo asignado a esta pantalla.');
       console.error(tvErr);
+      alert('No hay vídeo asignado a esta pantalla.');
       return;
     }
 
-    // Si al entrar ya hay gallery_id → saltamos a slideshow
+    // Si al entrar ya hay gallery_id, saltar a slideshow dentro del iframe
     if (tv.gallery_id) {
-      return window.location.href = `/slideshow.html?code=${code}`;
+      window.location.href = `/slideshow.html?code=${code}`;
+      return;
     }
 
-    // Obtener URL pública
-    const { data: { publicUrl }, error: urlErr } = supabase
+    // Obtener URL pública del vídeo
+    const { data: { publicUrl }, error: urlErr } = await supabase
       .storage.from('videos')
       .getPublicUrl(tv.video_url);
     if (urlErr || !publicUrl) {
-      alert('Error obteniendo URL pública.');
       console.error(urlErr);
+      alert('Error obteniendo la URL pública del vídeo.');
       return;
     }
 
-    // Crear <video>
-    const videoEl = document.createElement('video');
-    videoEl.src         = publicUrl;
-    videoEl.autoplay    = true;
-    videoEl.loop        = true;
-    videoEl.muted       = true;
-    videoEl.playsInline = true;
-    document.getElementById('player-container').appendChild(videoEl);
+    // Crear elemento <video>
+    const vid = document.createElement('video');
+    vid.src         = publicUrl;
+    vid.autoplay    = true;
+    vid.loop        = true;
+    vid.muted       = true;
+    vid.playsInline = true;
+    document.getElementById('player-container').appendChild(vid);
 
-    // Fullscreen
-    document.getElementById('fs-btn').addEventListener('click', async () => {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
-      }
-    });
-
-    // Escuchar cambios en TV
+    // Escuchar cambios: si asignan un álbum → volver a slideshow
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'tv',
         filter: `code=eq.${code}`
       }, ({ new: upd }) => {
-        // Si se asigna un álbum, saltar a slideshow
         if (upd.gallery_id) {
-          location.href = `/slideshow.html?code=${code}`;
+          window.location.href = `/slideshow.html?code=${code}`;
         }
-        // Si cambia el vídeo, recargar fuente
         if (upd.video_url && upd.video_url !== tv.video_url) {
           const newUrl = supabase.storage
-            .from('videos').getPublicUrl(upd.video_url).data.publicUrl;
-          videoEl.src = newUrl;
-          videoEl.play();
+            .from('videos')
+            .getPublicUrl(upd.video_url).data.publicUrl;
+          vid.src = newUrl;
+          vid.play();
         }
       })
       .subscribe();
