@@ -5,41 +5,100 @@
   <title>Zolian TV</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <style>
-    html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#000;color:#fff;}
-    #controls{position:absolute;top:0;left:0;width:100%;text-align:center;padding:20px;z-index:10;}
-    #qr{margin-bottom:12px;background:#fff;padding:8px;border-radius:8px;display:inline-block;}
-    #fs-btn{padding:8px 16px;font-size:1rem;cursor:pointer;}
-    #viewer-frame{display:none;width:100%;height:100%;border:none;}
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      /* fondo con la imagen Zolian-BG.png */
+      background: url('/Zolian-BG.png') center/cover no-repeat;
+      color: #fff;
+    }
+    /* Controles centrados */
+    #controls {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      text-align: center;
+    }
+    #qr {
+      background: #fff;
+      padding: 8px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    #controls p {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+    /* Botón fullscreen solo icono */
+    #fs-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: rgba(255,255,255,0.8);
+      border: none;
+      border-radius: 4px;
+      padding: 6px;
+      cursor: pointer;
+      z-index: 11;
+    }
+    #fs-btn i {
+      font-size: 1.5rem;
+      color: #000;
+    }
+    /* iframe fullscreen */
+    #viewer-frame {
+      display: none;
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border: none;
+      z-index: 0;
+    }
+    /* ocultar cursor y botón al entrar en fullscreen */
+    :fullscreen body, :-webkit-full-screen body { cursor: none; }
+    :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { display: none !important; }
   </style>
 </head>
 <body>
   <div id="controls">
     <div id="qr"></div>
-    <button id="fs-btn">Pantalla completa</button>
+    <p>Escanea el QR para administrar esta pantalla</p>
+    <button id="fs-btn"><i class="bx bx-fullscreen"></i></button>
   </div>
   <iframe id="viewer-frame"></iframe>
 
+  <!-- Supabase y QR -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <script src="/qrcode.min.js"></script>
   <script>
   (()=>{
     const params = new URLSearchParams(location.search);
-    let code = params.get('code') || crypto.randomUUID();
-    if (!params.get('code')) history.replaceState(null,'',`?code=${code}`);
-    
-    // 1) Generar el QR
+    let code = params.get('code');
+    if (!code) {
+      code = crypto.randomUUID();
+      history.replaceState(null, '', `?code=${code}`);
+    }
+
+    // Generar el QR
     new QRCode('qr', {
       text: `${location.origin}/vincular.html?code=${code}`,
-      width: 260, height: 260
+      width: 260,
+      height: 260
     });
 
-    // 2) Botón fullscreen
+    // Botón fullscreen
     document.getElementById('fs-btn').onclick = async () => {
       await document.documentElement.requestFullscreen();
     };
 
-    // 3) Función para cambiar el iframe
+    // Muestra el player/slideshow en el iframe
     function showInIframe(path) {
       document.getElementById('controls').style.display = 'none';
       const frame = document.getElementById('viewer-frame');
@@ -47,25 +106,23 @@
       frame.style.display = 'block';
     }
 
-    // 4) Suscribirse a cambios de TV
+    // Escuchar cambios en la tabla tv
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
-         event:'UPDATE', schema:'public', table:'tv',
-         filter:`code=eq.${code}`
+         event: 'UPDATE', schema: 'public', table: 'tv',
+         filter: `code=eq.${code}`
       }, ({ new: tv }) => {
-        // si llega gallery_id → slideshow
         if (tv.gallery_id) {
           showInIframe(`/slideshow.html?code=${code}`);
-        }
-        // si llega video_url → player
-        else if (tv.video_url) {
+        } else if (tv.video_url) {
           showInIframe(`/player.html?code=${code}`);
         }
       })
       .subscribe();
-
   })();
   </script>
+  <!-- Boxicons (para el icono fullscreen) -->
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 </body>
 </html>
