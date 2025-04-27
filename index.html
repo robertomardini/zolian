@@ -67,77 +67,58 @@
   </style>
 </head>
 <body>
-  <button id="fs-btn"><i class="bx bx-fullscreen"></i></button>
-  <div id="container">
+  <div id="controls">
     <div id="qr"></div>
-    <div id="hint">Escanea con tu móvil para administrar esta pantalla</div>
+    <button id="fs-btn">Pantalla completa</button>
   </div>
+  <iframe id="viewer-frame"></iframe>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <script src="/qrcode.min.js"></script>
   <script>
-  (async () => {
-    // 1) Leer o generar el code de esta TV
+  (()=>{
     const params = new URLSearchParams(location.search);
-    let code = params.get('code');
-    if (!code) {
-      code = crypto.randomUUID();
-      history.replaceState(null, '', `?code=${code}`);
-    }
-
-    // 2) Mostrar QR para vincular
+    let code = params.get('code') || crypto.randomUUID();
+    if (!params.get('code')) history.replaceState(null,'',`?code=${code}`);
+    
+    // 1) Generar el QR
     new QRCode('qr', {
       text: `${location.origin}/vincular.html?code=${code}`,
-      width: 260,
-      height: 260
+      width: 260, height: 260
     });
 
-    // 3) Función común para redirigir según contenido de TV
-    function handleTV(tv) {
-      if (tv.video_url) {
-        // hay vídeo: vamos a player.html
-        location.href = `/player.html?code=${code}`;
-      } else if (tv.gallery_id) {
-        // hay álbum: vamos a slideshow.html
-        location.href = `/slideshow.html?code=${code}`;
-      }
+    // 2) Botón fullscreen
+    document.getElementById('fs-btn').onclick = async () => {
+      await document.documentElement.requestFullscreen();
+    };
+
+    // 3) Función para cambiar el iframe
+    function showInIframe(path) {
+      document.getElementById('controls').style.display = 'none';
+      const frame = document.getElementById('viewer-frame');
+      frame.src = path;
+      frame.style.display = 'block';
     }
 
-    // 4) Suscribirse a cambios en la tabla tv
-    await supabase
-      .channel(`tv_link_${code}`)
+    // 4) Suscribirse a cambios de TV
+    supabase
+      .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public', table: 'tv',
-        filter: `code=eq.${code}`
+         event:'UPDATE', schema:'public', table:'tv',
+         filter:`code=eq.${code}`
       }, ({ new: tv }) => {
-        handleTV(tv);
+        // si llega gallery_id → slideshow
+        if (tv.gallery_id) {
+          showInIframe(`/slideshow.html?code=${code}`);
+        }
+        // si llega video_url → player
+        else if (tv.video_url) {
+          showInIframe(`/player.html?code=${code}`);
+        }
       })
       .subscribe();
 
-    // 5) Botón fullscreen + empezar a escuchar "play"
-    document.getElementById('fs-btn').onclick = async () => {
-      await document.documentElement.requestFullscreen?.();
-      // Suscribirse al flag play (solo tras gesto de usuario)
-      supabase
-        .channel(`tv_play_${code}`)
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public', table: 'tv',
-          filter: `code=eq.${code}`
-        }, ({ new: tv }) => {
-          if (tv.play) handleTV(tv);
-        })
-        .subscribe();
-    };
-
-    // 6) Chequear estado inicial de la TV para redirigir inmediatamente
-    const { data: tv, error } = await supabase
-      .from('tv')
-      .select('gallery_id,video_url,play')
-      .eq('code', code)
-      .maybeSingle();
-    if (tv && (tv.play || tv.gallery_id || tv.video_url)) {
-      handleTV(tv);
-    }
   })();
   </script>
 </body>
