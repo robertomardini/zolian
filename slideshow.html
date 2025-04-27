@@ -44,7 +44,10 @@
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
-    if (!code) { alert('Falta ?code en la URL'); return; }
+    if (!code) {
+      alert('Falta ?code en la URL');
+      return;
+    }
 
     const slidesEl = document.getElementById('slides');
     let intervalId = null;
@@ -63,100 +66,124 @@
       const publicUrls = imgs.map(i =>
         supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
       );
+
+      // Crear imágenes
       publicUrls.forEach((src, i) => {
         const img = document.createElement('img');
         img.src = src;
-        img.style.zIndex = i === 0 ? '2' : '0';
         if (type === 'fade') {
-          img.style.opacity = i===0?'1':'0'; img.style.transform = 'scale(1)';
+          img.style.opacity   = i === 0 ? '1' : '0';
+          img.style.transform = 'scale(1)';
         } else if (type === 'slide') {
-          img.style.opacity = '1'; img.style.transform = i===0?'translateX(0)':'translateX(100%)';
+          img.style.opacity   = '1';
+          img.style.transform = i === 0 ? 'translateX(0)' : 'translateX(100%)';
         } else if (type === 'vertical') {
-          img.style.opacity = '1'; img.style.transform = i===0?'translateY(0)':'translateY(100%)';
+          img.style.opacity   = '1';
+          img.style.transform = i === 0 ? 'translateY(0)' : 'translateY(100%)';
         } else {
-          img.style.opacity = i===0?'1':'0'; img.style.transform = 'scale(1)';
+          // zoom / kenburns
+          img.style.opacity   = i === 0 ? '1' : '0';
+          img.style.transform = 'scale(1)';
         }
+        // Primera imagen arranca en frente
+        if (i === 0) img.style.zIndex = '2';
         slidesEl.appendChild(img);
       });
 
       intervalId = setInterval(() => {
         const items = slidesEl.querySelectorAll('img');
-        let curr = Array.from(items).findIndex(x => x.style.zIndex==='2');
+        let curr = Array.from(items).findIndex(x => getComputedStyle(x).zIndex === '2');
         if (curr < 0) curr = 0;
         const next = (curr + 1) % items.length;
+
+        // Reset zIndex
         items.forEach(x => x.style.zIndex = '0');
         items[curr].style.zIndex = '1';
         items[next].style.zIndex = '2';
 
         switch (type) {
           case 'fade':
-            items[curr].style.opacity = '0'; items[next].style.opacity = '1';
+            items[curr].style.opacity = '0';
+            items[next].style.opacity = '1';
             break;
+
           case 'slide':
+            // Desplaza fuera y oculta
             items[curr].style.transform = 'translateX(-100%)';
+            items[curr].style.opacity   = '0';
             items[next].style.transform = 'translateX(0)';
             setTimeout(() => {
+              // Reposiciona y restaura visibilidad
               items[curr].style.transition = 'none';
               items[curr].style.transform  = 'translateX(100%)';
-              items[curr].style.zIndex     = '0';
+              items[curr].style.opacity    = '1';
               requestAnimationFrame(() => {
-                items[curr].style.transition = 'transform 1s ease-in-out';
+                items[curr].style.transition = 'transform 1s ease-in-out, opacity 1s ease-in-out';
               });
             }, 1000);
             break;
+
           case 'vertical':
             items[curr].style.transform = 'translateY(-100%)';
+            items[curr].style.opacity   = '0';
             items[next].style.transform = 'translateY(0)';
             setTimeout(() => {
               items[curr].style.transition = 'none';
               items[curr].style.transform  = 'translateY(100%)';
-              items[curr].style.zIndex     = '0';
+              items[curr].style.opacity    = '1';
               requestAnimationFrame(() => {
-                items[curr].style.transition = 'transform 1s ease-in-out';
+                items[curr].style.transition = 'transform 1s ease-in-out, opacity 1s ease-in-out';
               });
             }, 1000);
             break;
+
           default:
-            items[curr].style.opacity = '0'; items[next].style.opacity = '1';
+            // zoom / kenburns crossfade
+            items[curr].style.opacity = '0';
+            items[next].style.opacity = '1';
+            break;
         }
       }, duration * 1000);
     }
 
+    // Fullscreen
     document.getElementById('fs-btn').addEventListener('click', () => {
       document.documentElement.requestFullscreen();
     });
 
-    // Config inicial
+    // Configuración inicial
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id,duration,slideshow_type,video_url')
       .eq('code', code)
       .maybeSingle();
+
     if (tv?.video_url) {
-      return location.href = /player.html?code=${code};
+      return location.href = `/player.html?code=${code}`;
     }
     if (tv?.gallery_id) {
       arrancar(tv.gallery_id, tv.duration, tv.slideshow_type || 'fade');
     }
 
+    // Suscripción a cambios
     supabase
-      .channel(tv_updates_${code})
+      .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
-        event:'UPDATE', schema:'public', table:'tv',
-        filter:code=eq.${code}
+        event: 'UPDATE', schema: 'public', table: 'tv',
+        filter: `code=eq.${code}`
       }, ({ new: upd }) => {
         if (upd.video_url) {
-          location.href = /player.html?code=${code};
+          location.href = `/player.html?code=${code}`;
         } else if (upd.gallery_id) {
           arrancar(upd.gallery_id, upd.duration, upd.slideshow_type || 'fade');
         }
       })
       .subscribe();
 
-    // Polling para ocultar botón y cursor si el padre está en fullscreen
+    // Detectar fullscreen en padre para ocultar botón y cursor
     function checkFull() {
       let fs = false;
-      try { fs = !!window.parent.document.fullscreenElement; } catch { }
+      try { fs = !!window.parent.document.fullscreenElement; } catch {}
       const btn = document.getElementById('fs-btn');
       if (fs) {
         btn.style.display = 'none';
@@ -169,6 +196,7 @@
     setInterval(checkFull, 300);
     window.parent.document.addEventListener('fullscreenchange', checkFull);
     document.addEventListener('DOMContentLoaded', checkFull);
+
   })();
   </script>
 </body>
