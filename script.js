@@ -91,6 +91,36 @@ function initSidebar() {
   adjustHome();
 }
 
+/**
+ * Añade el comportamiento de highlight a cada tarjeta .card:
+ * - Al pasar el ratón, cambia a fondo claro, borde color principal
+ *   y icono/texto al color principal.
+ * - Al salir, revierte al estilo por defecto.
+ */
+function initCardHighlights() {
+  const primary = getComputedStyle(document.documentElement)
+                    .getPropertyValue('--primary-color').trim();
+
+  document.querySelectorAll('.card').forEach(card => {
+    const ico = card.querySelector('box-icon');
+    const txt = card.querySelector('span');
+
+    card.addEventListener('mouseenter', () => {
+      card.style.background = 'var(--primary-color-light)';
+      card.style.border     = `1px solid ${primary}`;
+      if (ico) ico.setAttribute('color', primary);
+      if (txt) txt.style.color = primary;
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.style.background = '';
+      card.style.border     = '';
+      if (ico) ico.setAttribute('color', 'white');
+      if (txt) txt.style.color = '';
+    });
+  });
+}
+
 // Inyecta el sidebar y lanza initSidebar
 window.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('sidebar-container');
@@ -108,3 +138,6 @@ window.addEventListener('DOMContentLoaded', () => {
     window.dispatchEvent(new Event('sidebarReady'));
   }
 });
+
+// Cuando pantallas.html dispare 'cardsRendered', inicializamos el highlight
+window.addEventListener('cardsRendered', initCardHighlights);
