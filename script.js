@@ -8,7 +8,7 @@ function initSidebar() {
   const body    = document.querySelector('body');
   const sidebar = body.querySelector('nav.sidebar');
   const home    = body.querySelector('.home');
-  if (!sidebar) return;
+  if (!sidebar || !home) return;
 
   // --- Botón Compartir ---
   const shareBtn = sidebar.querySelector('#share-btn');
@@ -41,7 +41,6 @@ function initSidebar() {
   const logoutBtn  = sidebar.querySelector('#logout');
 
   function adjustHome() {
-    if (!home) return;
     if (sidebar.classList.contains('close')) {
       home.style.left  = '78px';
       home.style.width = 'calc(100% - 78px)';
@@ -51,10 +50,12 @@ function initSidebar() {
     }
   }
 
-  toggle.addEventListener('click', () => {
-    sidebar.classList.toggle('close');
-    adjustHome();
-  });
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      sidebar.classList.toggle('close');
+      adjustHome();
+    });
+  }
 
   if (searchBtn) {
     searchBtn.addEventListener('click', () => {
@@ -87,15 +88,12 @@ function initSidebar() {
     });
   }
 
-  // Ajuste inicial de .home
   adjustHome();
 }
 
 /**
- * Añade el comportamiento de highlight a cada tarjeta .card:
- * - Al pasar el ratón, cambia a fondo claro, borde color principal
- *   y icono/texto al color principal.
- * - Al salir, revierte al estilo por defecto.
+ * Resalta las tarjetas .card: 
+ * cambia fondo, borde, icono y texto al pasar el mouse.
  */
 function initCardHighlights() {
   const primary = getComputedStyle(document.documentElement)
@@ -121,7 +119,20 @@ function initCardHighlights() {
   });
 }
 
-// Inyecta el sidebar y lanza initSidebar
+/**
+ * Ajuste adicional para móviles: 
+ * aumenta el espacio entre tarjetas si la pantalla es estrecha.
+ */
+function adjustForMobile() {
+  if (window.innerWidth <= 768) {
+    const grid = document.querySelector('.cards-grid');
+    if (grid) {
+      grid.style.gap = '24px';
+    }
+  }
+}
+
+// Cargar Sidebar
 window.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('sidebar-container');
   if (container) {
@@ -139,5 +150,8 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Cuando pantallas.html dispare 'cardsRendered', inicializamos el highlight
-window.addEventListener('cardsRendered', initCardHighlights);
+// Cuando pantallas.html dispare 'cardsRendered', inicializar tarjetas
+window.addEventListener('cardsRendered', () => {
+  initCardHighlights();
+  adjustForMobile();
+});
