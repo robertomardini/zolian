@@ -42,10 +42,8 @@
   <section class="home">
     <div class="text">Administrar Álbum</div>
 
-    <!-- Mostrar email del usuario -->
     <p>Usuario: <strong id="user-email"></strong></p>
 
-    <!-- Nombre del álbum -->
     <div class="section">
       <label for="album-name">Nombre del álbum</label>
       <div class="input-group">
@@ -53,13 +51,11 @@
       </div>
     </div>
 
-    <!-- Duración por imagen -->
     <div class="section">
       <label for="duration">Duración por imagen (s)</label>
       <input type="number" id="duration" min="1" value="5"/>
     </div>
 
-    <!-- Tipo de slideshow -->
     <div class="section">
       <label for="slideshow-type">Tipo de slideshow</label>
       <select id="slideshow-type">
@@ -71,12 +67,10 @@
       </select>
     </div>
 
-    <!-- Guardar ajustes -->
     <div class="section">
       <button id="save-settings">💾 Guardar cambios</button>
     </div>
 
-    <!-- Subir imágenes optimizadas -->
     <div class="section">
       <label for="file-input">Cargar imágenes</label>
       <div class="input-group">
@@ -86,12 +80,10 @@
       </div>
     </div>
 
-    <!-- Lista de miniaturas -->
     <div class="section">
       <ul id="images-list"></ul>
     </div>
 
-    <!-- Enviar a pantalla -->
     <div class="section">
       <label for="tv-select">Enviar a pantalla</label>
       <div class="input-group">
@@ -102,7 +94,6 @@
       </div>
     </div>
 
-    <!-- Eliminar álbum -->
     <div class="section">
       <button id="delete-album" style="background:#e74c3c;">
         🗑 Eliminar álbum
@@ -118,7 +109,7 @@
       const params    = new URLSearchParams(location.search);
       const galleryId = params.get('gallery');
       if (!galleryId) {
-        alert('Falta parámetro gallery.');
+        alert('Falta parámetro gallery.'); 
         return window.location.href = 'galeria.html';
       }
 
@@ -130,14 +121,11 @@
       }
 
       // Mostrar email
-      const elEmail = document.getElementById('user-email');
-      if (elEmail) elEmail.innerText = session.user.email;
-
-      // Inyectar email en sidebar si existe
+      document.getElementById('user-email').innerText = session.user.email;
       const sidebarUser = document.getElementById('sidebar-user');
       if (sidebarUser) sidebarUser.innerText = session.user.email;
 
-      // Cargar datos del álbum
+      // Cargar datos de galleries
       const { data: alb, error: albErr } = await supabase
         .from('galleries')
         .select('name,duration,slideshow_type')
@@ -165,7 +153,7 @@
         else       alert('Cambios guardados correctamente.');
       };
 
-      // Subir imágenes (optimizado)
+      // Subir imágenes con compresión
       document.getElementById('upload-btn').onclick = async () => {
         const inp  = document.getElementById('file-input');
         const stat = document.getElementById('upload-status');
@@ -195,8 +183,8 @@
           }
           await supabase.from('images').insert({ gallery_id: galleryId, url: path });
         }
-        inp.value     = '';
-        inp.disabled  = false;
+        inp.value      = '';
+        inp.disabled   = false;
         stat.innerText = '';
         loadImages();
       };
@@ -211,7 +199,8 @@
         const ul = document.getElementById('images-list');
         ul.innerHTML = '';
         for (let img of imgs) {
-          const publicUrl = supabase.storage.from('images').getPublicUrl(img.url).data.publicUrl;
+          const publicUrl = supabase
+            .storage.from('images').getPublicUrl(img.url).data.publicUrl;
           const li = document.createElement('li');
           li.innerHTML = `
             <img src="${publicUrl}">
@@ -228,13 +217,16 @@
       }
       loadImages();
 
-      // Listar pantallas disponibles
+      // Listar pantallas (sin duplicados)
       const { data: tvs } = await supabase
         .from('tv')
         .select('code,nombre')
         .eq('user_id', session.user.id);
       const sel = document.getElementById('tv-select');
+      const seen = new Set();
       tvs.forEach(t => {
+        if (seen.has(t.code)) return;
+        seen.add(t.code);
         const o = document.createElement('option');
         o.value       = t.code;
         o.textContent = t.nombre || t.code;
@@ -264,13 +256,11 @@
       // Eliminar álbum (registros + storage)
       document.getElementById('delete-album').onclick = async () => {
         if (!confirm('Eliminar álbum y todas sus imágenes?')) return;
-        // 1) listar urls
         const { data: imgs } = await supabase.from('images').select('url').eq('gallery_id', galleryId);
         const paths = imgs.map(i => i.url);
         if (paths.length) {
           await supabase.storage.from('images').remove(paths);
         }
-        // 2) borrar registros
         await supabase.from('images').delete().eq('gallery_id', galleryId);
         await supabase.from('galleries').delete().eq('id', galleryId);
         window.location.href = 'galeria.html';
