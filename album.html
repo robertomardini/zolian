@@ -135,11 +135,12 @@
         return;
       }
 
-      // Sesión
-      const { data:{ session } } = await supabase.auth.getSession();
+      // Obtener sesión
+      const sessRes = await supabase.auth.getSession();
+      const session = sessRes.data.session;
       if (!session) {
-        const r = encodeURIComponent(location.pathname + location.search);
-        window.location.href = `login.html?redirect=${r}`;
+        const redirect = encodeURIComponent(location.pathname + location.search);
+        window.location.href = `login.html?redirect=${redirect}`;
         return;
       }
 
@@ -181,55 +182,52 @@
         }
       };
 
-      // Subir imágenes con compresión/redimensionado a WebP
-      const uploadBtn = document.getElementById('upload-btn');
-      uploadBtn.onclick = async () => {
-        const inp = document.getElementById('file-input');
+      // Subir imágenes comprimidas y redimensionadas a WebP
+      document.getElementById('upload-btn').onclick = async () => {
+        const inp  = document.getElementById('file-input');
         const stat = document.getElementById('upload-status');
         if (!inp.files.length) {
           alert('Selecciona alguna imagen');
           return;
         }
-        uploadBtn.disabled = true;
-        stat.innerText     = 'Procesando...';
+        inp.disabled = true;
+        stat.innerText = 'Procesando...';
 
         for (let file of inp.files) {
-          // 1) Comprimir/redimensionar
-          const options = {
-            maxWidthOrHeight: 3840,
-            maxSizeMB:        1,
-            useWebWorker:     true,
-            fileType:         'image/webp'
-          };
-          let compressedFile;
+          // Comprimir y convertir a WebP
+          let compressed;
           try {
-            compressedFile = await imageCompression(file, options);
-          } catch (e) {
-            console.error('Error al comprimir', e);
-            compressedFile = file; // fallback
+            compressed = await imageCompression(file, {
+              maxWidthOrHeight: 3840,
+              maxSizeMB:        1,
+              fileType:         'image/webp',
+              useWebWorker:     true
+            });
+          } catch {
+            compressed = file;
           }
-          // 2) Generar nombre en .webp
           const newName = file.name.replace(/\.\w+$/, '.webp');
           const path = `${galleryId}/${Date.now()}_${newName}`;
-          // 3) Subir
+
+          // Subir a Supabase Storage
           const { error: upErr } = await supabase
             .storage
             .from('images')
-            .upload(path, compressedFile, { contentType: 'image/webp' });
+            .upload(path, compressed, { contentType: 'image/webp' });
           if (upErr) {
             console.error(upErr);
             alert(`Error subiendo ${newName}: ${upErr.message}`);
             continue;
           }
-          // 4) Insertar metadato en tabla
+          // Guardar registro en tabla
           await supabase
             .from('images')
             .insert({ gallery_id: galleryId, url: path });
         }
 
-        inp.value = '';
-        stat.innerText     = '';
-        uploadBtn.disabled = false;
+        inp.value     = '';
+        stat.innerText = '';
+        inp.disabled  = false;
         await loadImages();
       };
 
@@ -311,7 +309,7 @@
       };
     }
 
-    // Inicializamos cuando el sidebar esté listo
+    // Esperar a que el sidebar esté inyectado
     window.addEventListener('sidebarReady', initAlbum);
   </script>
 </body>
