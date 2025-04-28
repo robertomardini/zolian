@@ -10,14 +10,13 @@
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.3/dist/css/splide.min.css"
   >
-  <!-- Boxicons para el icono fullscreen -->
+  <!-- Boxicons para fullscreen -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
     html, body {
       margin: 0; padding: 0;
-      width: 100%; height: 100%;
-      overflow: hidden;
+      width: 100%; height: 100%; overflow: hidden;
       background: url('/Zolian-BG.png') center/cover no-repeat;
     }
     /* Fullscreen button */
@@ -33,7 +32,7 @@
     :fullscreen body, :-webkit-full-screen body { cursor: none; }
     :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { display: none !important; }
 
-    /* Para fade */
+    /* Contenedores */
     #fade-container {
       position: absolute; top:0; left:0;
       width:100vw; height:100vh;
@@ -43,20 +42,15 @@
       object-fit:contain; opacity:0;
       transition: opacity 1s ease-in-out;
     }
-
-    /* Para slide */
     #splide { display:none; width:100vw; height:100vh; }
     .splide__slide img {
-      object-fit:contain; width:100%; height:100%;
+      width:100%; height:100%; object-fit:contain;
     }
   </style>
 </head>
 <body>
   <button id="fs-btn"><i class="bx bx-fullscreen"></i></button>
-
-  <!-- Contenedores separados -->
   <div id="fade-container"></div>
-
   <div id="splide" class="splide">
     <div class="splide__track">
       <ul id="slides-list" class="splide__list"></ul>
@@ -71,7 +65,10 @@
   (async () => {
     const params = new URLSearchParams(location.search);
     const code   = params.get('code');
-    if (!code) { alert('Falta el parámetro ?code en la URL'); return; }
+    if (!code) {
+      alert('Falta el parámetro ?code en la URL');
+      return;
+    }
 
     // Fullscreen button
     const fsBtn = document.getElementById('fs-btn');
@@ -90,10 +87,10 @@
       }
     }
     setInterval(checkFull,300);
-    window.parent.document.addEventListener('fullscreenchange',checkFull);
-    document.addEventListener('DOMContentLoaded',checkFull);
+    window.parent.document.addEventListener('fullscreenchange', checkFull);
+    document.addEventListener('DOMContentLoaded', checkFull);
 
-    // 1) Traer registro TV
+    // 1) Obtener registro TV
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id, video_url')
@@ -101,7 +98,7 @@
       .maybeSingle();
 
     if (tv?.video_url) {
-      return location.href = `/player.html?code=${code}`;
+      return window.location.href = `/player.html?code=${code}`;
     }
     if (!tv?.gallery_id) {
       return alert('No hay álbum asignado a esta pantalla.');
@@ -114,10 +111,10 @@
       .select('duration, slideshow_type')
       .eq('id', galleryId)
       .maybeSingle();
-    const duration   = (gallery.duration || 5) * 1000;
+    const durationMs = (gallery.duration || 5) * 1000;
     const type       = gallery.slideshow_type || 'fade';
 
-    // 3) Cargar imágenes
+    // 3) Cargar e **precargar** imágenes
     const { data: imgs } = await supabase
       .from('images')
       .select('url')
@@ -126,14 +123,22 @@
     if (!imgs?.length) {
       return alert('Este álbum no tiene imágenes aún.');
     }
+    // Precarga
+    const publicUrls = imgs.map(i =>
+      supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
+    );
+    publicUrls.forEach(url => {
+      const img = new Image();
+      img.src = url;
+    });
 
     if (type === 'fade') {
-      // --- IMPLEMENTACIÓN MANUAL FADE ---
+      // --- FADE MANUAL (DOM una sola vez) ---
       const container = document.getElementById('fade-container');
-      const elements = imgs.map((i, idx) => {
+      const elements = publicUrls.map((src, idx) => {
         const img = document.createElement('img');
-        img.src = supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl;
-        if (idx===0) img.style.opacity = '1';
+        img.src = src;
+        if (idx === 0) img.style.opacity = '1';
         container.appendChild(img);
         return img;
       });
@@ -142,42 +147,40 @@
         const prev = elements[idx];
         idx = (idx + 1) % elements.length;
         const next = elements[idx];
-        // crossfade
-        prev.style.opacity = '0';
+        // crossfade: next al fondo (opacity 1) mientras prev se desvanece
         next.style.opacity = '1';
-      }, duration);
+        prev.style.opacity = '0';
+      }, durationMs);
 
     } else {
-      // --- IMPLEMENTACIÓN SPLIDE PARA SLIDE/VERTICAL ---
-      // ocultar fade-container y mostrar Splide
+      // --- SLIDE con Splide ---
       document.getElementById('fade-container').style.display = 'none';
       document.getElementById('splide').style.display        = 'block';
 
       const list = document.getElementById('slides-list');
-      imgs.forEach(({url}) => {
+      publicUrls.forEach(src => {
         const li = document.createElement('li');
         li.className = 'splide__slide';
-        li.innerHTML = `<img src="${ supabase.storage.from('images').getPublicUrl(url).data.publicUrl }">`;
+        li.innerHTML = `<img src="${src}">`;
         list.appendChild(li);
       });
 
-      const splide = new Splide('#splide', {
+      new Splide('#splide', {
         type         : 'loop',
         direction    : type === 'vertical' ? 'ttb' : 'ltr',
         perPage      : 1,
         autoplay     : true,
-        interval     : duration,
+        interval     : durationMs,
         pauseOnHover : false,
         pauseOnFocus : false,
         arrows       : false,
         pagination   : false,
         speed        : 2000,
         height       : '100vh',
-      });
-      splide.mount();
+      }).mount();
     }
 
-    // 4) Escuchar cambios en TV
+    // 4) Escucha cambios en TV
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes',{
@@ -185,13 +188,12 @@
         filter:`code=eq.${code}`
       },({new:upd})=>{
         if (upd.video_url) {
-          location.href = `/player.html?code=${code}`;
-        } else if (upd.gallery_id && upd.gallery_id!==galleryId) {
-          location.reload();
+          window.location.href = `/player.html?code=${code}`;
+        } else if (upd.gallery_id !== galleryId) {
+          window.location.reload();
         }
       })
       .subscribe();
-
   })();
   </script>
 </body>
