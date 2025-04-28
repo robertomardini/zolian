@@ -18,11 +18,34 @@
   <section class="home">
     <div class="text">Mis Pantallas</div>
 
-    <!-- Grid de tarjetas -->
-    <ul id="screens-list" class="cards-grid"></ul>
+    <!-- Panel blanco -->
+    <div
+      class="panel-wrapper"
+      style="
+        background: var(--sidebar-color);
+        border-radius: 0.75rem;
+        padding: var(--spacing-lg);
+        margin: var(--spacing-lg);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      "
+    >
+      <div
+        class="panel-title"
+        style="
+          font-size: 1.25rem;
+          font-weight: 500;
+          margin-bottom: var(--spacing-md);
+        "
+      >
+        Selecciona para administrar
+      </div>
+
+      <!-- Grid de tarjetas -->
+      <ul id="screens-list" class="cards-grid"></ul>
+    </div>
 
     <!-- Mensaje cuando no hay pantallas -->
-    <p id="no-screens" class="no-items" style="display:none;">
+    <p id="no-screens" class="no-items" style="display:none; margin-top: var(--spacing-lg);">
       No tienes pantallas vinculadas.<br />
       Escanea un QR para agregar una.
     </p>
@@ -67,6 +90,8 @@
       listEl.innerHTML = '';
 
       if (!screens || screens.length === 0) {
+        // Ocultar el panel y mostrar mensaje
+        document.querySelector('.panel-wrapper').style.display = 'none';
         noEl.style.display = 'block';
         return;
       } else {
