@@ -18,6 +18,7 @@
       flex-direction: column;
       padding: 24px;
       gap: 24px;
+      position: relative;
       transition: all 0.3s ease;
     }
 
@@ -98,6 +99,14 @@
       }
       .cards-grid {
         gap: 24px;
+      }
+      /* Home padding normal en móviles */
+      .home {
+        padding: 24px;
+      }
+      /* Home padding reducido cuando sidebar está cerrado */
+      body nav.sidebar.close ~ .home {
+        padding: 16px;
       }
     }
 
