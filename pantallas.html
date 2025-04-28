@@ -6,10 +6,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mis Pantallas – Zolian App</title>
 
-  <!-- Estilos globales y Boxicons -->
+  <!-- Estilos globales y Boxicons CSS -->
   <link rel="stylesheet" href="/style.css" />
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
+
+  <!-- Boxicons JS (para <box-icon>) -->
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
+
+  <style>
+    /* Títulos un poco más pequeños y en gris suave */
+    .home .text {
+      font-size: 1.5rem;
+      color: var(--text-color);
+    }
+    .panel-title {
+      font-size: 1rem;
+      color: var(--text-color);
+      margin-bottom: var(--spacing-md);
+    }
+
+    /* Estado inicial de icono y texto de tarjeta */
+    .card span {
+      color: #fff;
+    }
+    .card box-icon {
+      color: #fff;
+    }
+  </style>
 </head>
 <body>
   <!-- Sidebar -->
@@ -20,34 +43,19 @@
     <div class="text">Mis Pantallas</div>
 
     <!-- Panel blanco -->
-    <div
-      class="panel-wrapper"
-      style="
-        background: var(--sidebar-color);
-        border-radius: 0.75rem;
-        padding: var(--spacing-lg);
-        margin: var(--spacing-lg);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      "
-    >
-      <div
-        class="panel-title"
-        style="
-          font-size: 1.25rem;
-          font-weight: 500;
-          margin-bottom: var(--spacing-md);
-        "
-      >
-        Selecciona para administrar
-      </div>
-
-      <!-- Grid de tarjetas -->
+    <div class="panel-wrapper"
+         style="background: var(--sidebar-color);
+                border-radius: .75rem;
+                padding: var(--spacing-lg);
+                margin: var(--spacing-lg);
+                box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+      <div class="panel-title">Selecciona para administrar</div>
       <ul id="screens-list" class="cards-grid"></ul>
     </div>
 
-    <!-- Mensaje cuando no hay pantallas -->
+    <!-- Mensaje si no hay pantallas -->
     <p id="no-screens" class="no-items" style="display:none; margin-top: var(--spacing-lg);">
-      No tienes pantallas vinculadas.<br />
+      No tienes pantallas vinculadas.<br>
       Escanea un QR para agregar una.
     </p>
   </section>
@@ -58,40 +66,35 @@
   <script src="/script.js"></script>
   <script>
     async function initPantallas() {
-      // 1) Verificar sesión
-      const { data: { session } } = await supabase.auth.getSession();
+      // 1) Sesión
+      const { data:{ session } } = await supabase.auth.getSession();
       if (!session) {
-        const redirect = encodeURIComponent('/pantallas');
-        return window.location.href = `login.html?redirect=${redirect}`;
+        const r = encodeURIComponent('/pantallas');
+        return window.location.href = `login.html?redirect=${r}`;
       }
 
-      // 2) Inyectar email en el sidebar
-      const sidebarUser = document.getElementById('sidebar-user');
-      if (sidebarUser) sidebarUser.innerText = session.user.email;
+      // 2) Sidebar (email y logout)
+      const su = document.getElementById('sidebar-user');
+      if (su) su.innerText = session.user.email;
+      const lo = document.getElementById('logout');
+      if (lo) lo.onclick = async e => {
+        e.preventDefault();
+        await supabase.auth.signOut();
+        window.location.href = 'login.html';
+      };
 
-      // 3) Configurar botón de logout
-      const logoutBtn = document.getElementById('logout');
-      if (logoutBtn) {
-        logoutBtn.onclick = async (e) => {
-          e.preventDefault();
-          await supabase.auth.signOut();
-          window.location.href = 'login.html';
-        };
-      }
-
-      // 4) Cargar pantallas del usuario
+      // 3) Traer pantallas
       const { data: screens } = await supabase
         .from('tv')
         .select('code,nombre')
         .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending:false });
 
       const listEl = document.getElementById('screens-list');
       const noEl   = document.getElementById('no-screens');
       listEl.innerHTML = '';
 
       if (!screens || screens.length === 0) {
-        // Ocultar el panel y mostrar mensaje
         document.querySelector('.panel-wrapper').style.display = 'none';
         noEl.style.display = 'block';
         return;
@@ -99,7 +102,7 @@
         noEl.style.display = 'none';
       }
 
-      // 5) Renderizar cada pantalla como tarjeta
+      // 4) Renderizar tarjetas
       screens.forEach(p => {
         const li = document.createElement('li');
         li.className = 'card';
@@ -107,14 +110,14 @@
           <box-icon name="tv" color="white" size="48px"></box-icon>
           <span>${p.nombre || p.code}</span>
         `;
-        li.onclick = () => {
-          window.location.href = `/administrar.html?code=${p.code}`;
-        };
+        li.onclick = () => window.location.href = `/administrar.html?code=${p.code}`;
         listEl.appendChild(li);
       });
+
+      // 5) Disparar evento para habilitar el highlight de tarjetas
+      window.dispatchEvent(new Event('cardsRendered'));
     }
 
-    // Inicializar cuando el sidebar esté listo
     window.addEventListener('sidebarReady', initPantallas);
   </script>
 </body>
