@@ -8,7 +8,7 @@ function initSidebar() {
   const body    = document.querySelector('body');
   const sidebar = body.querySelector('nav.sidebar');
   const home    = body.querySelector('.home');
-  if (!sidebar || !home) return;
+  if (!sidebar) return;
 
   // --- Botón Compartir ---
   const shareBtn = sidebar.querySelector('#share-btn');
@@ -41,6 +41,7 @@ function initSidebar() {
   const logoutBtn  = sidebar.querySelector('#logout');
 
   function adjustHome() {
+    if (!home) return;
     if (sidebar.classList.contains('close')) {
       home.style.left  = '78px';
       home.style.width = 'calc(100% - 78px)';
@@ -50,12 +51,10 @@ function initSidebar() {
     }
   }
 
-  if (toggle) {
-    toggle.addEventListener('click', () => {
-      sidebar.classList.toggle('close');
-      adjustHome();
-    });
-  }
+  toggle.addEventListener('click', () => {
+    sidebar.classList.toggle('close');
+    adjustHome();
+  });
 
   if (searchBtn) {
     searchBtn.addEventListener('click', () => {
@@ -88,51 +87,11 @@ function initSidebar() {
     });
   }
 
+  // Ajuste inicial de .home
   adjustHome();
 }
 
-/**
- * Resalta las tarjetas .card: 
- * cambia fondo, borde, icono y texto al pasar el mouse.
- */
-function initCardHighlights() {
-  const primary = getComputedStyle(document.documentElement)
-                    .getPropertyValue('--primary-color').trim();
-
-  document.querySelectorAll('.card').forEach(card => {
-    const ico = card.querySelector('box-icon');
-    const txt = card.querySelector('span');
-
-    card.addEventListener('mouseenter', () => {
-      card.style.background = 'var(--primary-color-light)';
-      card.style.border     = `1px solid ${primary}`;
-      if (ico) ico.setAttribute('color', primary);
-      if (txt) txt.style.color = primary;
-    });
-
-    card.addEventListener('mouseleave', () => {
-      card.style.background = '';
-      card.style.border     = '';
-      if (ico) ico.setAttribute('color', 'white');
-      if (txt) txt.style.color = '';
-    });
-  });
-}
-
-/**
- * Ajuste adicional para móviles: 
- * aumenta el espacio entre tarjetas si la pantalla es estrecha.
- */
-function adjustForMobile() {
-  if (window.innerWidth <= 768) {
-    const grid = document.querySelector('.cards-grid');
-    if (grid) {
-      grid.style.gap = '24px';
-    }
-  }
-}
-
-// Cargar Sidebar
+// Inyecta el sidebar y lanza initSidebar
 window.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('sidebar-container');
   if (container) {
@@ -148,10 +107,4 @@ window.addEventListener('DOMContentLoaded', () => {
     initSidebar();
     window.dispatchEvent(new Event('sidebarReady'));
   }
-});
-
-// Cuando pantallas.html dispare 'cardsRendered', inicializar tarjetas
-window.addEventListener('cardsRendered', () => {
-  initCardHighlights();
-  adjustForMobile();
 });
