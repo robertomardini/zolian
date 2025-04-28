@@ -169,6 +169,24 @@ header .image-text .profession {
   color: var(--sidebar-color);
 }
 
+/* ===== Destacado activo ===== */
+.sidebar .menu-links .nav-link.active a {
+  background-color: var(--primary-color);
+  border-radius: 0.75rem;
+}
+.sidebar .menu-links .nav-link.active a .icon,
+.sidebar .menu-links .nav-link.active a .text {
+  color: var(--sidebar-color);
+}
+
+/* ===== Posicionar usuario ===== */
+.sidebar .nav-user .nav-text {
+  max-width: calc(var(--sidebar-width) - 60px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ===== Home ===== */
 .home {
   position: absolute;
