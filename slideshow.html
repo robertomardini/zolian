@@ -35,16 +35,27 @@
     :fullscreen body, :-webkit-full-screen body { cursor: none; }
     :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { display: none !important; }
 
+    /* Mensaje de espera */
+    #waiting {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
+      font-size: 2rem;
+      text-align: center;
+      z-index: 500;
+    }
+
     /* Para fade */
     #fade-container {
       position: absolute; top: 0; left: 0;
       width: 100vw; height: 100vh;
+      display: none;
     }
     #fade-container img {
       position: absolute; width: 100%; height: 100%;
       object-fit: contain; opacity: 0;
       transition: opacity 1s ease-in-out;
-      /* GPU hints */
       will-change: opacity;
       backface-visibility: hidden;
       transform: translateZ(0);
@@ -57,7 +68,6 @@
     }
     .splide__slide img {
       object-fit: contain; width: 100%; height: 100%;
-      /* GPU hints */
       will-change: transform, opacity;
       backface-visibility: hidden;
       transform: translateZ(0);
@@ -65,11 +75,9 @@
   </style>
 </head>
 <body>
+  <div id="waiting">Esperando álbum o vídeo…</div>
   <button id="fs-btn"><i class="bx bx-fullscreen"></i></button>
-
-  <!-- Contenedores separados -->
   <div id="fade-container"></div>
-
   <div id="splide" class="splide">
     <div class="splide__track">
       <ul id="slides-list" class="splide__list"></ul>
@@ -85,11 +93,11 @@
     const params = new URLSearchParams(location.search);
     const code   = params.get('code');
     if (!code) {
-      alert('Falta el parámetro ?code en la URL');
+      document.getElementById('waiting').innerText = 'Falta parámetro code en la URL';
       return;
     }
 
-    // 1) Fullscreen button
+    // Fullscreen button
     const fsBtn = document.getElementById('fs-btn');
     fsBtn.addEventListener('click', () => {
       document.documentElement.requestFullscreen?.();
@@ -97,56 +105,55 @@
     function checkFull() {
       let fs = false;
       try { fs = !!window.parent.document.fullscreenElement; } catch {}
-      if (fs) {
-        fsBtn.style.display = 'none';
-        document.body.style.cursor = 'none';
-      } else {
-        fsBtn.style.display = '';
-        document.body.style.cursor = '';
-      }
+      fsBtn.style.display      = fs ? 'none' : '';
+      document.body.style.cursor = fs ? 'none' : '';
     }
     setInterval(checkFull, 300);
     window.parent.document.addEventListener('fullscreenchange', checkFull);
     document.addEventListener('DOMContentLoaded', checkFull);
 
-    // 2) Traer registro TV
+    // Traer registro TV
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id, video_url')
       .eq('code', code)
       .maybeSingle();
 
+    // Si hay vídeo asignado, redirige al player
     if (tv?.video_url) {
       return location.href = `/player.html?code=${code}`;
     }
+
+    // Si no hay galería, dejamos el mensaje de “Esperando…”
     if (!tv?.gallery_id) {
-      return alert('No hay álbum asignado a esta pantalla.');
+      return;
     }
     const galleryId = tv.gallery_id;
 
-    // 3) Leer ajustes desde galleries
+    // Leer ajustes desde galleries
     const { data: gallery } = await supabase
       .from('galleries')
       .select('duration, slideshow_type')
       .eq('id', galleryId)
       .maybeSingle();
-    const duration = (gallery.duration || 5) * 1000;
-    const type     = gallery.slideshow_type || 'fade';
+    const duration = (gallery?.duration || 5) * 1000;
+    const type     = gallery?.slideshow_type || 'fade';
 
-    // 4) Cargar URLs de las imágenes
+    // Cargar URLs de las imágenes
     const { data: imgs } = await supabase
       .from('images')
       .select('url')
       .eq('gallery_id', galleryId)
       .order('created_at', { ascending: true });
     if (!imgs?.length) {
-      return alert('Este álbum no tiene imágenes aún.');
+      // si no hay imágenes dejamos “Esperando…”
+      return;
     }
     const publicUrls = imgs.map(i =>
       supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
     );
 
-    // 5) Precarga todas las imágenes
+    // Precarga todas las imágenes
     await Promise.all(publicUrls.map(url =>
       new Promise(res => {
         const img = new Image();
@@ -155,32 +162,29 @@
       })
     ));
 
-    // 6) Montar fade o slide
+    // Oculta el mensaje de espera
+    document.getElementById('waiting').style.display = 'none';
+
+    // Montar fade o slide
     if (type === 'fade') {
-      // --- IMPLEMENTACIÓN MANUAL FADE ---
+      document.getElementById('fade-container').style.display = 'block';
       const container = document.getElementById('fade-container');
       const elements = publicUrls.map((url, idx) => {
         const img = document.createElement('img');
         img.src = url;
-        if (idx === 0) img.style.opacity = '1';
+        img.style.opacity = idx === 0 ? '1' : '0';
         container.appendChild(img);
         return img;
       });
-      let idx = 0;
+      let idxImg = 0;
       setInterval(() => {
-        const prev = elements[idx];
-        idx = (idx + 1) % elements.length;
-        const next = elements[idx];
-        // crossfade
-        prev.style.opacity = '0';
-        next.style.opacity = '1';
+        elements[idxImg].style.opacity = '0';
+        idxImg = (idxImg + 1) % elements.length;
+        elements[idxImg].style.opacity = '1';
       }, duration);
 
     } else {
-      // --- IMPLEMENTACIÓN SPLIDE PARA SLIDE/VERTICAL ---
-      document.getElementById('fade-container').style.display = 'none';
-      document.getElementById('splide').style.display        = 'block';
-
+      document.getElementById('splide').style.display = 'block';
       const list = document.getElementById('slides-list');
       publicUrls.forEach(url => {
         const li = document.createElement('li');
@@ -188,8 +192,7 @@
         li.innerHTML = `<img src="${url}">`;
         list.appendChild(li);
       });
-
-      const splide = new Splide('#splide', {
+      new Splide('#splide', {
         type         : 'loop',
         direction    : type === 'vertical' ? 'ttb' : 'ltr',
         perPage      : 1,
@@ -199,22 +202,21 @@
         pauseOnFocus : false,
         arrows       : false,
         pagination   : false,
-        speed        : 3000,                             // 3s de transición
-        easing       : 'cubic-bezier(0.4, 0, 0.2, 1)',   // curva suave
+        speed        : 3000,
+        easing       : 'cubic-bezier(0.4, 0, 0.2, 1)',
         height       : '100vh',
-      });
-      splide.mount();
+      }).mount();
     }
 
-    // 7) Escuchar cambios en TV
+    // Suscribirse a cambios en TV
     supabase
       .channel(`tv_updates_${code}`)
-      .on('postgres_changes',{
+      .on('postgres_changes', {
         event:  'UPDATE',
         schema: 'public',
         table:  'tv',
         filter: `code=eq.${code}`
-      },({ new: upd })=>{
+      }, ({ new: upd }) => {
         if (upd.video_url) {
           location.href = `/player.html?code=${code}`;
         } else if (upd.gallery_id && upd.gallery_id !== galleryId) {
