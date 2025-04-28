@@ -91,13 +91,36 @@
       margin-top: 24px;
     }
 
-    /* Ajustes para móviles */
+    /* Ajustes para móviles estándar (menos de 768px) */
     @media (max-width: 768px) {
       .panel-wrapper {
         padding: 32px;
       }
       .cards-grid {
         gap: 24px;
+      }
+    }
+
+    /* Ajustes para móviles muy pequeños (menos de 400px) */
+    @media (max-width: 400px) {
+      .panel-wrapper {
+        padding: 20px;
+      }
+      .cards-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 20px;
+      }
+      .card {
+        height: 140px;
+      }
+      .card span {
+        font-size: 0.85rem;
+      }
+      .page-title {
+        font-size: 1.25rem;
+      }
+      .panel-title {
+        font-size: 0.9rem;
       }
     }
   </style>
