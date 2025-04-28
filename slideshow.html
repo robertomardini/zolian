@@ -21,6 +21,7 @@
       /* Fondo detrás del slideshow */
       background: url('/Zolian-BG.png') center/cover no-repeat;
     }
+
     /* Fullscreen button */
     #fs-btn {
       position: absolute;
@@ -34,6 +35,7 @@
       font-size: 2rem;
       color: #000;
     }
+
     /* Ocultar cursor y botón en fullscreen */
     :fullscreen body, :-webkit-full-screen body {
       cursor: none;
@@ -41,6 +43,7 @@
     :fullscreen #fs-btn, :-webkit-full-screen #fs-btn {
       display: none !important;
     }
+
     /* Splide ocupa toda la pantalla */
     #splide {
       width: 100vw;
@@ -78,13 +81,13 @@
       return;
     }
 
-    // 1) Fullscreen button
+    // --- Fullscreen button ---
     const fsBtn = document.getElementById('fs-btn');
     fsBtn.addEventListener('click', () => {
       document.documentElement.requestFullscreen?.();
     });
 
-    // 2) Ocultar botón si el padre (index) está en fullscreen
+    // Ocultar botón si el padre (index) está en fullscreen
     function checkFull() {
       let fs = false;
       try { fs = !!window.parent.document.fullscreenElement; } catch {}
@@ -100,14 +103,14 @@
     window.parent.document.addEventListener('fullscreenchange', checkFull);
     document.addEventListener('DOMContentLoaded', checkFull);
 
-    // 3) Traer configuración de la TV
+    // --- 1) Traer configuración de la TV (solo gallery_id/video_url) ---
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id, video_url')
       .eq('code', code)
       .maybeSingle();
 
-    // si hay vídeo, redirigir a player
+    // Si hay vídeo, redirigir a player
     if (tv?.video_url) {
       return location.href = `/player.html?code=${code}`;
     }
@@ -116,7 +119,7 @@
     }
     const galleryId = tv.gallery_id;
 
-    // 4) Leer ajustes desde galleries
+    // --- 2) Leer ajustes desde galleries ---
     const { data: gallery, error: galErr } = await supabase
       .from('galleries')
       .select('duration, slideshow_type')
@@ -126,10 +129,10 @@
       alert('Error cargando configuración del álbum.');
       return;
     }
-    const duration       = (gallery.duration || 5) * 1000;
-    const slideshowType  = gallery.slideshow_type || 'fade';
+    const durationMs      = (gallery.duration || 5) * 1000;
+    const slideshowType   = gallery.slideshow_type || 'fade';
 
-    // 5) Cargar imágenes del álbum
+    // --- 3) Cargar imágenes del álbum ---
     const { data: imgs } = await supabase
       .from('images')
       .select('url')
@@ -150,27 +153,34 @@
       list.appendChild(li);
     });
 
-    // 6) Configurar Splide
-    const splide = new Splide( '#splide', {
+    // --- 4) Configurar Splide según tipo ---
+    const options = {
       type         : 'loop',
       direction    : slideshowType === 'vertical' ? 'ttb' : 'ltr',
       perPage      : 1,
       autoplay     : true,
-      interval     : duration,
+      interval     : durationMs,
       pauseOnHover : false,
       pauseOnFocus : false,
       arrows       : false,
       pagination   : false,
-      speed        : 2000,                          // 2s de transición
+      speed        : 2000,     // 2s de transición
       height       : '100vh',
       cover        : false,
-      // activamos fade sólo si tocó 'fade'
+      // Solo incluimos fade:true si es fade
       fade         : slideshowType === 'fade',
-    } );
+    };
 
-    splide.mount( window.splide.Extensions );
+    const splide = new Splide('#splide', options);
 
-    // 7) Escuchar cambios en la tabla TV
+    // Montaje: solo pasamos la extensión de Fade si la necesitamos
+    if (slideshowType === 'fade') {
+      splide.mount({ Fade: Splide.Extensions.Fade });
+    } else {
+      splide.mount();
+    }
+
+    // --- 5) Escuchar cambios en la tabla TV ---
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
@@ -182,7 +192,7 @@
         if (upd.video_url) {
           location.href = `/player.html?code=${code}`;
         } else if (upd.gallery_id && upd.gallery_id !== galleryId) {
-          // vuelve a cargar la página para leer el nuevo gallery_id y su config
+          // recarga para leer los nuevos ajustes de galleries
           location.reload();
         }
       })
