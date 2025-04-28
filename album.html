@@ -9,6 +9,8 @@
   <!-- Boxicons para iconos -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
+  <!-- Librería para comprimir/redimensionar imágenes -->
+  <script src="https://unpkg.com/browser-image-compression/dist/browser-image-compression.js"></script>
   <style>
     .home { padding:20px; transition:left .3s, width .3s; }
     .home .text { font-size:2rem; margin-bottom:24px; color:var(--text-color); text-align:center; }
@@ -143,8 +145,7 @@
 
       // Mostrar email
       document.getElementById('user-email').innerText = session.user.email;
-      const sidebarUser = document.getElementById('sidebar-user');
-      if (sidebarUser) sidebarUser.innerText = session.user.email;
+      document.getElementById('sidebar-user')?.innerText = session.user.email;
 
       // Leer datos del álbum
       const { data: alb, error: albErr } = await supabase
@@ -180,7 +181,7 @@
         }
       };
 
-      // Subir imágenes
+      // Subir imágenes con compresión/redimensionado a WebP
       const uploadBtn = document.getElementById('upload-btn');
       uploadBtn.onclick = async () => {
         const inp = document.getElementById('file-input');
@@ -190,17 +191,40 @@
           return;
         }
         uploadBtn.disabled = true;
-        stat.innerText     = 'Subiendo...';
+        stat.innerText     = 'Procesando...';
 
-        for (let f of inp.files) {
-          const path = `${galleryId}/${Date.now()}_${f.name}`;
-          const { error: upErr } = await supabase.storage.from('images').upload(path, f);
+        for (let file of inp.files) {
+          // 1) Comprimir/redimensionar
+          const options = {
+            maxWidthOrHeight: 3840,
+            maxSizeMB:        1,
+            useWebWorker:     true,
+            fileType:         'image/webp'
+          };
+          let compressedFile;
+          try {
+            compressedFile = await imageCompression(file, options);
+          } catch (e) {
+            console.error('Error al comprimir', e);
+            compressedFile = file; // fallback
+          }
+          // 2) Generar nombre en .webp
+          const newName = file.name.replace(/\.\w+$/, '.webp');
+          const path = `${galleryId}/${Date.now()}_${newName}`;
+          // 3) Subir
+          const { error: upErr } = await supabase
+            .storage
+            .from('images')
+            .upload(path, compressedFile, { contentType: 'image/webp' });
           if (upErr) {
             console.error(upErr);
-            alert(`Error subiendo ${f.name}: ${upErr.message}`);
+            alert(`Error subiendo ${newName}: ${upErr.message}`);
             continue;
           }
-          await supabase.from('images').insert({ gallery_id: galleryId, url: path });
+          // 4) Insertar metadato en tabla
+          await supabase
+            .from('images')
+            .insert({ gallery_id: galleryId, url: path });
         }
 
         inp.value = '';
@@ -219,7 +243,10 @@
         const ul = document.getElementById('images-list');
         ul.innerHTML = '';
         for (let img of imgs) {
-          const publicUrl = supabase.storage.from('images').getPublicUrl(img.url).data.publicUrl;
+          const publicUrl = supabase
+            .storage
+            .from('images')
+            .getPublicUrl(img.url).data.publicUrl;
           const li = document.createElement('li');
           li.innerHTML = `
             <img src="${publicUrl}">
