@@ -12,16 +12,36 @@
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
 
   <style>
-    /* Estilos principales */
+    /* Sidebar base */
+    nav.sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 250px;
+      background: var(--sidebar-color);
+      transition: all 0.3s ease;
+      z-index: 100; /* Desktop */
+    }
+
+    /* Sidebar cerrado */
+    nav.sidebar.close {
+      width: 88px;
+    }
+
+    /* Home base */
     .home {
-      display: flex;
-      flex-direction: column;
+      margin-left: 250px;
       padding: 24px;
-      gap: 24px;
-      position: relative;
       transition: all 0.3s ease;
     }
 
+    /* Home cuando sidebar está cerrado */
+    nav.sidebar.close ~ .home {
+      margin-left: 88px;
+    }
+
+    /* Estilos principales */
     .page-title {
       font-size: 1.5rem;
       color: var(--text-color);
@@ -92,25 +112,34 @@
       margin-top: 24px;
     }
 
-    /* Ajustes para móviles estándar (menos de 768px) */
+    /* Ajustes en móviles */
     @media (max-width: 768px) {
-      .panel-wrapper {
-        padding: 32px;
+      nav.sidebar {
+        width: 250px;
+        z-index: 9999; /* Flotar encima */
+        background: var(--sidebar-color);
       }
-      .cards-grid {
-        gap: 24px;
+
+      nav.sidebar.close {
+        transform: translateX(-100%);
       }
-      /* Home padding normal en móviles */
+
+      nav.sidebar,
+      nav.sidebar.close {
+        transition: transform 0.3s ease;
+      }
+
       .home {
+        margin-left: 0;
         padding: 24px;
       }
-      /* Home padding reducido cuando sidebar está cerrado */
-      body nav.sidebar.close ~ .home {
-        padding: 16px;
+
+      nav.sidebar.close ~ .home {
+        margin-left: 0;
       }
     }
 
-    /* Ajustes para móviles muy pequeños (menos de 400px) */
+    /* Ajustes para móviles muy pequeños */
     @media (max-width: 400px) {
       .panel-wrapper {
         padding: 20px;
