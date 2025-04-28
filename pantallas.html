@@ -12,27 +12,6 @@
 
   <!-- Boxicons JS (para <box-icon>) -->
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
-
-  <style>
-    /* Títulos un poco más pequeños y en gris suave */
-    .home .text {
-      font-size: 1.5rem;
-      color: var(--text-color);
-    }
-    .panel-title {
-      font-size: 1rem;
-      color: var(--text-color);
-      margin-bottom: var(--spacing-md);
-    }
-
-    /* Estado inicial de icono y texto de tarjeta */
-    .card span {
-      color: #fff;
-    }
-    .card box-icon {
-      color: #fff;
-    }
-  </style>
 </head>
 <body>
   <!-- Sidebar -->
@@ -40,22 +19,15 @@
 
   <!-- Contenido principal -->
   <section class="home">
-    <div class="text">Mis Pantallas</div>
+    <div class="page-title">Mis Pantallas</div>
 
-    <!-- Panel blanco -->
-    <div class="panel-wrapper"
-         style="background: var(--sidebar-color);
-                border-radius: .75rem;
-                padding: var(--spacing-lg);
-                margin: var(--spacing-lg);
-                box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+    <div class="panel-wrapper">
       <div class="panel-title">Selecciona para administrar</div>
       <ul id="screens-list" class="cards-grid"></ul>
     </div>
 
-    <!-- Mensaje si no hay pantallas -->
-    <p id="no-screens" class="no-items" style="display:none; margin-top: var(--spacing-lg);">
-      No tienes pantallas vinculadas.<br>
+    <p id="no-screens" class="no-items" style="display:none;">
+      No tienes pantallas vinculadas.<br/>
       Escanea un QR para agregar una.
     </p>
   </section>
@@ -83,7 +55,7 @@
         window.location.href = 'login.html';
       };
 
-      // 3) Traer pantallas
+      // 3) Obtener pantallas
       const { data: screens } = await supabase
         .from('tv')
         .select('code,nombre')
@@ -114,7 +86,7 @@
         listEl.appendChild(li);
       });
 
-      // 5) Disparar evento para habilitar el highlight de tarjetas
+      // 5) Evento para highlight si fuera necesario
       window.dispatchEvent(new Event('cardsRendered'));
     }
 
