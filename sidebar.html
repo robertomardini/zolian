@@ -1,7 +1,6 @@
 <!-- sidebar.html -->
 <nav class="sidebar close">
   <header>
-  
     <div class="image-text">
       <span class="image">
         <img src="logo.png" alt="Logo Zolian App">
@@ -17,7 +16,8 @@
   <div class="menu-bar">
     <div class="menu">
       <ul class="menu-links">
-        <li class="nav-link">
+        <!-- Pantallas marcado como activo -->
+        <li class="nav-link active">
           <a href="pantallas.html/">
             <i class="bx bx-tv icon"></i>
             <span class="text nav-text">Pantallas</span>
@@ -41,28 +41,28 @@
             <span class="text nav-text">Cargar Video</span>
           </a>
         </li>
-       <li class="nav-link" id="share-btn">
-  <a href="#">
-    <i class='bx bx-share-alt icon'></i>
-    <span class="text nav-text">Compartir</span>
-  </a>
-</li>
-
+        <li class="nav-link" id="share-btn">
+          <a href="#">
+            <i class='bx bx-share-alt icon'></i>
+            <span class="text nav-text">Compartir</span>
+          </a>
+        </li>
         <li class="nav-link">
           <a href="tutoriales.html">
             <i class="bx bxs-book-open icon"></i>
             <span class="text nav-text">Tutoriales</span>
           </a>
         </li>
-        </ul>
+      </ul>
     </div>
-        <li class="bottom-conten">
-          <a href="suscripcion.html">
-            <i class="bx bx-wallet icon"></i>
-            <span class="text nav-text">Suscripción</span>
-          </a>
-        </li>
-      
+
+    <li class="bottom-conten">
+      <a href="suscripcion.html">
+        <i class="bx bx-wallet icon"></i>
+        <span class="text nav-text">Suscripción</span>
+      </a>
+    </li>
+
     <div class="bottom-content">
       <li class="nav-link nav-user">
         <a href="#">
@@ -76,16 +76,7 @@
           <span class="text nav-text">Cerrar sesión</span>
         </a>
       </li>
-      <li class="mode">
-        <div class="sun-moon">
-          <i class="bx bx-moon icon moon"></i>
-          <i class="bx bx-sun icon sun"></i>
-        </div>
-        <span class="mode-text text">Dark mode</span>
-        <div class="toggle-switch">
-          <span class="switch"></span>
-        </div>
-      </li>
+      <!-- Botón Dark mode eliminado -->
     </div>
   </div>
 </nav>
