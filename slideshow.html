@@ -5,7 +5,7 @@
   <title>Slideshow – Zolian TV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Splide CSS (solo para slide) -->
+  <!-- Splide CSS (solo para slide/vertical) -->
   <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.3/dist/css/splide.min.css"
@@ -22,21 +22,21 @@
     }
     /* Fullscreen button */
     #fs-btn {
-      position: absolute; top: 10px; right: 10px;
-      z-index: 1000;
+      position: absolute; top:10px; right:10px;
+      z-index:1000;
       background: rgba(255,255,255,0.6);
-      border: none; border-radius: 4px;
-      padding: 6px; cursor: pointer;
+      border:none; border-radius:4px;
+      padding:6px; cursor:pointer;
     }
-    #fs-btn i { font-size: 2rem; color: #000; }
+    #fs-btn i { font-size:2rem; color:#000; }
 
     /* Ocultar cursor y botón en fullscreen */
-    :fullscreen body, :-webkit-full-screen body { cursor: none; }
-    :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { display: none !important; }
+    :fullscreen body, :-webkit-full-screen body { cursor:none; }
+    :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { display:none !important; }
 
-    /* Contenedor fade */
+    /* Contenedor de fade manual */
     #fade-container {
-      position: absolute; top:0; left:0;
+      position:absolute; top:0; left:0;
       width:100vw; height:100vh;
     }
     #fade-container img {
@@ -44,9 +44,10 @@
       object-fit:contain;
       opacity:0;
       transition: opacity 1s ease-in-out;
+      z-index:0;
     }
 
-    /* Contenedor splide */
+    /* Contenedor Splide para slide/vertical */
     #splide { display:none; width:100vw; height:100vh; }
     .splide__slide img {
       object-fit:contain; width:100%; height:100%;
@@ -82,7 +83,7 @@
       document.documentElement.requestFullscreen?.();
     });
 
-    // Ocultar botón y cursor si el padre está en fullscreen
+    // Ocultar botón/cursor si el padre está fullscreen
     function checkFull() {
       let fs = false;
       try { fs = !!window.parent.document.fullscreenElement; } catch {}
@@ -98,7 +99,7 @@
     window.parent.document.addEventListener('fullscreenchange', checkFull);
     document.addEventListener('DOMContentLoaded', checkFull);
 
-    // 1) Leer TV
+    // Leer la configuración de TV
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id, video_url')
@@ -113,68 +114,72 @@
     }
     const galleryId = tv.gallery_id;
 
-    // 2) Leer ajustes desde galleries
+    // Leer duration y slideshow_type desde galleries
     const { data: gal } = await supabase
       .from('galleries')
       .select('duration, slideshow_type')
       .eq('id', galleryId)
       .maybeSingle();
-    const duration   = (gal.duration || 5) * 1000;
-    const type       = gal.slideshow_type || 'fade';
+    const durationMs = (gal?.duration || 5) * 1000;
+    const type       = gal?.slideshow_type || 'fade';
 
-    // 3) Cargar imágenes
+    // Cargar imágenes
     const { data: imgs } = await supabase
       .from('images')
       .select('url')
       .eq('gallery_id', galleryId)
-      .order('created_at', { ascending:true });
+      .order('created_at', { ascending: true });
     if (!imgs?.length) {
       return alert('Este álbum no tiene imágenes aún.');
     }
 
     if (type === 'fade') {
-      // FADE MANUAL
+      // FADE MANUAL con z-index
       const container = document.getElementById('fade-container');
-      // crear <img> y dejar todas opacidad=0
-      const elements = imgs.map((i, idx) => {
+      const elements = imgs.map(({ url }, i) => {
         const img = document.createElement('img');
-        img.src = supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl;
+        img.src = supabase.storage.from('images').getPublicUrl(url).data.publicUrl;
         container.appendChild(img);
         return img;
       });
-      // primero mostrar la 0
+
+      // Inicializar
       let idx = 0;
       elements[idx].style.opacity = '1';
+      elements[idx].style.zIndex  = '1';
 
       setInterval(() => {
         const prev = elements[idx];
         idx = (idx + 1) % elements.length;
         const next = elements[idx];
 
-        // 1) poner next instantáneo al 100% sin transición
+        // 1) Sitúa next detrás y visible al 100% sin transición
         next.style.transition = 'none';
-        next.style.opacity = '1';
-        // forzar reflow
+        next.style.opacity    = '1';
+        next.style.zIndex     = '0';
+        // reflow forzar estilos
         void next.offsetWidth;
 
-        // 2) asegurar que prev use transición
+        // 2) Eleva prev encima y desvanécelo
+        prev.style.zIndex     = '1';
         prev.style.transition = 'opacity 1s ease-in-out';
-        // 3) desvanecer prev
-        prev.style.opacity = '0';
+        prev.style.opacity    = '0';
 
-        // 4) restaurar transición en next para siguiente ciclo
+        // 3) Tras 1s, reset prev
         setTimeout(() => {
-          next.style.transition = 'opacity 1s ease-in-out';
-        }, 0);
-      }, duration);
+          prev.style.transition = 'none';
+          prev.style.zIndex     = '0';
+        }, 1000);
+
+      }, durationMs);
 
     } else {
-      // SPLIDE PARA SLIDE / VERTICAL
+      // SLIDE / VERTICAL con Splide
       document.getElementById('fade-container').style.display = 'none';
       document.getElementById('splide').style.display        = 'block';
 
       const list = document.getElementById('slides-list');
-      imgs.forEach(({url}) => {
+      imgs.forEach(({ url }) => {
         const li = document.createElement('li');
         li.className = 'splide__slide';
         li.innerHTML = `<img src="${ supabase.storage.from('images').getPublicUrl(url).data.publicUrl }">`;
@@ -186,7 +191,7 @@
         direction    : type === 'vertical' ? 'ttb' : 'ltr',
         perPage      : 1,
         autoplay     : true,
-        interval     : duration,
+        interval     : durationMs,
         pauseOnHover : false,
         pauseOnFocus : false,
         arrows       : false,
@@ -197,13 +202,15 @@
       splide.mount();
     }
 
-    // 4) Escuchar cambios en TV
+    // Escuchar cambios en TV
     supabase
       .channel(`tv_updates_${code}`)
-      .on('postgres_changes',{
-        event:'UPDATE',schema:'public',table:'tv',
-        filter:`code=eq.${code}`
-      },({ new:upd }) => {
+      .on('postgres_changes', {
+        event:  'UPDATE',
+        schema: 'public',
+        table:  'tv',
+        filter: `code=eq.${code}`,
+      }, ({ new: upd }) => {
         if (upd.video_url) {
           location.href = `/player.html?code=${code}`;
         } else if (upd.gallery_id && upd.gallery_id !== galleryId) {
