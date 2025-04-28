@@ -18,41 +18,20 @@
       margin: 0; padding: 0;
       width: 100%; height: 100%;
       overflow: hidden;
-      /* Fondo detrás del slideshow */
       background: url('/Zolian-BG.png') center/cover no-repeat;
     }
-
-    /* Fullscreen button */
     #fs-btn {
-      position: absolute;
-      top: 10px; right: 10px;
+      position: absolute; top: 10px; right: 10px;
       z-index: 1000;
       background: rgba(255,255,255,0.6);
       border: none; border-radius: 4px;
       padding: 6px; cursor: pointer;
     }
-    #fs-btn i {
-      font-size: 2rem;
-      color: #000;
-    }
-
-    /* Ocultar cursor y botón en fullscreen */
-    :fullscreen body, :-webkit-full-screen body {
-      cursor: none;
-    }
-    :fullscreen #fs-btn, :-webkit-full-screen #fs-btn {
-      display: none !important;
-    }
-
-    /* Splide ocupa toda la pantalla */
-    #splide {
-      width: 100vw;
-      height: 100vh;
-    }
-    .splide__slide img {
-      object-fit: contain;
-      width: 100%; height: 100%;
-    }
+    #fs-btn i { font-size: 2rem; color: #000; }
+    :fullscreen body, :-webkit-full-screen body { cursor: none; }
+    :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { display: none !important; }
+    #splide { width: 100vw; height: 100vh; }
+    .splide__slide img { object-fit: contain; width: 100%; height: 100%; }
   </style>
 </head>
 <body>
@@ -71,7 +50,6 @@
   <script src="/supabaseClient.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.3/dist/js/splide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide-extension-fade@0.3.1/dist/js/splide-extension-fade.min.js"></script>
-
   <script>
   (async () => {
     const params = new URLSearchParams(location.search);
@@ -81,21 +59,20 @@
       return;
     }
 
-    // --- Fullscreen button ---
+    // Fullscreen button
     const fsBtn = document.getElementById('fs-btn');
     fsBtn.addEventListener('click', () => {
       document.documentElement.requestFullscreen?.();
     });
-
-    // Ocultar botón si el padre (index) está en fullscreen
+    // Ocultar botón si el padre está en fullscreen
     function checkFull() {
       let fs = false;
       try { fs = !!window.parent.document.fullscreenElement; } catch {}
       if (fs) {
-        fsBtn.style.display       = 'none';
+        fsBtn.style.display = 'none';
         document.body.style.cursor = 'none';
       } else {
-        fsBtn.style.display       = '';
+        fsBtn.style.display = '';
         document.body.style.cursor = '';
       }
     }
@@ -103,14 +80,13 @@
     window.parent.document.addEventListener('fullscreenchange', checkFull);
     document.addEventListener('DOMContentLoaded', checkFull);
 
-    // --- 1) Traer configuración de la TV (solo gallery_id/video_url) ---
+    // 1) Traer TV → sólo gallery_id/video_url
     const { data: tv } = await supabase
       .from('tv')
       .select('gallery_id, video_url')
       .eq('code', code)
       .maybeSingle();
 
-    // Si hay vídeo, redirigir a player
     if (tv?.video_url) {
       return location.href = `/player.html?code=${code}`;
     }
@@ -119,20 +95,19 @@
     }
     const galleryId = tv.gallery_id;
 
-    // --- 2) Leer ajustes desde galleries ---
+    // 2) Leer ajustes desde galleries
     const { data: gallery, error: galErr } = await supabase
       .from('galleries')
       .select('duration, slideshow_type')
       .eq('id', galleryId)
       .maybeSingle();
     if (galErr || !gallery) {
-      alert('Error cargando configuración del álbum.');
-      return;
+      return alert('Error cargando configuración del álbum.');
     }
-    const durationMs      = (gallery.duration || 5) * 1000;
-    const slideshowType   = gallery.slideshow_type || 'fade';
+    const durationMs    = (gallery.duration || 5) * 1000;
+    const slideshowType = gallery.slideshow_type || 'fade';
 
-    // --- 3) Cargar imágenes del álbum ---
+    // 3) Cargar imágenes
     const { data: imgs } = await supabase
       .from('images')
       .select('url')
@@ -141,7 +116,6 @@
     if (!imgs?.length) {
       return alert('Este álbum no tiene imágenes aún.');
     }
-
     const list = document.getElementById('slides-list');
     imgs.forEach(({ url }) => {
       const publicUrl = supabase
@@ -153,7 +127,7 @@
       list.appendChild(li);
     });
 
-    // --- 4) Configurar Splide según tipo ---
+    // 4) Configurar Splide
     const options = {
       type         : 'loop',
       direction    : slideshowType === 'vertical' ? 'ttb' : 'ltr',
@@ -164,23 +138,21 @@
       pauseOnFocus : false,
       arrows       : false,
       pagination   : false,
-      speed        : 2000,     // 2s de transición
+      speed        : 2000,
       height       : '100vh',
       cover        : false,
-      // Solo incluimos fade:true si es fade
       fade         : slideshowType === 'fade',
     };
-
     const splide = new Splide('#splide', options);
 
-    // Montaje: solo pasamos la extensión de Fade si la necesitamos
-    if (slideshowType === 'fade') {
-      splide.mount({ Fade: Splide.Extensions.Fade });
+    // Montar: si es fade, usamos el plugin global Fade
+    if (slideshowType === 'fade' && typeof Fade !== 'undefined') {
+      splide.mount({ Fade });
     } else {
       splide.mount();
     }
 
-    // --- 5) Escuchar cambios en la tabla TV ---
+    // 5) Escuchar cambios en TV
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
@@ -192,7 +164,6 @@
         if (upd.video_url) {
           location.href = `/player.html?code=${code}`;
         } else if (upd.gallery_id && upd.gallery_id !== galleryId) {
-          // recarga para leer los nuevos ajustes de galleries
           location.reload();
         }
       })
