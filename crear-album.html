@@ -4,65 +4,111 @@
   <meta charset="UTF-8"/>
   <title>Crear Álbum – Zolian App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- Estilos y Boxicons -->
   <link rel="stylesheet" href="/style.css"/>
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
+  <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
   <style>
-    body { font-family:Arial,sans-serif; padding:20px; }
-    h1 { margin-bottom:12px; }
-    input, button { width:100%; padding:8px; margin-top:8px; }
-    button { cursor:pointer; }
-    #msg { color:red; margin-top:8px; }
+    .home {
+      padding: 20px;
+      transition: left 0.3s, width 0.3s;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 16px;
+      color: var(--text-color);
+    }
+    input, button {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      margin-bottom: 12px;
+      font-size: 1rem;
+    }
+    button {
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    #msg {
+      color: red;
+      min-height: 1.2em;
+    }
   </style>
 </head>
 <body>
-  <h1>Crear Álbum</h1>
-  <input id="album-name" type="text" placeholder="Nombre del álbum"/>
-  <button id="create-btn">Crear Álbum</button>
-  <p id="msg"></p>
+  <!-- Contenedor donde se inyecta el sidebar (script.js) -->
+  <div id="sidebar-container"></div>
 
+  <section class="home">
+    <h1>Crear nuevo álbum</h1>
+    <input type="text" id="album-name" placeholder="Nombre del álbum" />
+    <button id="create-btn">Crear Álbum</button>
+    <p id="msg"></p>
+  </section>
+
+  <!-- Supabase y script de sidebar -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
+  <script src="/script.js"></script>
   <script>
-  (async () => {
-    // Si venimos de vincular, recibimos ?code=…
-    const tvCode = new URLSearchParams(location.search).get('code');
-    const { data:{ session } } = await supabase.auth.getSession();
-    if (!session) {
-      const r = encodeURIComponent(location.pathname + location.search);
-      return window.location.href = `login.html?redirect=${r}`;
-    }
+    (async () => {
+      // Si venimos con código de TV, lo leemos
+      const tvCode = new URLSearchParams(location.search).get('code');
 
-    document.getElementById('create-btn').onclick = async () => {
-      const name = document.getElementById('album-name').value.trim();
-      const msg  = document.getElementById('msg');
-      msg.innerText = '';
-      if (!name) return msg.innerText = 'Debes escribir un nombre.';
-
-      const { data: gallery, error } = await supabase
-        .from('galleries')
-        .insert({ name, user_id: session.user.id })
-        .select()
-        .single();
-      if (error) {
-        msg.innerText = 'Error al crear álbum.';
-        console.error(error);
-        return;
+      // 1) Verificar sesión
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const redirect = encodeURIComponent(location.pathname + location.search);
+        return window.location.href = `login.html?redirect=${redirect}`;
       }
 
-      if (tvCode) {
-        const { error: err2 } = await supabase
-          .from('tv')
-          .update({ gallery_id: gallery.id, play: true })
-          .eq('code', tvCode);
-        if (err2) {
-          alert('Álbum creado, pero no se vinculó: ' + err2.message);
-          return window.location.href = `/album.html?gallery=${gallery.id}`;
+      const btn     = document.getElementById('create-btn');
+      const msg     = document.getElementById('msg');
+      const nameInp = document.getElementById('album-name');
+
+      btn.onclick = async () => {
+        msg.textContent = '';
+        const nombre = nameInp.value.trim();
+        if (!nombre) {
+          msg.textContent = 'Debes escribir un nombre.';
+          return;
         }
-        return window.location.href = `/slideshow.html?code=${tvCode}`;
-      }
 
-      window.location.href = `/album.html?gallery=${gallery.id}`;
-    };
-  })();
+        // 2) Crear álbum y obtener la fila insertada
+        const { data: gallery, error: err1 } = await supabase
+          .from('galleries')
+          .insert({ name: nombre, user_id: session.user.id })
+          .select()
+          .single();
+        if (err1 || !gallery) {
+          console.error(err1);
+          msg.textContent = 'Error al crear álbum.';
+          return;
+        }
+
+        // 3) Si venimos con tvCode, vinculamos este álbum a la TV (pero no redirigimos al slideshow)
+        if (tvCode) {
+          const { error: err2 } = await supabase
+            .from('tv')
+            .update({ gallery_id: gallery.id, play: true })
+            .eq('code', tvCode);
+          if (err2) {
+            console.warn('No se vinculó a la TV:', err2.message);
+          }
+        }
+
+        // 4) Ir al gestor de álbum (album.html) siempre
+        window.location.href = `/album.html?gallery=${gallery.id}`;
+      };
+    })();
   </script>
 </body>
 </html>
