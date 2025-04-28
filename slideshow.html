@@ -21,7 +21,6 @@
       /* Fondo detrás del slideshow */
       background: url('/Zolian-BG.png') center/cover no-repeat;
     }
-
     /* Fullscreen button */
     #fs-btn {
       position: absolute;
@@ -35,7 +34,6 @@
       font-size: 2rem;
       color: #000;
     }
-
     /* Ocultar cursor y botón en fullscreen */
     :fullscreen body, :-webkit-full-screen body {
       cursor: none;
@@ -43,7 +41,6 @@
     :fullscreen #fs-btn, :-webkit-full-screen #fs-btn {
       display: none !important;
     }
-
     /* Splide ocupa toda la pantalla */
     #splide {
       width: 100vw;
@@ -87,7 +84,7 @@
       document.documentElement.requestFullscreen?.();
     });
 
-    // 2) Función para ocultar el botón si el padre (index) está en fullscreen
+    // 2) Ocultar botón si el padre (index) está en fullscreen
     function checkFull() {
       let fs = false;
       try { fs = !!window.parent.document.fullscreenElement; } catch {}
@@ -106,25 +103,38 @@
     // 3) Traer configuración de la TV
     const { data: tv } = await supabase
       .from('tv')
-      .select('gallery_id, duration, slideshow_type, video_url')
+      .select('gallery_id, video_url')
       .eq('code', code)
       .maybeSingle();
 
-    // Si hay vídeo, redirigir a player
+    // si hay vídeo, redirigir a player
     if (tv?.video_url) {
       return location.href = `/player.html?code=${code}`;
     }
     if (!tv?.gallery_id) {
       return alert('No hay álbum asignado a esta pantalla.');
     }
+    const galleryId = tv.gallery_id;
 
-    // 4) Cargar imágenes del álbum
+    // 4) Leer ajustes desde galleries
+    const { data: gallery, error: galErr } = await supabase
+      .from('galleries')
+      .select('duration, slideshow_type')
+      .eq('id', galleryId)
+      .maybeSingle();
+    if (galErr || !gallery) {
+      alert('Error cargando configuración del álbum.');
+      return;
+    }
+    const duration       = (gallery.duration || 5) * 1000;
+    const slideshowType  = gallery.slideshow_type || 'fade';
+
+    // 5) Cargar imágenes del álbum
     const { data: imgs } = await supabase
       .from('images')
       .select('url')
-      .eq('gallery_id', tv.gallery_id)
+      .eq('gallery_id', galleryId)
       .order('created_at', { ascending: true });
-
     if (!imgs?.length) {
       return alert('Este álbum no tiene imágenes aún.');
     }
@@ -140,28 +150,27 @@
       list.appendChild(li);
     });
 
-    // 5) Configurar Splide
-    const intervalMs = (tv.duration || 5) * 1000;
+    // 6) Configurar Splide
     const splide = new Splide( '#splide', {
       type         : 'loop',
-      direction    : tv.slideshow_type === 'vertical' ? 'ttb' : 'ltr',
+      direction    : slideshowType === 'vertical' ? 'ttb' : 'ltr',
       perPage      : 1,
       autoplay     : true,
-      interval     : intervalMs,
+      interval     : duration,
       pauseOnHover : false,
       pauseOnFocus : false,
       arrows       : false,
       pagination   : false,
-      speed        : 2000,                             // 2s de transición
+      speed        : 2000,                          // 2s de transición
       height       : '100vh',
       cover        : false,
-      fade         : tv.slideshow_type === 'fade',    // activa la extensión fade
+      // activamos fade sólo si tocó 'fade'
+      fade         : slideshowType === 'fade',
     } );
 
-    // Montar con la extensión Fade
     splide.mount( window.splide.Extensions );
 
-    // 6) Escuchar cambios en la tabla TV
+    // 7) Escuchar cambios en la tabla TV
     supabase
       .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
@@ -172,7 +181,8 @@
       }, ({ new: upd }) => {
         if (upd.video_url) {
           location.href = `/player.html?code=${code}`;
-        } else if (upd.gallery_id && upd.gallery_id !== tv.gallery_id) {
+        } else if (upd.gallery_id && upd.gallery_id !== galleryId) {
+          // vuelve a cargar la página para leer el nuevo gallery_id y su config
           location.reload();
         }
       })
