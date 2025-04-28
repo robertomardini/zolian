@@ -12,36 +12,29 @@
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
 
   <style>
-    /* Sidebar base */
+    /* Sidebar siempre encima */
     nav.sidebar {
       position: fixed;
       top: 0;
       left: 0;
-      height: 100vh;
       width: 250px;
+      height: 100%;
       background: var(--sidebar-color);
-      transition: all 0.3s ease;
-      z-index: 100; /* Desktop */
+      z-index: 9999;
+      transition: transform 0.3s ease;
+      box-shadow: 2px 0 6px rgba(0,0,0,0.1);
     }
-
-    /* Sidebar cerrado */
     nav.sidebar.close {
-      width: 88px;
+      transform: translateX(-100%);
     }
 
-    /* Home base */
+    /* Home normal */
     .home {
-      margin-left: 250px;
       padding: 24px;
       transition: all 0.3s ease;
     }
 
-    /* Home cuando sidebar está cerrado */
-    nav.sidebar.close ~ .home {
-      margin-left: 88px;
-    }
-
-    /* Estilos principales */
+    /* Títulos y panel */
     .page-title {
       font-size: 1.5rem;
       color: var(--text-color);
@@ -52,11 +45,10 @@
       background: var(--sidebar-color);
       border-radius: 0.75rem;
       padding: 24px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       display: flex;
       flex-direction: column;
       gap: 24px;
-      transition: all 0.3s ease;
     }
 
     .panel-title {
@@ -112,34 +104,7 @@
       margin-top: 24px;
     }
 
-    /* Ajustes en móviles */
-    @media (max-width: 768px) {
-      nav.sidebar {
-        width: 250px;
-        z-index: 9999; /* Flotar encima */
-        background: var(--sidebar-color);
-      }
-
-      nav.sidebar.close {
-        transform: translateX(-100%);
-      }
-
-      nav.sidebar,
-      nav.sidebar.close {
-        transition: transform 0.3s ease;
-      }
-
-      .home {
-        margin-left: 0;
-        padding: 24px;
-      }
-
-      nav.sidebar.close ~ .home {
-        margin-left: 0;
-      }
-    }
-
-    /* Ajustes para móviles muy pequeños */
+    /* Ajustes opcionales para pantallas muy pequeñas */
     @media (max-width: 400px) {
       .panel-wrapper {
         padding: 20px;
