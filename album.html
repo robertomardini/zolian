@@ -4,12 +4,9 @@
   <meta charset="UTF-8"/>
   <title>Álbum – Zolian App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- Estilos globales -->
   <link rel="stylesheet" href="/style.css"/>
-  <!-- Boxicons para iconos -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
-  <!-- Librería para comprimir/redimensionar imágenes -->
   <script src="https://unpkg.com/browser-image-compression/dist/browser-image-compression.js"></script>
   <style>
     .home { padding:20px; transition:left .3s, width .3s; }
@@ -45,16 +42,12 @@
   </style>
 </head>
 <body>
-  <!-- Sidebar -->
   <div id="sidebar-container"></div>
 
   <section class="home">
     <div class="text">Administrar Álbum</div>
-
-    <!-- Usuario -->
     <p>Usuario: <strong id="user-email"></strong></p>
 
-    <!-- Nombre del álbum -->
     <div class="section">
       <label for="album-name">Nombre del álbum</label>
       <div class="input-group">
@@ -62,13 +55,11 @@
       </div>
     </div>
 
-    <!-- Duración -->
     <div class="section">
       <label for="duration">Duración por imagen (s)</label>
       <input type="number" id="duration" min="1" value="5"/>
     </div>
 
-    <!-- Tipo de slideshow -->
     <div class="section">
       <label for="slideshow-type">Tipo de slideshow</label>
       <select id="slideshow-type">
@@ -80,12 +71,10 @@
       </select>
     </div>
 
-    <!-- Botón Guardar Cambios -->
     <div class="section">
       <button id="save-settings">💾 Guardar cambios</button>
     </div>
 
-    <!-- Subir imágenes -->
     <div class="section">
       <label for="file-input">Cargar imágenes</label>
       <div class="input-group">
@@ -95,12 +84,10 @@
       </div>
     </div>
 
-    <!-- Miniaturas -->
     <div class="section">
       <ul id="images-list"></ul>
     </div>
 
-    <!-- Enviar a pantalla -->
     <div class="section">
       <label for="tv-select">Enviar a pantalla</label>
       <div class="input-group">
@@ -111,7 +98,6 @@
       </div>
     </div>
 
-    <!-- Eliminar álbum -->
     <div class="section">
       <button id="delete-album" style="background:#e74c3c;">
         🗑 Eliminar álbum
@@ -119,36 +105,33 @@
     </div>
   </section>
 
-  <!-- Inyecta sidebar -->
   <script src="/script.js"></script>
-  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
-
   <script>
     async function initAlbum() {
-      const params    = new URLSearchParams(window.location.search);
+      const params    = new URLSearchParams(location.search);
       const galleryId = params.get('gallery');
       if (!galleryId) {
         alert('Falta parámetro gallery.');
-        window.location.href = 'galeria.html';
-        return;
+        return window.location.href = 'galeria.html';
       }
 
-      // Obtener sesión
-      const sessRes = await supabase.auth.getSession();
-      const session = sessRes.data.session;
+      // 1) Sesión
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        const redirect = encodeURIComponent(location.pathname + location.search);
-        window.location.href = `login.html?redirect=${redirect}`;
-        return;
+        const r = encodeURIComponent(location.pathname + location.search);
+        return window.location.href = `login.html?redirect=${r}`;
       }
 
-      // Mostrar email
+      // 2) Mostrar usuario
       document.getElementById('user-email').innerText = session.user.email;
-      document.getElementById('sidebar-user')?.innerText = session.user.email;
+      const sidebarUser = document.getElementById('sidebar-user');
+      if (sidebarUser) {
+        sidebarUser.innerText = session.user.email;
+      }
 
-      // Leer datos del álbum
+      // 3) Datos del álbum
       const { data: alb, error: albErr } = await supabase
         .from('galleries')
         .select('name,duration,slideshow_type')
@@ -162,7 +145,7 @@
       document.getElementById('duration').value       = alb.duration;
       document.getElementById('slideshow-type').value = alb.slideshow_type;
 
-      // Guardar cambios
+      // 4) Guardar configuración
       document.getElementById('save-settings').onclick = async () => {
         const name = document.getElementById('album-name').value.trim();
         const dur  = parseInt(document.getElementById('duration').value) || 5;
@@ -182,7 +165,7 @@
         }
       };
 
-      // Subir imágenes comprimidas y redimensionadas a WebP
+      // 5) Subir imágenes optimizadas
       document.getElementById('upload-btn').onclick = async () => {
         const inp  = document.getElementById('file-input');
         const stat = document.getElementById('upload-status');
@@ -190,11 +173,9 @@
           alert('Selecciona alguna imagen');
           return;
         }
-        inp.disabled = true;
+        inp.disabled   = true;
         stat.innerText = 'Procesando...';
-
         for (let file of inp.files) {
-          // Comprimir y convertir a WebP
           let compressed;
           try {
             compressed = await imageCompression(file, {
@@ -207,9 +188,7 @@
             compressed = file;
           }
           const newName = file.name.replace(/\.\w+$/, '.webp');
-          const path = `${galleryId}/${Date.now()}_${newName}`;
-
-          // Subir a Supabase Storage
+          const path    = `${galleryId}/${Date.now()}_${newName}`;
           const { error: upErr } = await supabase
             .storage
             .from('images')
@@ -219,19 +198,17 @@
             alert(`Error subiendo ${newName}: ${upErr.message}`);
             continue;
           }
-          // Guardar registro en tabla
           await supabase
             .from('images')
             .insert({ gallery_id: galleryId, url: path });
         }
-
         inp.value     = '';
-        stat.innerText = '';
         inp.disabled  = false;
+        stat.innerText = '';
         await loadImages();
       };
 
-      // Cargar miniaturas
+      // 6) Cargar miniaturas
       async function loadImages() {
         const { data: imgs } = await supabase
           .from('images')
@@ -261,7 +238,7 @@
       }
       await loadImages();
 
-      // Listar pantallas
+      // 7) Listar pantallas
       const { data: tvs } = await supabase
         .from('tv')
         .select('code,nombre')
@@ -274,7 +251,7 @@
         sel.appendChild(o);
       });
 
-      // Enviar a TV
+      // 8) Enviar a TV
       document.getElementById('send-btn').onclick = async () => {
         const code = sel.value;
         if (!code) {
@@ -290,7 +267,7 @@
             duration:       dur,
             slideshow_type: type,
             play:           true,
-            video_url:      null
+            video_url:      null,
           })
           .eq('code', code);
         if (error) {
@@ -300,7 +277,7 @@
         }
       };
 
-      // Eliminar álbum
+      // 9) Eliminar álbum
       document.getElementById('delete-album').onclick = async () => {
         if (!confirm('Eliminar álbum y todas sus imágenes?')) return;
         await supabase.from('images').delete().eq('gallery_id', galleryId);
@@ -309,7 +286,6 @@
       };
     }
 
-    // Esperar a que el sidebar esté inyectado
     window.addEventListener('sidebarReady', initAlbum);
   </script>
 </body>
