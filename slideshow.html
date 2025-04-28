@@ -5,178 +5,212 @@
   <title>Slideshow – Zolian TV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Splide CSS -->
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.3/dist/css/splide.min.css"
-  >
+  <!-- Supabase client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
   <!-- Boxicons para el icono fullscreen -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
     html, body {
       margin: 0; padding: 0;
-      width: 100%; height: 100%;
-      overflow: hidden;
-      /* Fondo detrás del slideshow */
-      background: url('/Zolian-BG.png') center/cover no-repeat;
+      width: 100%; height: 100%; overflow: hidden;
+      /* fondo con tu imagen */
+      background: url('/Zolian-BG.png') center/cover no-repeat #000;
     }
-
-    /* Fullscreen button */
+    /* botón fullscreen */
     #fs-btn {
-      position: absolute;
-      top: 10px; right: 10px;
+      position: absolute; top: 10px; right: 10px;
       z-index: 1000;
       background: rgba(255,255,255,0.6);
       border: none; border-radius: 4px;
       padding: 6px; cursor: pointer;
     }
-    #fs-btn i {
-      font-size: 2rem;
-      color: #000;
+    #fs-btn i { font-size: 2rem; color: #000; }
+
+    /* contenedor de slides */
+    #slides {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    /* cada imagen */
+    #slides img {
+      position: absolute;
+      width: 100%; height: 100%;
+      object-fit: contain;
+      /* duración de la transición más lenta */
+      transition: transform 1.5s ease-in-out,
+                  opacity   1.5s ease-in-out;
     }
 
-    /* Ocultar cursor y botón en fullscreen */
-    :fullscreen body, :-webkit-full-screen body {
+    /* en fullscreen ocultar cursor y botón */
+    :fullscreen body,
+    :-webkit-full-screen body {
       cursor: none;
     }
-    :fullscreen #fs-btn, :-webkit-full-screen #fs-btn {
+    :fullscreen #fs-btn,
+    :-webkit-full-screen #fs-btn {
       display: none !important;
-    }
-
-    /* Splide ocupa toda la pantalla */
-    #splide {
-      width: 100vw;
-      height: 100vh;
-    }
-    .splide__slide img {
-      object-fit: contain;
-      width: 100%; height: 100%;
     }
   </style>
 </head>
 <body>
-  <!-- Botón fullscreen -->
   <button id="fs-btn"><i class="bx bx-fullscreen"></i></button>
-
-  <!-- Estructura Splide -->
-  <div id="splide" class="splide">
-    <div class="splide__track">
-      <ul id="slides-list" class="splide__list"></ul>
-    </div>
-  </div>
-
-  <!-- JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.3/dist/js/splide.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide-extension-fade@0.3.1/dist/js/splide-extension-fade.min.js"></script>
+  <div id="slides"></div>
 
   <script>
   (async () => {
-    const params = new URLSearchParams(location.search);
-    const code   = params.get('code');
-    if (!code) {
-      alert('Falta el parámetro ?code en la URL');
-      return;
+    const code = new URLSearchParams(location.search).get('code');
+    if (!code) { alert('Falta ?code en la URL'); return; }
+    const slidesEl = document.getElementById('slides');
+    let intervalId = null;
+
+    // 1) Trae el tipo de slideshow directamente de la tabla galleries
+    async function fetchGalleryType(galleryId) {
+      const { data, error } = await supabase
+        .from('galleries')
+        .select('slideshow_type')
+        .eq('id', galleryId)
+        .single();
+      if (error || !data.slideshow_type) return 'fade';
+      return data.slideshow_type;
     }
 
-    // 1) Fullscreen button
-    const fsBtn = document.getElementById('fs-btn');
-    fsBtn.addEventListener('click', () => {
-      document.documentElement.requestFullscreen?.();
+    // 2) Función que monta y anima las imágenes
+    async function arrancar(galleryId, duration, type) {
+      clearInterval(intervalId);
+      slidesEl.innerHTML = '';
+
+      const { data: imgs } = await supabase
+        .from('images')
+        .select('url')
+        .eq('gallery_id', galleryId)
+        .order('created_at', { ascending: true });
+      if (!imgs?.length) return;
+
+      // obtener URLs públicas
+      const publicUrls = imgs.map(i =>
+        supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
+      );
+
+      // crear <img> iniciales
+      publicUrls.forEach((src, i) => {
+        const img = document.createElement('img');
+        img.src = src;
+        img.style.zIndex = i === 0 ? '2' : '0';
+        if (type === 'slide') {
+          img.style.opacity   = '1';
+          img.style.transform = i===0 ? 'translateX(0)' : 'translateX(100%)';
+        } else if (type === 'vertical') {
+          img.style.opacity   = '1';
+          img.style.transform = i===0 ? 'translateY(0)' : 'translateY(100%)';
+        } else { // fade
+          img.style.opacity   = i===0 ? '1' : '0';
+          img.style.transform = 'scale(1)';
+        }
+        slidesEl.appendChild(img);
+      });
+
+      // poner el bucle
+      intervalId = setInterval(() => {
+        const items = slidesEl.querySelectorAll('img');
+        let curr = Array.from(items).findIndex(x => x.style.zIndex === '2');
+        if (curr < 0) curr = 0;
+        const next = (curr + 1) % items.length;
+
+        // elevamos zIndex
+        items[curr].style.zIndex = '1';
+        items[next].style.zIndex = '2';
+
+        if (type === 'slide') {
+          // desliza a la izquierda
+          items[curr].style.transform = 'translateX(-100%)';
+          items[next].style.transform = 'translateX(0)';
+          setTimeout(() => {
+            // resetea al otro lado sin transición
+            items[curr].style.transition = 'none';
+            items[curr].style.transform  = 'translateX(100%)';
+            items[curr].style.zIndex     = '0';
+            // reactivar transición
+            requestAnimationFrame(() => {
+              items[curr].style.transition = 'transform 1.5s ease-in-out';
+            });
+          }, 1500);
+        }
+        else if (type === 'vertical') {
+          items[curr].style.transform = 'translateY(-100%)';
+          items[next].style.transform = 'translateY(0)';
+          setTimeout(() => {
+            items[curr].style.transition = 'none';
+            items[curr].style.transform  = 'translateY(100%)';
+            items[curr].style.zIndex     = '0';
+            requestAnimationFrame(() => {
+              items[curr].style.transition = 'transform 1.5s ease-in-out';
+            });
+          }, 1500);
+        }
+        else { // fade
+          items[curr].style.opacity = '0';
+          items[next].style.opacity = '1';
+        }
+      }, duration * 1000);
+    }
+
+    // 3) Fullscreen button local
+    document.getElementById('fs-btn').addEventListener('click', () => {
+      document.documentElement.requestFullscreen();
     });
 
-    // 2) Función para ocultar el botón si el padre (index) está en fullscreen
+    // 4) Carga inicial desde la tabla TV
+    const { data: tv } = await supabase
+      .from('tv')
+      .select('gallery_id,duration,video_url')
+      .eq('code', code)
+      .maybeSingle();
+
+    // si viene un video → saltamos a player
+    if (tv?.video_url) {
+      return window.location.href = `/player.html?code=${code}`;
+    }
+
+    if (tv?.gallery_id) {
+      const type = await fetchGalleryType(tv.gallery_id);
+      arrancar(tv.gallery_id, tv.duration, type);
+    }
+
+    // 5) Escucha los cambios en TV
+    supabase
+      .channel(`tv_updates_${code}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'tv',
+        filter: `code=eq.${code}`
+      }, async ({ new: upd }) => {
+        if (upd.video_url) {
+          window.location.href = `/player.html?code=${code}`;
+        }
+        else if (upd.gallery_id) {
+          const type = await fetchGalleryType(upd.gallery_id);
+          arrancar(upd.gallery_id, upd.duration, type);
+        }
+      })
+      .subscribe();
+
+    // 6) Oculta botón y cursor al detectarse fullscreen
     function checkFull() {
-      let fs = false;
-      try { fs = !!window.parent.document.fullscreenElement; } catch {}
+      const fs = !!document.fullscreenElement;
+      const btn = document.getElementById('fs-btn');
       if (fs) {
-        fsBtn.style.display       = 'none';
+        btn.style.display = 'none';
         document.body.style.cursor = 'none';
       } else {
-        fsBtn.style.display       = '';
+        btn.style.display = '';
         document.body.style.cursor = '';
       }
     }
     setInterval(checkFull, 300);
-    window.parent.document.addEventListener('fullscreenchange', checkFull);
-    document.addEventListener('DOMContentLoaded', checkFull);
-
-    // 3) Traer configuración de la TV
-    const { data: tv } = await supabase
-      .from('tv')
-      .select('gallery_id, duration, slideshow_type, video_url')
-      .eq('code', code)
-      .maybeSingle();
-
-    // Si hay vídeo, redirigir a player
-    if (tv?.video_url) {
-      return location.href = `/player.html?code=${code}`;
-    }
-    if (!tv?.gallery_id) {
-      return alert('No hay álbum asignado a esta pantalla.');
-    }
-
-    // 4) Cargar imágenes del álbum
-    const { data: imgs } = await supabase
-      .from('images')
-      .select('url')
-      .eq('gallery_id', tv.gallery_id)
-      .order('created_at', { ascending: true });
-
-    if (!imgs?.length) {
-      return alert('Este álbum no tiene imágenes aún.');
-    }
-
-    const list = document.getElementById('slides-list');
-    imgs.forEach(({ url }) => {
-      const publicUrl = supabase
-        .storage.from('images')
-        .getPublicUrl(url).data.publicUrl;
-      const li = document.createElement('li');
-      li.className = 'splide__slide';
-      li.innerHTML = `<img src="${publicUrl}" alt="slide">`;
-      list.appendChild(li);
-    });
-
-    // 5) Configurar Splide
-    const intervalMs = (tv.duration || 5) * 1000;
-    const splide = new Splide( '#splide', {
-      type         : 'loop',
-      direction    : tv.slideshow_type === 'vertical' ? 'ttb' : 'ltr',
-      perPage      : 1,
-      autoplay     : true,
-      interval     : intervalMs,
-      pauseOnHover : false,
-      pauseOnFocus : false,
-      arrows       : false,
-      pagination   : false,
-      speed        : 2000,                             // 2s de transición
-      height       : '100vh',
-      cover        : false,
-      fade         : tv.slideshow_type === 'fade',    // activa la extensión fade
-    } );
-
-    // Montar con la extensión Fade
-    splide.mount( window.splide.Extensions );
-
-    // 6) Escuchar cambios en la tabla TV
-    supabase
-      .channel(`tv_updates_${code}`)
-      .on('postgres_changes', {
-        event:  'UPDATE',
-        schema: 'public',
-        table:  'tv',
-        filter: `code=eq.${code}`,
-      }, ({ new: upd }) => {
-        if (upd.video_url) {
-          location.href = `/player.html?code=${code}`;
-        } else if (upd.gallery_id && upd.gallery_id !== tv.gallery_id) {
-          location.reload();
-        }
-      })
-      .subscribe();
+    document.addEventListener('fullscreenchange', checkFull);
   })();
   </script>
 </body>
