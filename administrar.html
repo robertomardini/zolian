@@ -7,68 +7,124 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <style>
-    /* ... (misma hoja de estilos) ... */
+    body { font-family:Arial,sans-serif; padding:20px; }
+    h1,h2 { margin-bottom:12px; }
+    ul { list-style:none; padding:0; margin-bottom:16px; }
+    li { padding:8px; border:1px solid #ccc; margin-bottom:4px; cursor:pointer; }
+    li:hover { background:#f0f0f0; }
+    button { margin-top:8px; padding:8px 12px; }
+    #unlink { color:red; margin-top:24px; cursor:pointer; }
   </style>
 </head>
 <body>
   <h1>Administrar Pantalla</h1>
   <p>Pantalla: <strong id="screenName"></strong></p>
   <p>Usuario: <strong id="userEmail"></strong></p>
-  <!-- ... listados de álbumes y vídeos, botones ... -->
-  <p id="unlink" style="color:red; margin-top:24px; cursor:pointer;">🔗 Eliminar pantalla</p>
+
+  <h2>Selecciona un álbum:</h2>
+  <ul id="galleryList"></ul>
+  <button id="createAlbum">➕ Crear nuevo álbum</button>
+
+  <h2>Selecciona un vídeo:</h2>
+  <ul id="videoList"></ul>
+  <button id="createVideo">➕ Subir nuevo vídeo</button>
+
+  <p id="unlink">🔗 Desvincular esta pantalla</p>
 
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
     if (!code) {
-      alert('Falta código de TV');
-      return location.href = 'pantallas.html';
+      alert('Falta code de TV');
+      return window.location.href = 'pantallas.html';
     }
+
+    // 1) Sesión
     const { data:{ session } } = await supabase.auth.getSession();
     if (!session) {
-      const r = encodeURIComponent(location.pathname+location.search);
-      return location.href = `login.html?redirect=${r}`;
+      const r = encodeURIComponent(location.pathname + location.search);
+      return window.location.href = `login.html?redirect=${r}`;
     }
     document.getElementById('userEmail').innerText = session.user.email;
+
+    // 2) Datos de la TV
     const { data: tv, error: tvErr } = await supabase
-      .from('tv').select('nombre,user_id').eq('code',code).maybeSingle();
+      .from('tv').select('nombre,user_id').eq('code', code).maybeSingle();
     if (tvErr || !tv || tv.user_id !== session.user.id) {
       alert('Pantalla no válida');
-      return location.href='pantallas.html';
+      return window.location.href = 'pantallas.html';
     }
     document.getElementById('screenName').innerText = tv.nombre;
 
-    // ... listado y asignación de álbumes y vídeos ...
+    // 3) Listar álbumes
+    const { data: galleries } = await supabase
+      .from('galleries')
+      .select('id,name,duration,slideshow_type')
+      .eq('user_id', session.user.id)
+      .order('created_at',{ ascending:false });
+    const gl = document.getElementById('galleryList');
+    galleries.forEach(g => {
+      const li = document.createElement('li');
+      li.textContent = `${g.name} (${g.slideshow_type}, ${g.duration}s)`;
+      li.onclick = async () => {
+        const { error } = await supabase
+          .from('tv').update({
+            gallery_id:     g.id,
+            duration:       g.duration,
+            slideshow_type: g.slideshow_type,
+            play:           true,
+            video_url:      null
+          })
+          .eq('code', code);
+        if (error) return alert('Error asignando álbum: ' + error.message);
+        alert('Álbum asignado con éxito.');
+      };
+      gl.appendChild(li);
+    });
 
+    // 4) Listar vídeos
+    const { data: vids } = await supabase
+      .from('videos')
+      .select('id,url,title')
+      .eq('user_id', session.user.id)
+      .order('created_at',{ ascending:false });
+    const vl = document.getElementById('videoList');
+    vids.forEach(v => {
+      const li = document.createElement('li');
+      li.textContent = v.title || v.url.split('/').pop();
+      li.onclick = async () => {
+        const { error } = await supabase
+          .from('tv').update({
+            video_url:  v.url,
+            play:       true,
+            gallery_id: null
+          })
+          .eq('code', code);
+        if (error) return alert('Error asignando vídeo: ' + error.message);
+        alert('Vídeo asignado con éxito.');
+      };
+      vl.appendChild(li);
+    });
+
+    // 5) Crear nuevo álbum y subir vídeo
+    document.getElementById('createAlbum').onclick = () =>
+      location.href = `crear-album.html?code=${code}`;
+    document.getElementById('createVideo').onclick = () =>
+      location.href = `misvideos.html`;
+
+    // 6) Desvincular pantalla (solo quita la vinculación, no borra galerías)
     document.getElementById('unlink').onclick = async () => {
-      if (!confirm('¿Eliminar completamente esta pantalla?')) return;
-      // 1) Si había un vídeo vinculado, lo borramos de Storage
-      const { data: tvData } = await supabase
+      if (!confirm('¿Desvincular pantalla?')) return;
+      await supabase
         .from('tv')
-        .select('video_url')
-        .eq('code', code)
-        .single();
-      if (tvData.video_url) {
-        const { error: rmErr } = await supabase
-          .storage
-          .from('videos')
-          .remove([ tvData.video_url ]);
-        if (rmErr) {
-          alert('Error borrando vídeo en Storage: ' + rmErr.message);
-          return;
-        }
-      }
-      // 2) Eliminar la fila de tv
-      const { error: delErr } = await supabase
-        .from('tv')
-        .delete()
+        .update({
+          gallery_id: null,
+          video_url:  null,
+          play:       false
+        })
         .eq('code', code);
-      if (delErr) {
-        alert('Error eliminando la pantalla: ' + delErr.message);
-        return;
-      }
-      alert('Pantalla eliminada con éxito.');
-      location.href = 'pantallas.html';
+      alert('Pantalla desvinculada.');
+      window.location.href = 'pantallas.html';
     };
   })();
   </script>
