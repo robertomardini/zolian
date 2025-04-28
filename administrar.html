@@ -106,23 +106,27 @@
       vl.appendChild(li);
     });
 
-    // 5) Crear nuevo álbum y subir vídeo
+    // 5) Crear nuevo álbum / subir vídeo
     document.getElementById('createAlbum').onclick = () =>
       location.href = `crear-album.html?code=${code}`;
     document.getElementById('createVideo').onclick = () =>
       location.href = `misvideos.html`;
 
-    // 6) Desvincular pantalla (solo quita la vinculación, no borra galerías)
+    // 6) Desvincular pantalla (ahora sí deja user_id en null)
     document.getElementById('unlink').onclick = async () => {
       if (!confirm('¿Desvincular pantalla?')) return;
-      await supabase
+      const { error } = await supabase
         .from('tv')
         .update({
+          user_id:    null,
           gallery_id: null,
           video_url:  null,
           play:       false
         })
         .eq('code', code);
+      if (error) {
+        return alert('Error al desvincular: ' + error.message);
+      }
       alert('Pantalla desvinculada.');
       window.location.href = 'pantallas.html';
     };
