@@ -6,65 +6,115 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mis Pantallas – Zolian App</title>
 
+  <!-- Estilos globales y Boxicons CSS -->
   <link rel="stylesheet" href="/style.css" />
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
+
+  <!-- Boxicons JS (para <box-icon>) -->
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
+
+  <style>
+    /* Títulos un poco más pequeños y en gris suave */
+    .home .text {
+      font-size: 1.5rem;
+      color: var(--text-color);
+    }
+    .panel-title {
+      font-size: 1rem;
+      color: var(--text-color);
+      margin-bottom: var(--spacing-md);
+    }
+
+    /* Estado inicial de icono y texto de tarjeta */
+    .card span {
+      color: #fff;
+    }
+    .card box-icon {
+      color: #fff;
+    }
+  </style>
 </head>
 <body>
+  <!-- Sidebar -->
   <div id="sidebar-container"></div>
 
+  <!-- Contenido principal -->
   <section class="home">
-    <div class="page-title">Mis Pantallas</div>
+    <div class="text">Mis Pantallas</div>
 
-    <div class="panel-wrapper">
+    <!-- Panel blanco -->
+    <div class="panel-wrapper"
+         style="background: var(--sidebar-color);
+                border-radius: .75rem;
+                padding: var(--spacing-lg);
+                margin: var(--spacing-lg);
+                box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
       <div class="panel-title">Selecciona para administrar</div>
       <ul id="screens-list" class="cards-grid"></ul>
     </div>
 
-    <p id="no-screens" class="no-items" style="display:none;">
-      No tienes pantallas vinculadas.<br/>
+    <!-- Mensaje si no hay pantallas -->
+    <p id="no-screens" class="no-items" style="display:none; margin-top: var(--spacing-lg);">
+      No tienes pantallas vinculadas.<br>
       Escanea un QR para agregar una.
     </p>
   </section>
 
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <script src="/script.js"></script>
   <script>
     async function initPantallas() {
-      const { data: { session } } = await supabase.auth.getSession();
+      // 1) Sesión
+      const { data:{ session } } = await supabase.auth.getSession();
       if (!session) {
-        return window.location.href = 'login.html?redirect=' + encodeURIComponent('/pantallas');
+        const r = encodeURIComponent('/pantallas');
+        return window.location.href = `login.html?redirect=${r}`;
       }
 
-      const listEl = document.getElementById('screens-list');
-      const noEl = document.getElementById('no-screens');
+      // 2) Sidebar (email y logout)
+      const su = document.getElementById('sidebar-user');
+      if (su) su.innerText = session.user.email;
+      const lo = document.getElementById('logout');
+      if (lo) lo.onclick = async e => {
+        e.preventDefault();
+        await supabase.auth.signOut();
+        window.location.href = 'login.html';
+      };
 
+      // 3) Traer pantallas
       const { data: screens } = await supabase
         .from('tv')
         .select('code,nombre')
         .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending:false });
 
+      const listEl = document.getElementById('screens-list');
+      const noEl   = document.getElementById('no-screens');
       listEl.innerHTML = '';
 
       if (!screens || screens.length === 0) {
         document.querySelector('.panel-wrapper').style.display = 'none';
         noEl.style.display = 'block';
         return;
+      } else {
+        noEl.style.display = 'none';
       }
 
+      // 4) Renderizar tarjetas
       screens.forEach(p => {
         const li = document.createElement('li');
         li.className = 'card';
         li.innerHTML = `
-          <box-icon name="tv"></box-icon>
+          <box-icon name="tv" color="white" size="48px"></box-icon>
           <span>${p.nombre || p.code}</span>
         `;
         li.onclick = () => window.location.href = `/administrar.html?code=${p.code}`;
         listEl.appendChild(li);
       });
 
+      // 5) Disparar evento para habilitar el highlight de tarjetas
       window.dispatchEvent(new Event('cardsRendered'));
     }
 
