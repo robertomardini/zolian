@@ -342,45 +342,46 @@ body.dark button {
 }
 
 #screens-list li {
+  width: 100%;
+  aspect-ratio: 16 / 9;              /* Relación 16:9 */
   background: var(--primary-color);
   color: #fff;
-  border: 2px solid transparent;   /* Para evitar "brinco" al mostrar el borde */
+  border: 2px solid transparent;     /* Borde invisible por defecto */
   border-radius: 12px;
-  height: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   box-sizing: border-box;
-  transition: 
-    transform 0.2s, 
-    background 0.2s, 
-    border-color 0.2s, 
+  transition:
+    background 0.2s,
+    border-color 0.2s,
     color 0.2s;
 }
 
 #screens-list li:hover {
-  background: var(--primary-color-light);   /* Fondo claro al pasar el mouse */
-  border-color: var(--primary-color);       /* Borde del color principal */
-  color: var(--primary-color);              /* Texto al color principal */
-  /* transform: scale(1.05);  <-- puedes conservar o quitar según prefieras */
+  background: var(--primary-color-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
-/* Forzar que el SVG interno de box-icon cambie también de color */
-#screens-list li box-icon svg {
-  fill: var(--primary-color);
-  transition: fill 0.2s;
+/* Icono Boxicon y paths internos al hover */
+#screens-list li box-icon,
+#screens-list li box-icon svg,
+#screens-list li box-icon svg path {
+  transition: fill 0.2s, stroke 0.2s;
 }
-
-/*#screens-list li:hover box-icon svg {
+#screens-list li:hover box-icon,
+#screens-list li:hover box-icon svg,
+#screens-list li:hover box-icon svg path {
   fill: var(--primary-color) !important;
-}*/
+  stroke: var(--primary-color) !important;
+}
 
-
-#screens-list li span {
-  display: block;
-  font-weight: 500;
+/* Texto bajo el icono también cambia */
+#screens-list li:hover span {
+  color: var(--primary-color);
 }
 
 #no-screens {
@@ -392,12 +393,13 @@ body.dark button {
 
 /* Bloque blanco para pantallas.html */
 .pantallas-block {
-  background-color: #ffffff;
-  border-radius: 12px;
-  padding: 32px;
-  max-width: 600px;
+  width: 100%;
+  max-width: 600px;  /* O el ancho que prefieras */
   margin: 40px auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 32px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 /* Aseguramos que el título y la lista sigan el diseño */
