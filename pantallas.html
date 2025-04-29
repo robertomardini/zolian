@@ -3,94 +3,143 @@
 <head>
   <base href="/" />
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mis Pantallas – Zolian App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Mis Pantallas - Zolian App</title>
 
-  <!-- Estilos globales y Boxicons CSS -->
-  <link rel="stylesheet" href="/style.css" />
+  <!-- Estilos y Boxicons -->
+  <link rel="stylesheet" href="style.css" />
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
-
-  <!-- Boxicons JS (para <box-icon>) -->
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
+  <style>
+    .home {
+      padding: 20px;
+      transition: left 0.3s, width 0.3s;
+    }
+    #screens-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  list-style: none;
+  padding: 0;
+  margin-top: 24px;
+}
+
+#screens-list li {
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 12px;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+#screens-list li:hover {
+  transform: scale(1.05);
+  background: var(--primary-color-light);
+}
+
+#screens-list li box-icon {
+  /* Tamaño grande para el icono */
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+/* Texto debajo del icono */
+#screens-list li span {
+  display: block;
+  font-weight: 500;
+}
+
+    #no-screens {
+      text-align: center;
+      color: var(--text-color);
+      margin-top: 40px;
+    }
+  </style>
 </head>
 <body>
-  <!-- Sidebar -->
+  <!-- Contenedor donde se inyecta el sidebar -->
   <div id="sidebar-container"></div>
 
   <!-- Contenido principal -->
   <section class="home">
-    <div class="page-title">Mis Pantallas</div>
-
-    <div class="panel-wrapper">
-      <div class="panel-title">Selecciona para administrar</div>
-      <ul id="screens-list" class="cards-grid"></ul>
-    </div>
-
-    <p id="no-screens" class="no-items" style="display:none;">
-      No tienes pantallas vinculadas.<br/>
+    <div class="text">Mis Pantallas</div>
+    <ul id="screens-list"></ul>
+    <p id="no-screens" style="display:none;">
+      No tienes pantallas vinculadas.<br>
       Escanea un QR para agregar una.
     </p>
   </section>
 
-  <!-- Scripts -->
+  <!-- Supabase y scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
-  <script src="/script.js"></script>
-  <script>
-    async function initPantallas() {
-      // 1) Sesión
-      const { data:{ session } } = await supabase.auth.getSession();
-      if (!session) {
-        const r = encodeURIComponent('/pantallas');
-        return window.location.href = `login.html?redirect=${r}`;
-      }
+  <script src="supabaseClient.js"></script>
+  <script src="script.js"></script>
+  <!-- ... resto de tu HTML ... -->
 
-      // 2) Sidebar (email y logout)
-      const su = document.getElementById('sidebar-user');
-      if (su) su.innerText = session.user.email;
-      const lo = document.getElementById('logout');
-      if (lo) lo.onclick = async e => {
+<script>
+  async function initPantallas() {
+    // 1) Obtener sesión
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const redirect = encodeURIComponent('/pantallas');
+      window.location.href = `login.html?redirect=${redirect}`;
+      return;
+    }
+
+    // 2) Inyectar email en el sidebar
+    const userEmailEl = document.getElementById('sidebar-user');
+    if (userEmailEl) {
+      userEmailEl.innerText = session.user.email;
+    }
+
+    // 3) Logout
+    const logoutBtn = document.getElementById('logout');
+    if (logoutBtn) {
+      logoutBtn.onclick = async (e) => {
         e.preventDefault();
         await supabase.auth.signOut();
         window.location.href = 'login.html';
       };
-
-      // 3) Obtener pantallas
-      const { data: screens } = await supabase
-        .from('tv')
-        .select('code,nombre')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending:false });
-
-      const listEl = document.getElementById('screens-list');
-      const noEl   = document.getElementById('no-screens');
-      listEl.innerHTML = '';
-
-      if (!screens || screens.length === 0) {
-        document.querySelector('.panel-wrapper').style.display = 'none';
-        noEl.style.display = 'block';
-        return;
-      } else {
-        noEl.style.display = 'none';
-      }
-
-      // 4) Renderizar tarjetas
-      screens.forEach(p => {
-        const li = document.createElement('li');
-        li.className = 'card';
-        li.innerHTML = `
-          <box-icon name="tv" color="white" size="48px"></box-icon>
-          <span>${p.nombre || p.code}</span>
-        `;
-        li.onclick = () => window.location.href = `/administrar.html?code=${p.code}`;
-        listEl.appendChild(li);
-      });
-
-      // 5) Evento para highlight si fuera necesario
-      window.dispatchEvent(new Event('cardsRendered'));
     }
 
-    window.addEventListener('sidebarReady', initPantallas);
-  </script>
+    // 4) Cargar pantallas del usuario
+    const { data: screens, error } = await supabase
+      .from('tv')
+      .select('code, nombre')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false });
+
+    const listEl = document.getElementById('screens-list');
+    const noEl   = document.getElementById('no-screens');
+    listEl.innerHTML = '';
+
+    if (error || !screens || screens.length === 0) {
+      if (noEl) noEl.style.display = 'block';
+      return;
+    }
+
+    // 5) Renderizar tarjetas
+    screens.forEach(p => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <box-icon name='tv' color='white' size='48px'></box-icon>
+        <span>${p.nombre || p.code}</span>
+      `;
+      li.onclick = () => {
+        window.location.href = `/administrar.html?code=${p.code}`;
+      };
+      listEl.appendChild(li);
+    });
+  }
+
+  // Espera al sidebarReady que dispara script.js
+  window.addEventListener('sidebarReady', initPantallas);
+</script>
+
 </body>
 </html>
