@@ -67,13 +67,7 @@ body.dark {
   width: var(--sidebar-collapsed-width);
 }
 
-/* ===== Reusable code ===== */
-.sidebar li {
-  list-style: none;
-  margin-top: 10px;
-}
-
-/* Sidebar header */
+/* ===== Sidebar header ===== */
 .sidebar header {
   position: relative;
 }
@@ -109,7 +103,7 @@ body.dark {
   transform: translateY(-50%) rotate(0deg);
 }
 
-/* Iconos y texto */
+/* ===== Iconos y texto ===== */
 .sidebar .icon {
   min-width: 60px;
   display: flex;
@@ -130,16 +124,15 @@ body.dark {
   opacity: 0;
 }
 
-/* ===== Menu links ===== */
+/* ===== Menu links (sin márgenes) ===== */
 .sidebar .menu {
   margin-top: 40px;
 }
 .sidebar .menu-links .nav-link a {
-  display: flex;
-  align-items: center;
-  margin: 0 var(--spacing-md);              /* espacio lateral */
-  padding: var(--spacing-sm) var(--spacing-md); /* relleno arriba/abajo y izquierda/derecha */
-  border-radius: 0.75rem;                    /* pill más grueso */
+  display: block;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: 0.75rem;
   text-decoration: none;
   transition: var(--tran-03);
   color: var(--text-color);
@@ -152,12 +145,11 @@ body.dark {
   color: var(--sidebar-color);
 }
 
-/* ===== Bottom content ===== */
+/* ===== Bottom content links ===== */
 .sidebar .bottom-conten a,
 .sidebar .bottom-content a {
-  display: flex;
-  align-items: center;
-  margin: 0 var(--spacing-md);
+  display: block;
+  width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: 0.75rem;
   text-decoration: none;
@@ -208,7 +200,7 @@ body.dark {
   margin-bottom: var(--spacing-md);
 }
 
-/* Grid de tarjetas */
+/* ===== Grid de tarjetas ===== */
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -240,7 +232,7 @@ body.dark {
   margin-top: 8px;
 }
 
-/* No pantallas */
+/* ===== No pantallas ===== */
 .no-items {
   text-align: center;
   font-size: 1rem;
@@ -248,7 +240,7 @@ body.dark {
   margin-top: var(--spacing-lg);
 }
 
-/* Responsive móvil */
+/* ===== Responsive móvil ===== */
 @media (max-width: 768px) {
   .home {
     left: var(--sidebar-collapsed-width);
