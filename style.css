@@ -367,11 +367,11 @@ body.dark button {
   /* transform: scale(1.05);  <-- puedes conservar o quitar según prefieras */
 }
 
-/* Forzar que el SVG interno de box-icon cambie también de color */
+/* Forzar que el SVG interno de box-icon cambie también de color 
 #screens-list li box-icon svg {
   fill: var(--primary-color);
   transition: fill 0.2s;
-}
+}*/
 
 #screens-list li:hover box-icon svg {
   fill: var(--primary-color) !important;
