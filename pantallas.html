@@ -1,12 +1,11 @@
 <!-- pantallas.html -->
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <base href="/" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>Mis Pantallas - Zolian App</title>
+  <title>Mis Pantallas – Zolian App</title>
 
   <!-- Estilos y Boxicons -->
   <link rel="stylesheet" href="style.css" />
@@ -19,12 +18,14 @@
 
   <!-- Contenido principal -->
   <section class="home">
-    <div class="text">Mis Pantallas</div>
-    <ul id="screens-list"></ul>
-    <p id="no-screens">
-      No tienes pantallas vinculadas.<br>
-      Escanea un QR para agregar una.
-    </p>
+    <div class="pantallas-block">
+      <div class="text">Mis Pantallas</div>
+      <ul id="screens-list"></ul>
+      <p id="no-screens">
+        No tienes pantallas vinculadas.<br>
+        Escanea un QR para agregar una.
+      </p>
+    </div>
   </section>
 
   <!-- Supabase y scripts -->
@@ -64,7 +65,7 @@
         .order('created_at', { ascending: false });
 
       const listEl = document.getElementById('screens-list');
-      const noEl = document.getElementById('no-screens');
+      const noEl   = document.getElementById('no-screens');
       listEl.innerHTML = '';
 
       if (error || !screens || screens.length === 0) {
