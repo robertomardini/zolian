@@ -330,9 +330,11 @@ body.dark button {
 }
 
 /* ===== Estilos para pantallas.html ===== */
+/* == Pantallas: 1 columna y hover con borde y cambio de color == */
+
 #screens-list {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;   /* UNA columna por fila */
   gap: 24px;
   list-style: none;
   padding: 0;
@@ -342,6 +344,7 @@ body.dark button {
 #screens-list li {
   background: var(--primary-color);
   color: #fff;
+  border: 1px solid transparent;   /* Para evitar "brinco" al mostrar el borde */
   border-radius: 12px;
   height: 160px;
   display: flex;
@@ -349,18 +352,31 @@ body.dark button {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s, background 0.2s;
+  box-sizing: border-box;
+  transition: 
+    transform 0.2s, 
+    background 0.2s, 
+    border-color 0.2s, 
+    color 0.2s;
 }
 
 #screens-list li:hover {
-  transform: scale(1.05);
-  background: var(--primary-color-light);
+  background: var(--primary-color-light);   /* Fondo claro al pasar el mouse */
+  border-color: var(--primary-color);       /* Borde del color principal */
+  color: var(--primary-color);              /* Texto al color principal */
+  /* transform: scale(1.05);  <-- puedes conservar o quitar según prefieras */
 }
 
-#screens-list li box-icon {
-  font-size: 48px;
-  margin-bottom: 8px;
+/* Forzar que el SVG interno de box-icon cambie también de color */
+#screens-list li box-icon svg {
+  fill: #fff;
+  transition: fill 0.2s;
 }
+
+#screens-list li:hover box-icon svg {
+  fill: var(--primary-color) !important;
+}
+
 
 #screens-list li span {
   display: block;
