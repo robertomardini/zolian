@@ -370,13 +370,13 @@ body.dark button {
 #screens-list li box-icon,
 #screens-list li box-icon svg,
 #screens-list li box-icon svg path {
-  transition: fill 0.2s;
+  transition: fill 0.2s, stroke 0.2s;
 }
 #screens-list li:hover box-icon,
 #screens-list li:hover box-icon svg,
 #screens-list li:hover box-icon svg path {
   fill: var(--primary-color) !important;
-  /*stroke: var(--primary-color) !important;*/
+  stroke: #695CFE !important;
 }
 
 /* Texto bajo el icono también cambia */
