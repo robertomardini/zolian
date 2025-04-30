@@ -391,7 +391,7 @@ body.dark button {
 
 /* Estilo para el icono cuando se hace hover sobre el LI */
 #screens-list li:hover box-icon {
-  color: var(--primary-color); /* Color del icono en hover (primario) */
+  color: #fff; /* Color del icono en hover (primario) */
 }
 
 /* Estilo para el texto (span) dentro del LI */
