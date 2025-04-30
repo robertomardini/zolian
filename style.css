@@ -79,8 +79,8 @@ body.dark {
   justify-content: center;
   min-width: 60px;
   border-radius: 6px;
-  /* Empuja un poco a la derecha para alinearlo con los demás íconos */
-  margin-left: 2px;
+  /* Empuja un poco a la derecha para alinearlo con los demás íconos 
+  margin-left: 2px;*/
   
 }
 .sidebar .icon {
