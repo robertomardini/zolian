@@ -3,16 +3,16 @@
 /**
  * Inicializa los listeners del sidebar (toggle, búsqueda, dark mode, logout,
  * compartir y escanear QR), controla el overlay para oscurecer la página,
- * y ajusta la posición/ancho de la sección .home.
+ * y fuerza que .home permanezca a pantalla completa (sin desplazarse).
  */
 function initSidebar() {
   const body    = document.querySelector('body');
   const sidebar = body.querySelector('nav.sidebar');
   const home    = body.querySelector('.home');
-  const overlay = document.querySelector('.overlay'); // Capa para oscurecer
+  const overlay = document.querySelector('.overlay');
   if (!sidebar) return;
 
-  // --- Botón Compartir ---
+  // -- Compartir --
   const shareBtn = sidebar.querySelector('#share-btn');
   if (shareBtn) {
     shareBtn.addEventListener('click', async (e) => {
@@ -35,7 +35,7 @@ function initSidebar() {
     });
   }
 
-  // --- Elementos principales ---
+  // -- Elementos --
   const toggle     = sidebar.querySelector('.toggle');
   const searchBtn  = sidebar.querySelector('.search-box');
   const modeSwitch = sidebar.querySelector('.toggle-switch');
@@ -43,48 +43,46 @@ function initSidebar() {
   const logoutBtn  = sidebar.querySelector('#logout');
   const scanBtn    = sidebar.querySelector('#scan-qr-btn');
 
-  // Ajusta el tamaño/posición de la sección .home según estado del sidebar
-  function adjustHome() {
-    if (!home) return;
-    if (sidebar.classList.contains('close')) {
-      home.style.left  = '78px';
-      home.style.width = 'calc(100% - 78px)';
-    } else {
-      home.style.left  = '250px';
-      home.style.width = 'calc(100% - 250px)';
-    }
-  }
-
-  // --- Toggle sidebar + overlay ---
+  // -- Toggle sidebar + overlay --
   toggle.addEventListener('click', () => {
     const isClosed = sidebar.classList.toggle('close');
-    adjustHome();
     if (isClosed) {
       overlay.classList.remove('active');
     } else {
       overlay.classList.add('active');
     }
+    // Forzar .home siempre a pantalla completa
+    if (home) {
+      home.style.left = '0';
+      home.style.width = '100%';
+    }
   });
 
-  // Al hacer click fuera (overlay), cierra sidebar
+  // -- Clic en overlay cierra sidebar --
   if (overlay) {
     overlay.addEventListener('click', () => {
       sidebar.classList.add('close');
       overlay.classList.remove('active');
-      adjustHome();
+      if (home) {
+        home.style.left = '0';
+        home.style.width = '100%';
+      }
     });
   }
 
-  // --- Click en caja de búsqueda despliega sidebar + overlay ---
+  // -- Abrir sidebar desde búsqueda --
   if (searchBtn) {
     searchBtn.addEventListener('click', () => {
       sidebar.classList.remove('close');
-      adjustHome();
       overlay.classList.add('active');
+      if (home) {
+        home.style.left = '0';
+        home.style.width = '100%';
+      }
     });
   }
 
-  // --- Dark mode ---
+  // -- Dark mode --
   if (modeSwitch) {
     modeSwitch.addEventListener('click', () => {
       body.classList.toggle('dark');
@@ -94,7 +92,7 @@ function initSidebar() {
     });
   }
 
-  // --- Logout ---
+  // -- Logout --
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -103,7 +101,7 @@ function initSidebar() {
     });
   }
 
-  // --- Escanear QR ---
+  // -- Escanear QR --
   if (scanBtn) {
     scanBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -111,11 +109,14 @@ function initSidebar() {
     });
   }
 
-  // Ajuste inicial
-  adjustHome();
+  // Asegurar .home al cargar la página
+  if (home) {
+    home.style.left = '0';
+    home.style.width = '100%';
+  }
 }
 
-// Inyecta el sidebar, overlay y lanza initSidebar
+// Inyecta el sidebar, el overlay y lanza initSidebar
 window.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('sidebar-container');
   if (container) {
@@ -123,22 +124,22 @@ window.addEventListener('DOMContentLoaded', () => {
       .then(res => res.text())
       .then(html => {
         container.innerHTML = html;
-        // Creamos el overlay justo después del sidebar
-        const overlay = document.createElement('div');
-        overlay.classList.add('overlay');
-        document.body.appendChild(overlay);
-
+        // Inyectar overlay si no existe
+        if (!document.querySelector('.overlay')) {
+          const ov = document.createElement('div');
+          ov.classList.add('overlay');
+          document.body.appendChild(ov);
+        }
         initSidebar();
         window.dispatchEvent(new Event('sidebarReady'));
       })
       .catch(err => console.error('Error cargando sidebar:', err));
   } else {
-    // Si el sidebar ya está en el DOM
-    // Aseguramos que exista el overlay
+    // Si ya está en el DOM, aseguramos overlay
     if (!document.querySelector('.overlay')) {
-      const overlay = document.createElement('div');
-      overlay.classList.add('overlay');
-      document.body.appendChild(overlay);
+      const ov = document.createElement('div');
+      ov.classList.add('overlay');
+      document.body.appendChild(ov);
     }
     initSidebar();
     window.dispatchEvent(new Event('sidebarReady'));
