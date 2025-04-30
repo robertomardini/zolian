@@ -29,6 +29,7 @@ body {
   min-height: 100vh;
   background-color: var(--body-color);
   transition: var(--tran-05);
+  color: var(--text-color);
 }
 
 ::selection {
@@ -73,6 +74,7 @@ body.dark {
 .sidebar header .image {
   min-width: 60px;
   border-radius: 6px;
+  justify-content: center;
 }
 .sidebar .icon {
   height: 100%;
@@ -376,7 +378,7 @@ body.dark button {
 #screens-list li:hover box-icon svg,
 #screens-list li:hover box-icon svg path {
   fill: var(--primary-color) !important;
-  stroke: #695CFE !important;
+  stroke: var(--primary-color) !important;
 }
 
 /* Texto bajo el icono también cambia */
