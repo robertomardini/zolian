@@ -416,10 +416,7 @@ body.dark button {
 .pantallas-block .text {
   text-align: center;
   margin-bottom: 24px;
-}
-.home {
-  margin-left: 250px;
-}
+
 /* Overlay para el resto de la página */
 .overlay {
   display: none;
@@ -435,5 +432,18 @@ body.dark button {
 .overlay.active {
   display: block;
   opacity: 1;
+}
+/* ——————— Override para .home ——————— */
+.home {
+  /* Pasamos de absolute a relativo y aplicamos margen */
+  position: relative !important;
+  left: auto !important;
+  width: auto !important;
+  margin-left: 250px;
+}
+
+/* Cuando la sidebar esté cerrada */
+.sidebar.close ~ .home {
+  margin-left: 88px !important;
 }
 
