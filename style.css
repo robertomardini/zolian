@@ -409,8 +409,8 @@ body.dark button {
 /* al hacer hover, override a primario */
 #screens-list li:hover box-icon svg,
 #screens-list li:hover box-icon svg path {
-  fill: #695CFE !important;
-  /*stroke: var(--primary-color) !important;*/
+  fill: var(--primary-color) !important;
+  stroke: var(--primary-color) !important;
 }
 
 #screens-list li:hover span {
