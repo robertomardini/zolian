@@ -377,7 +377,7 @@ body.dark button {
 #screens-list li box-icon svg path {
   color: #fff;
   fill: #fff !important;
-  stroke: #fff !important;
+  
   transition: color 0.2s, fill 0.2s, stroke 0.2s;
 }
 
@@ -386,7 +386,7 @@ body.dark button {
 #screens-list li:hover box-icon svg path {
   color: var(--primary-color) !important;
   fill: var(--primary-color) !important;
-  stroke: var(--primary-color) !important;
+  
 }
 
 #screens-list li span {
