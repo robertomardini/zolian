@@ -384,7 +384,7 @@ body.dark button {
 #screens-list li box-icon {
   color: #fff;
   border: none !important;              /* Por si acaso tiene algún borde */
-  
+  transition: color 0.2s;
   /* Si quieres ajustar tamaño: font-size: 48px; */
 }
 
@@ -422,7 +422,7 @@ body.dark button {
 /* Icono por defecto blanco, y en hover primario */
 #screens-list li box-icon {
   color: #fff;                     /* icono blanco cuando no hay hover */
-  
+  transition: color 0.2s;
 }
 
 #screens-list li:hover box-icon {
