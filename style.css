@@ -404,11 +404,11 @@ body.dark button {
 
 /* Si específicamente quieres que el span cambie de color SÓLO en hover (y no herede del li),
    puedes descomentar y ajustar la siguiente regla: */
-/*
+
 #screens-list li:hover span {
   color: var(--primary-color);
 }
-*/
+
 
 
 #no-screens {
