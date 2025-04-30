@@ -434,3 +434,6 @@ body.dark button {
   display: block;
   opacity: 1;
 }
+.home {
+  margin-left: 250px;
+}
