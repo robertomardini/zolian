@@ -427,6 +427,13 @@ body.dark button {
   color: var(--primary-color);     /* icono primario en hover */
 }
 
+i.bx { /* Target your Boxicon class */
+       color: #fff; /* Initial color */
+   }
+
+   i.bx:hover {
+       color: #000; /* New color on hover */
+   }
 
 #no-screens {
   display: none;
