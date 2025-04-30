@@ -70,11 +70,17 @@ body.dark {
   align-items: center;
   margin-top: 10px;
 }
-.sidebar header .image,
-.sidebar .icon
+
+.sidebar .icon,
+.sidebar header .image
  {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-width: 60px;
   border-radius: 6px;
+  /* Empuja un poco a la derecha para alinearlo con los demás íconos */
+  margin-left: 4px;
   
 }
 .sidebar .icon {
