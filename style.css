@@ -389,7 +389,7 @@ body.dark button {
 #screens-list li:hover box-icon svg,
 #screens-list li:hover box-icon svg path {
   fill: var(--primary-color) !important;
-  stroke: var(--primary-color) !important;
+  solid: var(--primary-color) !important;
 }
 
 /* Texto bajo el icono también cambia */
