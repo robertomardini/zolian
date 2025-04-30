@@ -401,6 +401,17 @@ body.dark button {
 
 
 
+
+/* Icono por defecto blanco, y en hover primario */
+#screens-list li box-icon {
+  color: #fff;                     /* icono blanco cuando no hay hover */
+  transition: color 0.2s;
+}
+
+#screens-list li:hover box-icon {
+  color: var(--primary-color);     /* icono primario en hover */
+}
+
 #no-screens {
   display: none;
   text-align: center;
