@@ -348,7 +348,7 @@ body.dark button {
 
 #screens-list {
   display: grid;
-  grid-template-columns: 1fr; /* Una columna por fila */
+  grid-template-columns: 1fr;   /* Una columna por fila */
   gap: 24px;
   list-style: none;
   padding: 0;
@@ -357,10 +357,10 @@ body.dark button {
 
 #screens-list li {
   width: 100%;
-  aspect-ratio: 16 / 9; /* Formato HD */
+  aspect-ratio: 16 / 9;               /* Formato HD */
   background: var(--primary-color);
-  color: #fff; /* Texto en blanco por defecto */
-  border: 2px solid transparent; /* Borde invisible por defecto */
+  color: #fff;                        /* Texto en blanco por defecto */
+  border: 2px solid transparent;      /* Borde invisible por defecto */
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -376,26 +376,56 @@ body.dark button {
 
 #screens-list li:hover {
   background: var(--primary-color-light);
-  border-color: var(--primary-color); /* Borde primario en hover */
-  color: var(--primary-color); /* Texto (span) en primario en hover */
+  border-color: var(--primary-color);   /* Borde primario en hover */
+  color: var(--primary-color);          /* Texto en primario en hover */
 }
 
-
-/* Estilo para el texto (span) dentro del LI */
-#screens-list li span {
-  color: #fff; /* Color del texto por defecto (blanco) */
+/* El icono se colorea en primario sin añadirle borde */
+#screens-list li box-icon {
+  color: #fff;
+  border: none !important;              /* Por si acaso tiene algún borde */
   transition: color 0.2s;
-  /* Nota: El color del span también cambiará a var(--primary-color) en hover
-     debido a la regla 'color: var(--primary-color);' en '#screens-list li:hover' */
+  /* Si quieres ajustar tamaño: font-size: 48px; */
 }
 
-/* Si específicamente quieres que el span cambie de color SÓLO en hover (y no herede del li),
-   puedes descomentar y ajustar la siguiente regla: */
+/* Al hacer hover, el box-icon hereda el color primario */
+#screens-list li:hover box-icon {
+  color: var(--primary-color) !important;
+}
+
+/* El texto secundario (span) hereda el color del contenedor li */
+#screens-list li span {
+  transition: color 0.2s;
+}
+
+/* forzar color blanco por defecto */
+#screens-list li box-icon,
+#screens-list li box-icon svg,
+#screens-list li box-icon svg path {
+  fill: #fff !important;
+  /*stroke: #fff !important;*/
+}
+
+/* al hacer hover, override a primario */
+#screens-list li:hover box-icon svg,
+#screens-list li:hover box-icon svg path {
+  fill: #695CFE !important;
+  /*stroke: var(--primary-color) !important;*/
+}
 
 #screens-list li:hover span {
   color: var(--primary-color);
 }
 
+/* Icono por defecto blanco, y en hover primario */
+#screens-list li box-icon {
+  color: #fff;                     /* icono blanco cuando no hay hover */
+  transition: color 0.2s;
+}
+
+#screens-list li:hover box-icon {
+  color: var(--primary-color);     /* icono primario en hover */
+}
 
 
 #no-screens {
@@ -404,47 +434,6 @@ body.dark button {
   color: var(--text-color);
   margin-top: 40px;
 }
-
-/* --- ELIMINADO --- */
-/* Se han eliminado las siguientes reglas que forzaban el 'fill' y eran redundantes/conflictivas:
-
-   #screens-list li box-icon {
-     color: #fff;
-     border: none !important;
-     transition: color 0.2s;
-   }
-
-   #screens-list li:hover box-icon {
-     color: var(--primary-color) !important;
-   }
-
-   #screens-list li box-icon,
-   #screens-list li box-icon svg,
-   #screens-list li box-icon svg path {
-     fill: #fff !important;
-   }
-
-   #screens-list li:hover box-icon svg,
-   #screens-list li:hover box-icon svg path {
-     fill: #695CFE !important; // Asumiendo que #695CFE es var(--primary-color)
-   }
-
-   #screens-list li:hover span { // Redundante si '#screens-list li:hover' ya cambia el color
-     color: var(--primary-color);
-   }
-
-   // Estas dos últimas reglas también eran redundantes con las anteriores
-   #screens-list li box-icon {
-     color: #fff;
-     transition: color 0.2s;
-   }
-
-   #screens-list li:hover box-icon {
-     color: var(--primary-color);
-   }
-*/
-
-
 
 
 /* Bloque blanco para pantallas.html */
