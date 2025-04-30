@@ -387,17 +387,15 @@ body.dark button {
 #screens-list li:hover box-icon,
 #screens-list li:hover box-icon svg,
 #screens-list li:hover box-icon svg path {
-  /*fill: var(--primary-color) !important;*/
+  fill: var(--primary-color) !important;
   color: var(--primary-color)!important;
 }
-/*.sidebar li a:hover .icon,
-.sidebar li a:hover .text {
-  color: var(--sidebar-color);*/
 
-/* Texto bajo el icono también cambia 
+
+ Texto bajo el icono también cambia 
 #screens-list li:hover span {
   color: var(--primary-color);
-}*/
+}
 
 #no-screens {
   display: none;
