@@ -70,8 +70,9 @@ body.dark {
   align-items: center;
   margin-top: 10px;
 }
-.sidebar .icon,
-.sidebar header .image {
+.sidebar header .image,
+.sidebar .icon
+ {
   min-width: 60px;
   border-radius: 6px;
   
@@ -90,7 +91,7 @@ body.dark {
 .sidebar .icon {
   color: var(--text-color);
   transition: var(--tran-03);
-  justify-content: center;
+  /*justify-content: center;*/
 }
 .sidebar .text {
   font-size: 17px;
