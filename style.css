@@ -74,7 +74,7 @@ body.dark {
 .sidebar header .image {
   min-width: 60px;
   border-radius: 6px;
-  justify-content: center;
+  
 }
 .sidebar .icon {
   height: 100%;
@@ -87,6 +87,7 @@ body.dark {
 .sidebar .icon {
   color: var(--text-color);
   transition: var(--tran-03);
+  justify-content: center;
 }
 .sidebar .text {
   font-size: 17px;
