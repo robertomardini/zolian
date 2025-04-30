@@ -385,11 +385,10 @@ body.dark button {
   transition: fill 0.2s, stroke 0.2s;
 }
 #screens-list li a:hover box-icon,
-/* #screens-list li a:hover box-icon svg,
-#screens-list li a:hover box-icon svg path */{
+#screens-list li a:hover box-icon svg,
+#screens-list li a:hover box-icon svg path {
   fill: var(--primary-color) !important;
-  /*solid: var(--primary-color) !important;
-  color: var(--primary-color);*/
+  color: var(--primary-color)!important;
 }
 
 
