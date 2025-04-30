@@ -382,7 +382,7 @@ body.dark button {
 
 /* El icono se colorea en primario sin añadirle borde */
 #screens-list li box-icon {
-  color: var(--primary-color);
+  color: var(--primary-color)!important;
   border: none !important;              /* Por si acaso tiene algún borde */
   transition: color 0.2s;
   /* Si quieres ajustar tamaño: font-size: 48px; */
