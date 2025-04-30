@@ -2,12 +2,14 @@
 
 /**
  * Inicializa los listeners del sidebar (toggle, búsqueda, dark mode, logout,
- * compartir y escanear QR) y ajusta la posición/ancho de la sección .home.
+ * compartir y escanear QR), controla el overlay para oscurecer la página,
+ * y ajusta la posición/ancho de la sección .home.
  */
 function initSidebar() {
   const body    = document.querySelector('body');
   const sidebar = body.querySelector('nav.sidebar');
   const home    = body.querySelector('.home');
+  const overlay = document.querySelector('.overlay'); // Capa para oscurecer
   if (!sidebar) return;
 
   // --- Botón Compartir ---
@@ -33,13 +35,15 @@ function initSidebar() {
     });
   }
 
-  // --- Toggle, búsqueda, dark mode y logout ---
+  // --- Elementos principales ---
   const toggle     = sidebar.querySelector('.toggle');
   const searchBtn  = sidebar.querySelector('.search-box');
   const modeSwitch = sidebar.querySelector('.toggle-switch');
   const modeText   = sidebar.querySelector('.mode-text');
   const logoutBtn  = sidebar.querySelector('#logout');
+  const scanBtn    = sidebar.querySelector('#scan-qr-btn');
 
+  // Ajusta el tamaño/posición de la sección .home según estado del sidebar
   function adjustHome() {
     if (!home) return;
     if (sidebar.classList.contains('close')) {
@@ -51,25 +55,46 @@ function initSidebar() {
     }
   }
 
+  // --- Toggle sidebar + overlay ---
   toggle.addEventListener('click', () => {
-    sidebar.classList.toggle('close');
+    const isClosed = sidebar.classList.toggle('close');
     adjustHome();
+    if (isClosed) {
+      overlay.classList.remove('active');
+    } else {
+      overlay.classList.add('active');
+    }
   });
 
-  if (searchBtn) {
-    searchBtn.addEventListener('click', () => {
-      sidebar.classList.remove('close');
+  // Al hacer click fuera (overlay), cierra sidebar
+  if (overlay) {
+    overlay.addEventListener('click', () => {
+      sidebar.classList.add('close');
+      overlay.classList.remove('active');
       adjustHome();
     });
   }
 
-  if (modeSwitch) {
-    modeSwitch.addEventListener('click', () => {
-      body.classList.toggle('dark');
-      modeText.innerText = body.classList.contains('dark') ? 'Light mode' : 'Dark mode';
+  // --- Click en caja de búsqueda despliega sidebar + overlay ---
+  if (searchBtn) {
+    searchBtn.addEventListener('click', () => {
+      sidebar.classList.remove('close');
+      adjustHome();
+      overlay.classList.add('active');
     });
   }
 
+  // --- Dark mode ---
+  if (modeSwitch) {
+    modeSwitch.addEventListener('click', () => {
+      body.classList.toggle('dark');
+      modeText.innerText = body.classList.contains('dark')
+        ? 'Light mode'
+        : 'Dark mode';
+    });
+  }
+
+  // --- Logout ---
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -78,8 +103,7 @@ function initSidebar() {
     });
   }
 
-  // --- Botón Escanear QR ---
-  const scanBtn = sidebar.querySelector('#scan-qr-btn');
+  // --- Escanear QR ---
   if (scanBtn) {
     scanBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -87,11 +111,11 @@ function initSidebar() {
     });
   }
 
-  // Ajuste inicial de .home
+  // Ajuste inicial
   adjustHome();
 }
 
-// Inyecta el sidebar y lanza initSidebar
+// Inyecta el sidebar, overlay y lanza initSidebar
 window.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('sidebar-container');
   if (container) {
@@ -99,11 +123,23 @@ window.addEventListener('DOMContentLoaded', () => {
       .then(res => res.text())
       .then(html => {
         container.innerHTML = html;
+        // Creamos el overlay justo después del sidebar
+        const overlay = document.createElement('div');
+        overlay.classList.add('overlay');
+        document.body.appendChild(overlay);
+
         initSidebar();
         window.dispatchEvent(new Event('sidebarReady'));
       })
       .catch(err => console.error('Error cargando sidebar:', err));
   } else {
+    // Si el sidebar ya está en el DOM
+    // Aseguramos que exista el overlay
+    if (!document.querySelector('.overlay')) {
+      const overlay = document.createElement('div');
+      overlay.classList.add('overlay');
+      document.body.appendChild(overlay);
+    }
     initSidebar();
     window.dispatchEvent(new Event('sidebarReady'));
   }
