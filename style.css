@@ -391,6 +391,7 @@ body.dark button {
 /* Al hacer hover, el box-icon hereda el color primario */
 #screens-list li:hover box-icon {
   color: var(--primary-color) !important;
+  fill: var(--primary-color) !important;
 }
 
 /* El texto secundario (span) hereda el color del contenedor li */
@@ -403,7 +404,7 @@ body.dark button {
 #screens-list li box-icon svg,
 #screens-list li box-icon svg path {
   fill: #fff !important;
-  stroke: #fff !important;
+  /*stroke: #fff !important;*/
 }
 
 /* al hacer hover, override a primario */
