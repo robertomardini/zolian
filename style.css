@@ -380,19 +380,6 @@ body.dark button {
   color: var(--primary-color); /* Texto (span) en primario en hover */
 }
 
-/* Estilo para el icono por defecto */
-#screens-list li box-icon {
-  color: #fff; /* Color del icono por defecto (blanco) */
-  transition: color 0.2s;
-  /* Si necesitas ajustar tamaño: font-size: 48px; */
-  /* Asegúrate de que no haya otras reglas de 'fill' aplicadas directamente al SVG */
-  /* Boxicons normalmente usa 'currentColor' internamente para heredar este color */
-}
-
-/* Estilo para el icono cuando se hace hover sobre el LI */
-#screens-list li:hover box-icon {
-  color: #fff; /* Color del icono en hover (primario) */
-}
 
 /* Estilo para el texto (span) dentro del LI */
 #screens-list li span {
