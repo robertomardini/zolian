@@ -79,8 +79,7 @@ body.dark {
   justify-content: center;
   min-width: 60px;
   border-radius: 6px;
-  /* Empuja un poco a la derecha para alinearlo con los demás íconos 
-  margin-left: 2px;*/
+  
   
 }
 .sidebar .icon {
@@ -379,7 +378,7 @@ body.dark button {
   color: var(--primary-color);
 }
 
-/* Icono Boxicon y paths internos al hover 
+/* Icono Boxicon y paths internos al hover */
 #screens-list li box-icon,
 #screens-list li box-icon svg,
 #screens-list li box-icon svg path {
@@ -388,9 +387,10 @@ body.dark button {
 #screens-list li:hover box-icon,
 #screens-list li:hover box-icon svg,
 #screens-list li:hover box-icon svg path {
-  fill: var(--primary-color) !important;
-  solid: var(--primary-color) !important;
-}*/
+  /*fill: var(--primary-color) !important;
+  solid: var(--primary-color) !important;*/
+  color: var(--primary-color);
+}
 
 /* Texto bajo el icono también cambia */
 #screens-list li:hover span {
