@@ -344,9 +344,11 @@ body.dark button {
 /* ===== Estilos para pantallas.html ===== */
 /* == Pantallas: 1 columna y hover con borde y cambio de color == */
 
+/* == Pantallas: 1 columna, 16:9, borde en hover y solo icono en primario == */
+
 #screens-list {
   display: grid;
-  grid-template-columns: 1fr;   /* UNA columna por fila */
+  grid-template-columns: 1fr;   /* Una columna por fila */
   gap: 24px;
   list-style: none;
   padding: 0;
@@ -355,10 +357,10 @@ body.dark button {
 
 #screens-list li {
   width: 100%;
-  aspect-ratio: 16 / 9;              /* Relación 16:9 */
+  aspect-ratio: 16 / 9;               /* Formato HD */
   background: var(--primary-color);
-  color: #fff;
-  border: 2px solid transparent;     /* Borde invisible por defecto */
+  color: #fff;                        /* Texto en blanco por defecto */
+  border: 2px solid transparent;      /* Borde invisible por defecto */
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -374,28 +376,30 @@ body.dark button {
 
 #screens-list li:hover {
   background: var(--primary-color-light);
-  border-color: var(--primary-color);
-  color: var(--primary-color);
+  border-color: var(--primary-color);   /* Borde primario en hover */
+  color: var(--primary-color);          /* Texto en primario en hover */
 }
 
-/* Icono Boxicon y paths internos al hover */
-#screens-list li box-icon,
-#screens-list li box-icon svg,
-#screens-list li box-icon svg path {
-  transition: fill 0.2s, stroke 0.2s;
-}
-#screens-list li:hover box-icon,
-#screens-list li:hover box-icon svg,
-#screens-list li:hover box-icon svg path {
-  fill: var(--primary-color) !important;
-  color: var(--primary-color)!important;
+/* El icono se colorea en primario sin añadirle borde */
+#screens-list li box-icon {
+  border: none !important;              /* Por si acaso tiene algún borde */
+  transition: color 0.2s;
+  /* Si quieres ajustar tamaño: font-size: 48px; */
 }
 
+/* Al hacer hover, el box-icon hereda el color primario */
+#screens-list li:hover box-icon {
+  color: var(--primary-color) !important;
+}
 
- /*Texto bajo el icono también cambia */
+/* El texto secundario (span) hereda el color del contenedor li */
+#screens-list li span {
+  transition: color 0.2s;
+}
 #screens-list li:hover span {
   color: var(--primary-color);
 }
+
 
 #no-screens {
   display: none;
