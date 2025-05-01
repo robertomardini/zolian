@@ -29,7 +29,7 @@
   <!-- Supabase y scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
- <script src="/script.js"></script>
+  <script src="/script.js"></script>
   <script>
     async function initGaleria() {
       // 1) Verificar sesión
@@ -54,10 +54,10 @@
         };
       }
 
-      // 4) Cargar galerías
+      // 4) Cargar galerías con duración y tipo
       const { data: galleries, error } = await supabase
         .from('galleries')
-        .select('id, name')
+        .select('id, name, duration, slideshow_type')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -70,17 +70,24 @@
         return;
       }
 
-      // 5) Por cada galería: traer 1 sola imagen y renderizar
-      for (let g of galleries) {
-        // obtenemos la imagen más reciente
-        const { data: img, error: imgErr } = await supabase
-    .from('images')
-    .select('url')
-    .eq('gallery_id', g.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();   // <-- acá
+      // Mapa para traducir los tipos
+      const typeMap = {
+        fade:      'Fade',
+        slide:     'Slide Horizontal',
+        vertical:  'Slide Vertical',
+        zoom:      'Zoom',
+        kenburns:  'Ken Burns'
+      };
 
+      // 5) Por cada galería: obtener 1 sola imagen y renderizar
+      for (let g of galleries) {
+        const { data: img } = await supabase
+          .from('images')
+          .select('url')
+          .eq('gallery_id', g.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
         let thumbUrl = null;
         if (img && img.url) {
@@ -91,11 +98,20 @@
             .data.publicUrl;
         }
 
+        const typeLabel = typeMap[g.slideshow_type] || g.slideshow_type;
+        const metaText  = `${typeLabel} • ${g.duration}s`;
+
         const li = document.createElement('li');
-        li.innerHTML = thumbUrl
-          ? `<img src="${thumbUrl}" class="album-thumb" />`
-          : `<box-icon name='images' color='white' size='48px'></box-icon>`;
-        li.innerHTML += `<span>${g.name}</span>`;
+        li.innerHTML = `
+          ${thumbUrl
+            ? `<img src="${thumbUrl}" class="album-thumb" />`
+            : `<box-icon name='images' color='white' size='48px'></box-icon>`
+          }
+          <div class="album-info">
+            <span class="album-name">${g.name}</span>
+            <span class="album-meta">${metaText}</span>
+          </div>
+        `;
         li.onclick = () => {
           window.location.href = `/album.html?gallery=${g.id}`;
         };
