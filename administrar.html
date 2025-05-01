@@ -4,32 +4,130 @@
   <meta charset="UTF-8"/>
   <title>Administrar Pantalla – Zolian App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <!-- Tu CSS principal con variables (--primary-color, etc.) -->
+  <link rel="stylesheet" href="/style.css"/>
+  <!-- Boxicons -->
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
+
   <style>
-    body { font-family:Arial,sans-serif; padding:20px; }
-    h1,h2 { margin-bottom:12px; }
-    ul { list-style:none; padding:0; margin-bottom:16px; }
-    li { padding:8px; border:1px solid #ccc; margin-bottom:4px; cursor:pointer; }
-    li:hover { background:#f0f0f0; }
-    button { margin-top:8px; padding:8px 12px; }
-    #unlink { color:red; margin-top:24px; cursor:pointer; }
+    /* Aseguramos que .home quede al lado del sidebar */
+    .home {
+      position: relative;
+      margin-left: 250px;
+      padding: 20px;
+      transition: margin-left var(--tran-05);
+    }
+    .sidebar.close ~ .home {
+      margin-left: 88px;
+    }
+
+    /* Bloque común */
+    .admin-block {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 24px;
+    }
+    .admin-block h2 {
+      margin: 0 0 16px;
+      font-size: 1.25rem;
+      color: var(--text-color);
+    }
+
+    /* Lista de items */
+    .item-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .item-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .item-list li:hover {
+      background: var(--primary-color-light);
+    }
+    .item-list li:last-child {
+      border-bottom: none;
+    }
+    .item-list li span {
+      color: var(--text-color);
+      font-size: 1rem;
+    }
+    .item-list li .meta {
+      color: var(--text-color);
+      font-size: 0.875rem;
+    }
+
+    /* Botones dentro de los bloques */
+    .admin-block button {
+      margin-top: 16px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .admin-block button:hover {
+      background: var(--primary-color-light);
+      color: var(--primary-color);
+    }
+
+    /* Link de desvincular */
+    #unlink {
+      text-align: center;
+      color: #e74c3c;
+      cursor: pointer;
+      margin-top: 40px;
+    }
   </style>
 </head>
 <body>
-  <h1>Administrar Pantalla</h1>
-  <p>Pantalla: <strong id="screenName"></strong></p>
-  <p>Usuario: <strong id="userEmail"></strong></p>
+  <div id="sidebar-container"></div>
+  <div class="overlay"></div>
 
-  <h2>Selecciona un álbum:</h2>
-  <ul id="galleryList"></ul>
-  <button id="createAlbum">➕ Crear nuevo álbum</button>
+  <section class="home">
+    <h1>Administrar Pantalla</h1>
+    <p>Pantalla: <strong id="screenName"></strong></p>
+    <p>Usuario:  <strong id="userEmail"></strong></p>
 
-  <h2>Selecciona un vídeo:</h2>
-  <ul id="videoList"></ul>
-  <button id="createVideo">➕ Subir nuevo vídeo</button>
+    <div class="admin-block">
+      <h2>Selecciona un álbum</h2>
+      <ul id="galleryList" class="item-list"></ul>
+      <button id="createAlbum">
+        <box-icon name='plus' ></box-icon>
+        Crear nuevo álbum
+      </button>
+    </div>
 
-  <p id="unlink">🔗 Desvincular esta pantalla</p>
+    <div class="admin-block">
+      <h2>Selecciona un vídeo</h2>
+      <ul id="videoList" class="item-list"></ul>
+      <button id="createVideo">
+        <box-icon name='video-plus' ></box-icon>
+        Subir nuevo vídeo
+      </button>
+    </div>
+
+    <p id="unlink">🔗 Desvincular esta pantalla</p>
+  </section>
 
   <script>
   (async () => {
@@ -48,9 +146,9 @@
     document.getElementById('userEmail').innerText = session.user.email;
 
     // 2) Datos de la TV
-    const { data: tv, error: tvErr } = await supabase
+    const { data: tv } = await supabase
       .from('tv').select('nombre,user_id').eq('code', code).maybeSingle();
-    if (tvErr || !tv || tv.user_id !== session.user.id) {
+    if (!tv || tv.user_id !== session.user.id) {
       alert('Pantalla no válida');
       return window.location.href = 'pantallas.html';
     }
@@ -63,9 +161,18 @@
       .eq('user_id', session.user.id)
       .order('created_at',{ ascending:false });
     const gl = document.getElementById('galleryList');
+    gl.innerHTML = '';
     galleries.forEach(g => {
       const li = document.createElement('li');
-      li.textContent = `${g.name} (${g.slideshow_type}, ${g.duration}s)`;
+      const typeLabels = {
+        fade:      'Fade',
+        slide:     'Slide Horizontal',
+        vertical:  'Slide Vertical',
+        zoom:      'Zoom',
+        kenburns:  'Ken Burns'
+      };
+      const meta = `${typeLabels[g.slideshow_type]||g.slideshow_type} • ${g.duration}s`;
+      li.innerHTML = `<span>${g.name}</span><span class="meta">${meta}</span>`;
       li.onclick = async () => {
         const { error } = await supabase
           .from('tv').update({
@@ -89,9 +196,11 @@
       .eq('user_id', session.user.id)
       .order('created_at',{ ascending:false });
     const vl = document.getElementById('videoList');
+    vl.innerHTML = '';
     vids.forEach(v => {
+      const title = v.title || v.url.split('/').pop();
       const li = document.createElement('li');
-      li.textContent = v.title || v.url.split('/').pop();
+      li.innerHTML = `<span>${title}</span><span class="meta">Vídeo</span>`;
       li.onclick = async () => {
         const { error } = await supabase
           .from('tv').update({
@@ -106,27 +215,19 @@
       vl.appendChild(li);
     });
 
-    // 5) Crear nuevo álbum / subir vídeo
+    // 5) Crear nuevo
     document.getElementById('createAlbum').onclick = () =>
       location.href = `crear-album.html?code=${code}`;
     document.getElementById('createVideo').onclick = () =>
       location.href = `misvideos.html`;
 
-    // 6) Desvincular pantalla (ahora sí deja user_id en null)
+    // 6) Desvincular pantalla
     document.getElementById('unlink').onclick = async () => {
       if (!confirm('¿Desvincular pantalla?')) return;
-      const { error } = await supabase
+      await supabase
         .from('tv')
-        .update({
-          user_id:    null,
-          gallery_id: null,
-          video_url:  null,
-          play:       false
-        })
+        .update({ user_id:null, gallery_id:null, video_url:null, play:false })
         .eq('code', code);
-      if (error) {
-        return alert('Error al desvincular: ' + error.message);
-      }
       alert('Pantalla desvinculada.');
       window.location.href = 'pantallas.html';
     };
