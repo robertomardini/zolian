@@ -13,22 +13,20 @@
   <div class="overlay"></div>
 
   <section class="home">
-    <!-- Título principal (mismo estilo que pantallas.html) -->
+    <!-- Título -->
     <div class="text">Administrar Álbum</div>
 
-    <!-- Bloque 1: ajustes del álbum -->
+    <!-- Bloque 1: Ajustes -->
     <div class="album-block">
-      <div class="section">
+      <div class="field-group">
         <label for="album-name">Nombre del álbum</label>
-        <div class="input-group">
-          <input type="text" id="album-name" placeholder="Mi álbum de fotos"/>
-        </div>
+        <input type="text" id="album-name" placeholder="Mi álbum de fotos"/>
       </div>
-      <div class="section">
+      <div class="field-group">
         <label for="duration">Duración por imagen (s)</label>
         <input type="number" id="duration" min="1" value="5"/>
       </div>
-      <div class="section">
+      <div class="field-group">
         <label for="slideshow-type">Tipo de slideshow</label>
         <select id="slideshow-type">
           <option value="fade">Fade</option>
@@ -38,38 +36,41 @@
           <option value="kenburns">Ken Burns</option>
         </select>
       </div>
-      <div class="section" style="text-align:center;">
-        <button id="save-settings">💾 Guardar cambios</button>
+      <div class="field-group actions">
+        <button id="save-settings">
+          <box-icon name='save' type='solid' size='20px'></box-icon>
+          Guardar cambios
+        </button>
       </div>
     </div>
 
-    <!-- Bloque 2: imágenes y envío -->
+    <!-- Bloque 2: Imágenes y envío -->
     <div class="album-block">
-      <div class="section">
+      <div class="field-group">
         <label for="file-input">Cargar imágenes</label>
-        <div class="input-group">
-          <input type="file" id="file-input" multiple accept="image/*"/>
-          <button id="upload-btn">⬆️ Subir</button>
-          <span id="upload-status"></span>
-        </div>
+        <input type="file" id="file-input" multiple accept="image/*"/>
+        <button id="upload-btn">
+          <box-icon name='upload' type='solid' size='20px'></box-icon>
+          Subir
+        </button>
+        <span id="upload-status"></span>
       </div>
 
-      <div class="section">
-        <ul id="images-list"></ul>
-      </div>
+      <ul id="images-list"></ul>
 
-      <div class="section">
+      <div class="field-group">
         <label for="tv-select">Enviar a pantalla</label>
-        <div class="input-group">
-          <select id="tv-select">
-            <option value="">— Selecciona pantalla —</option>
-          </select>
-          <button id="send-btn">▶️ Enviar</button>
-        </div>
+        <select id="tv-select">
+          <option value="">— Selecciona pantalla —</option>
+        </select>
+        <button id="send-btn">
+          <box-icon name='play' type='solid' size='20px'></box-icon>
+          Enviar
+        </button>
       </div>
     </div>
 
-    <!-- Texto “botón” Eliminar álbum -->
+    <!-- Texto eliminar álbum -->
     <p id="delete-album" class="delete-link">🗑 Eliminar álbum</p>
   </section>
 
@@ -85,14 +86,13 @@
         return window.location.href = 'galeria.html';
       }
 
-      // Sesión
       const { data:{ session } } = await supabase.auth.getSession();
       if (!session) {
         const r = encodeURIComponent(location.pathname + location.search);
         return window.location.href = `login.html?redirect=${r}`;
       }
 
-      // Inyectar email en el sidebar
+      // Inyectar email en sidebar (si existe)
       const sidebarUser = document.getElementById('sidebar-user');
       if (sidebarUser) sidebarUser.innerText = session.user.email;
 
@@ -124,7 +124,7 @@
         else       alert('Cambios guardados correctamente.');
       };
 
-      // Subir imágenes optimizado
+      // Subir imágenes
       document.getElementById('upload-btn').onclick = async () => {
         const inp  = document.getElementById('file-input');
         const stat = document.getElementById('upload-status');
@@ -236,7 +236,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', initAlbum);
-    window.addEventListener('sidebarReady',      initAlbum);
+    window.addEventListener('sidebarReady', initAlbum);
   </script>
 </body>
 </html>
