@@ -744,3 +744,101 @@ body.dark .switch::before {
   cursor: pointer;
   margin-top: 40px;
 }
+/* Encabezado */
+section.home h1 {
+  font-size: 1.75rem;
+  color: var(--text-color);
+  margin-bottom: 24px;
+}
+
+/* Bloques blancos */
+.admin-block {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-bottom: 24px;
+}
+.admin-block h2 {
+  margin: 0 0 16px;
+  font-size: 1.25rem;
+  color: var(--text-color);
+}
+
+/* Input-group reutilizado */
+.input-group {
+  display: flex;
+  gap: 8px;
+}
+.input-group input {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background: var(--sidebar-color);
+  color: var(--text-color);
+}
+.input-group button {
+  padding: 8px 16px;
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.input-group button:hover {
+  background: var(--primary-color-light);
+  color: var(--primary-color);
+}
+
+/* Estado de lista */
+#video-status,
+#list-status {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+/* Lista de vídeos */
+#videos-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+#videos-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#videos-list li:hover {
+  background: var(--primary-color-light);
+}
+#videos-list li:last-child {
+  border-bottom: none;
+}
+
+/* Botones de acción */
+.video-actions {
+  display: flex;
+  gap: 12px;
+}
+.video-actions button {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.video-actions button:hover {
+  color: var(--primary-color);
+}
