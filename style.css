@@ -118,7 +118,7 @@ header .image-text .profession {
   margin-top: -2px;
   display: block;
 }
-/* Aquí centramos ligeramente el logo */
+/* Centrar ligeramente el logo */
 .sidebar header .image {
   display: flex;
   align-items: center;
@@ -377,7 +377,6 @@ body.dark button {
 #screens-list li box-icon svg path {
   color: #fff;
   fill: #fff !important;
-  
   transition: color 0.2s, fill 0.2s, stroke 0.2s;
 }
 
@@ -386,9 +385,9 @@ body.dark button {
 #screens-list li:hover box-icon svg path {
   color: var(--primary-color) !important;
   fill: var(--primary-color) !important;
-  
 }
 
+/* El texto secundario (span) también unificado */
 #screens-list li span {
   transition: color 0.2s;
 }
@@ -416,6 +415,7 @@ body.dark button {
 .pantallas-block .text {
   text-align: center;
   margin-bottom: 24px;
+}
 
 /* Overlay para el resto de la página */
 .overlay {
@@ -433,17 +433,15 @@ body.dark button {
   display: block;
   opacity: 1;
 }
+
 /* ——————— Override para .home ——————— */
 .home {
   /* Pasamos de absolute a relativo y aplicamos margen */
   position: relative !important;
   left: auto !important;
   width: auto !important;
-  margin-left: 250px;
+  margin-left: 250px !important;
 }
-
-/* Cuando la sidebar esté cerrada */
 .sidebar.close ~ .home {
   margin-left: 88px !important;
 }
-
