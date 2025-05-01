@@ -4,16 +4,18 @@
   <meta charset="UTF-8"/>
   <title>Administrar Pantalla – Zolian App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <!-- Tu CSS principal con variables (--primary-color, etc.) -->
+
+  <!-- CSS principal y Boxicons -->
   <link rel="stylesheet" href="/style.css"/>
-  <!-- Boxicons -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
-  <!-- Supabase -->
+
+  <!-- Supabase y scripts de inyección de sidebar -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
+  <script src="/script.js"></script>
 
   <style>
-    /* Aseguramos que .home quede al lado del sidebar */
+    /* Ajuste de .home para dejar espacio al sidebar */
     .home {
       position: relative;
       margin-left: 250px;
@@ -24,7 +26,30 @@
       margin-left: 88px;
     }
 
-    /* Bloque común */
+    /* Tarjeta única de la pantalla */
+    .screen-card {
+      background: var(--primary-color);
+      border-radius: 12px;
+      padding: 24px;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 160px;
+      box-sizing: border-box;
+      margin-bottom: 24px;
+    }
+    .screen-card box-icon,
+    .screen-card svg {
+      color: #fff;
+    }
+    .screen-card span {
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    /* Bloques blancos */
     .admin-block {
       background: #fff;
       border-radius: 12px;
@@ -38,7 +63,7 @@
       color: var(--text-color);
     }
 
-    /* Lista de items */
+    /* Listas de álbumes y vídeos */
     .item-list {
       list-style: none;
       padding: 0;
@@ -68,7 +93,7 @@
       font-size: 0.875rem;
     }
 
-    /* Botones dentro de los bloques */
+    /* Botones con icono */
     .admin-block button {
       margin-top: 16px;
       width: 100%;
@@ -90,7 +115,7 @@
       color: var(--primary-color);
     }
 
-    /* Link de desvincular */
+    /* Link desvincular */
     #unlink {
       text-align: center;
       color: #e74c3c;
@@ -100,32 +125,40 @@
   </style>
 </head>
 <body>
+  <!-- Sidebar -->
   <div id="sidebar-container"></div>
   <div class="overlay"></div>
 
   <section class="home">
-    <h1>Administrar Pantalla</h1>
-    <p>Pantalla: <strong id="screenName"></strong></p>
-    <p>Usuario:  <strong id="userEmail"></strong></p>
+    <h1>Editar Pantalla</h1>
 
+    <!-- Tarjeta con icono y nombre de la pantalla -->
+    <div id="screenCard" class="screen-card">
+      <box-icon name="tv" size="48px"></box-icon>
+      <span id="screenName">Pantalla</span>
+    </div>
+
+    <!-- Bloque de álbumes -->
     <div class="admin-block">
       <h2>Selecciona un álbum</h2>
       <ul id="galleryList" class="item-list"></ul>
       <button id="createAlbum">
-        <box-icon name='plus' ></box-icon>
+        <box-icon name="plus"></box-icon>
         Crear nuevo álbum
       </button>
     </div>
 
+    <!-- Bloque de vídeos -->
     <div class="admin-block">
       <h2>Selecciona un vídeo</h2>
       <ul id="videoList" class="item-list"></ul>
       <button id="createVideo">
-        <box-icon name='video-plus' ></box-icon>
+        <box-icon name="video-plus"></box-icon>
         Subir nuevo vídeo
       </button>
     </div>
 
+    <!-- Desvincular pantalla -->
     <p id="unlink">🔗 Desvincular esta pantalla</p>
   </section>
 
@@ -143,7 +176,6 @@
       const r = encodeURIComponent(location.pathname + location.search);
       return window.location.href = `login.html?redirect=${r}`;
     }
-    document.getElementById('userEmail').innerText = session.user.email;
 
     // 2) Datos de la TV
     const { data: tv } = await supabase
@@ -152,6 +184,8 @@
       alert('Pantalla no válida');
       return window.location.href = 'pantallas.html';
     }
+
+    // Seteamos el nombre en la tarjeta
     document.getElementById('screenName').innerText = tv.nombre;
 
     // 3) Listar álbumes
@@ -162,15 +196,15 @@
       .order('created_at',{ ascending:false });
     const gl = document.getElementById('galleryList');
     gl.innerHTML = '';
+    const typeLabels = {
+      fade:     'Fade',
+      slide:    'Slide Horizontal',
+      vertical: 'Slide Vertical',
+      zoom:     'Zoom',
+      kenburns: 'Ken Burns'
+    };
     galleries.forEach(g => {
       const li = document.createElement('li');
-      const typeLabels = {
-        fade:      'Fade',
-        slide:     'Slide Horizontal',
-        vertical:  'Slide Vertical',
-        zoom:      'Zoom',
-        kenburns:  'Ken Burns'
-      };
       const meta = `${typeLabels[g.slideshow_type]||g.slideshow_type} • ${g.duration}s`;
       li.innerHTML = `<span>${g.name}</span><span class="meta">${meta}</span>`;
       li.onclick = async () => {
@@ -184,7 +218,7 @@
           })
           .eq('code', code);
         if (error) return alert('Error asignando álbum: ' + error.message);
-        alert('Álbum asignado con éxito.');
+        alert('Álbum asignado.');
       };
       gl.appendChild(li);
     });
@@ -210,7 +244,7 @@
           })
           .eq('code', code);
         if (error) return alert('Error asignando vídeo: ' + error.message);
-        alert('Vídeo asignado con éxito.');
+        alert('Vídeo asignado.');
       };
       vl.appendChild(li);
     });
@@ -228,7 +262,7 @@
         .from('tv')
         .update({ user_id:null, gallery_id:null, video_url:null, play:false })
         .eq('code', code);
-      alert('Pantalla desvinculada.');
+      alert('Desvinculada.');
       window.location.href = 'pantallas.html';
     };
   })();
