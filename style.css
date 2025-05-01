@@ -272,6 +272,7 @@ body.dark .switch::before {
 .home {
   position: relative !important;
   margin-left: 88px !important;
+  padding: 20px !important;
   width: auto !important;
   left: auto !important;
 }
