@@ -419,6 +419,7 @@ body.dark .switch::before {
   padding: 8px 16px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   cursor: pointer;
   transition: var(--tran-04);
