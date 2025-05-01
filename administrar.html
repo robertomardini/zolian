@@ -5,124 +5,15 @@
   <title>Administrar Pantalla – Zolian App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
-  <!-- CSS principal y Boxicons -->
+  <!-- Tu CSS principal -->
   <link rel="stylesheet" href="/style.css"/>
+  <!-- Boxicons -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
-  <!-- Supabase y scripts de inyección de sidebar -->
+  <!-- Supabase y sidebar -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <script src="/script.js"></script>
-
-  <style>
-    /* Ajuste de .home para dejar espacio al sidebar */
-    .home {
-      position: relative;
-      margin-left: 250px;
-      padding: 20px;
-      transition: margin-left var(--tran-05);
-    }
-    .sidebar.close ~ .home {
-      margin-left: 88px;
-    }
-
-    /* Tarjeta única de la pantalla */
-    .screen-card {
-      background: var(--primary-color);
-      border-radius: 12px;
-      padding: 24px;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 160px;
-      box-sizing: border-box;
-      margin-bottom: 24px;
-    }
-    .screen-card box-icon,
-    .screen-card svg {
-      color: #fff;
-    }
-    .screen-card span {
-      margin-top: 8px;
-      font-weight: 500;
-    }
-
-    /* Bloques blancos */
-    .admin-block {
-      background: #fff;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      margin-bottom: 24px;
-    }
-    .admin-block h2 {
-      margin: 0 0 16px;
-      font-size: 1.25rem;
-      color: var(--text-color);
-    }
-
-    /* Listas de álbumes y vídeos */
-    .item-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    .item-list li {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px;
-      border-bottom: 1px solid #eee;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .item-list li:hover {
-      background: var(--primary-color-light);
-    }
-    .item-list li:last-child {
-      border-bottom: none;
-    }
-    .item-list li span {
-      color: var(--text-color);
-      font-size: 1rem;
-    }
-    .item-list li .meta {
-      color: var(--text-color);
-      font-size: 0.875rem;
-    }
-
-    /* Botones con icono */
-    .admin-block button {
-      margin-top: 16px;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px;
-      background: var(--primary-color);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.2s, color 0.2s;
-    }
-    .admin-block button:hover {
-      background: var(--primary-color-light);
-      color: var(--primary-color);
-    }
-
-    /* Link desvincular */
-    #unlink {
-      text-align: center;
-      color: #e74c3c;
-      cursor: pointer;
-      margin-top: 40px;
-    }
-  </style>
 </head>
 <body>
   <!-- Sidebar -->
@@ -132,7 +23,7 @@
   <section class="home">
     <h1>Editar Pantalla</h1>
 
-    <!-- Tarjeta con icono y nombre de la pantalla -->
+    <!-- Tarjeta de la pantalla -->
     <div id="screenCard" class="screen-card">
       <box-icon name="tv" size="48px"></box-icon>
       <span id="screenName">Pantalla</span>
@@ -165,10 +56,7 @@
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
-    if (!code) {
-      alert('Falta code de TV');
-      return window.location.href = 'pantallas.html';
-    }
+    if (!code) return window.location.href = 'pantallas.html';
 
     // 1) Sesión
     const { data:{ session } } = await supabase.auth.getSession();
@@ -179,13 +67,15 @@
 
     // 2) Datos de la TV
     const { data: tv } = await supabase
-      .from('tv').select('nombre,user_id').eq('code', code).maybeSingle();
+      .from('tv')
+      .select('nombre,user_id')
+      .eq('code', code)
+      .maybeSingle();
     if (!tv || tv.user_id !== session.user.id) {
-      alert('Pantalla no válida');
       return window.location.href = 'pantallas.html';
     }
 
-    // Seteamos el nombre en la tarjeta
+    // Pintamos el nombre en la tarjeta
     document.getElementById('screenName').innerText = tv.nombre;
 
     // 3) Listar álbumes
@@ -208,8 +98,9 @@
       const meta = `${typeLabels[g.slideshow_type]||g.slideshow_type} • ${g.duration}s`;
       li.innerHTML = `<span>${g.name}</span><span class="meta">${meta}</span>`;
       li.onclick = async () => {
-        const { error } = await supabase
-          .from('tv').update({
+        await supabase
+          .from('tv')
+          .update({
             gallery_id:     g.id,
             duration:       g.duration,
             slideshow_type: g.slideshow_type,
@@ -217,7 +108,6 @@
             video_url:      null
           })
           .eq('code', code);
-        if (error) return alert('Error asignando álbum: ' + error.message);
         alert('Álbum asignado.');
       };
       gl.appendChild(li);
@@ -236,14 +126,14 @@
       const li = document.createElement('li');
       li.innerHTML = `<span>${title}</span><span class="meta">Vídeo</span>`;
       li.onclick = async () => {
-        const { error } = await supabase
-          .from('tv').update({
+        await supabase
+          .from('tv')
+          .update({
             video_url:  v.url,
             play:       true,
             gallery_id: null
           })
           .eq('code', code);
-        if (error) return alert('Error asignando vídeo: ' + error.message);
         alert('Vídeo asignado.');
       };
       vl.appendChild(li);
