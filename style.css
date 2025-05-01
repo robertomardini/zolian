@@ -593,3 +593,99 @@ body.dark .switch::before {
   font-size: 48px;
   margin-top: 20px;
 }
+/* Tarjeta de la pantalla */
+.screen-card {
+  background: var(--primary-color);
+  border-radius: 12px;
+  padding: 24px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  box-sizing: border-box;
+  margin-bottom: 24px;
+}
+.screen-card box-icon,
+.screen-card svg {
+  color: #fff;
+}
+.screen-card span {
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+/* Bloques blancos */
+.admin-block {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-bottom: 24px;
+}
+.admin-block h2 {
+  margin: 0 0 16px;
+  font-size: 1.25rem;
+  color: var(--text-color);
+}
+
+/* Listas de selección */
+.item-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.item-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.item-list li:hover {
+  background: var(--primary-color-light);
+}
+.item-list li:last-child {
+  border-bottom: none;
+}
+.item-list li span {
+  color: var(--text-color);
+  font-size: 1rem;
+}
+.item-list li .meta {
+  color: var(--text-color);
+  font-size: 0.875rem;
+}
+
+/* Botones con icono */
+.admin-block button {
+  margin-top: 16px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.admin-block button:hover {
+  background: var(--primary-color-light);
+  color: var(--primary-color);
+}
+
+/* Link para desvincular */
+#unlink {
+  text-align: center;
+  color: #e74c3c;
+  cursor: pointer;
+  margin-top: 40px;
+}
