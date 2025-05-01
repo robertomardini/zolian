@@ -534,6 +534,7 @@ body.dark .switch::before {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   align-items: center;
   cursor: pointer;
   transition: transform 0.2s, background 0.2s;
@@ -548,21 +549,24 @@ body.dark .switch::before {
   position: absolute;
   top: 0; left: 0;
   width: 100%;
-  height: 70%;
+  height: 65%;
   object-fit: cover;
   opacity: 0.6;
+  z-index: 0;
 }
 
 /* Contenedor de texto */
 .album-info {
   position: relative;
   z-index: 1;
-  margin-top: auto;
-  padding: 12px;
-  text-align: center;
-  background: rgba(0,0,0,0.3); /* sutil fondo para legibilidad */
   width: 100%;
+  background: var(--primary-color);
+  color: #fff;
+  padding: 12px;
   box-sizing: border-box;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  margin: 0;              /* eliminamos margin-top:auto */
 }
 
 /* Nombre */
@@ -570,14 +574,14 @@ body.dark .switch::before {
   display: block;
   font-weight: 600;
   font-size: 1rem;
-  color: #fff;
+  color: #fff !important;
 }
 
 /* Meta (tipo + duración) */
 .album-meta {
   display: block;
   font-size: 0.85rem;
-  color: rgba(255,255,255,0.85);
+  color: #fff !important;
   margin-top: 4px;
 }
 
