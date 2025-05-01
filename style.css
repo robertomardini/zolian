@@ -689,3 +689,36 @@ body.dark .switch::before {
   cursor: pointer;
   margin-top: 40px;
 }
+/* Miniatura + datos en la lista de álbumes */
+#galleryList li {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#galleryList li:hover {
+  background: var(--primary-color-light);
+}
+#galleryList li .thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+#galleryList li .info-block {
+  display: flex;
+  flex-direction: column;
+}
+#galleryList li .album-name {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 1rem;
+}
+#galleryList li .meta {
+  font-size: 0.875rem;
+  color: var(--text-color);
+  margin-top: 4px;
+}
