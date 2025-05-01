@@ -557,7 +557,7 @@ body.dark .switch::before {
 
 /* Contenedor de texto */
 .album-info {
-  position: relative;
+  position: absolute;
   z-index: 1;
   width: 100%;
   background: var(--primary-color);
