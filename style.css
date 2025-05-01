@@ -557,7 +557,7 @@ body.dark .switch::before {
 
 /* Contenedor de texto */
 .album-info {
-  position: absolute;
+  position: relative;
   z-index: 1;
   width: 100%;
   background: var(--primary-color);
@@ -567,6 +567,7 @@ body.dark .switch::before {
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
   margin: 0;              /* eliminamos margin-top:auto */
+  text-align: center;
 }
 
 /* Nombre */
