@@ -82,15 +82,6 @@ function initSidebar() {
     });
   }
 
-  // -- Dark mode --
-  if (modeSwitch) {
-    modeSwitch.addEventListener('click', () => {
-      body.classList.toggle('dark');
-      modeText.innerText = body.classList.contains('dark')
-        ? 'Light mode'
-        : 'Dark mode';
-    });
-  }
 
   // -- Logout --
   if (logoutBtn) {
