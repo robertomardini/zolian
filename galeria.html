@@ -10,64 +10,21 @@
   <link rel="stylesheet" href="/style.css" />
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
-
-  <style>
-    .home {
-      padding: 20px;
-      transition: left 0.3s, width 0.3s;
-    }
-    #gallery-list {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 24px;
-      list-style: none;
-      padding: 0;
-      margin-top: 24px;
-    }
-    #gallery-list li {
-      background: var(--primary-color);
-      color: #fff;
-      border-radius: 12px;
-      height: 160px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.2s, background 0.2s;
-    }
-    #gallery-list li:hover {
-      transform: scale(1.05);
-      background: var(--primary-color-light);
-    }
-    #gallery-list li box-icon {
-      font-size: 48px;
-      margin-bottom: 8px;
-      color: #fff;
-    }
-    #gallery-list li span {
-      display: block;
-      font-weight: 500;
-      text-align: center;
-    }
-    #no-galleries {
-      text-align: center;
-      color: var(--text-color);
-      margin-top: 40px;
-    }
-  </style>
 </head>
 <body>
   <!-- Sidebar inyectado -->
   <div id="sidebar-container"></div>
+  <div class="overlay"></div>
 
   <section class="home">
-    <div class="text">Mis Álbumes</div>
-    <ul id="gallery-list"></ul>
-    <p id="no-galleries" style="display:none;">
-      No tienes álbumes creados.<br>
-      Crea uno desde “Administrar Pantalla”.
-    </p>
+    <div class="gallery-block">
+      <div class="text">Mis Álbumes</div>
+      <ul id="gallery-list"></ul>
+      <p id="no-galleries" style="display:none;">
+        No tienes álbumes creados.<br>
+        Crea uno desde “Administrar Pantalla”.
+      </p>
+    </div>
   </section>
 
   <!-- Supabase y scripts -->
@@ -76,17 +33,10 @@
   <script src="/script.js"></script>
   <script>
     async function initGaleria() {
-      // 0) ¿Viene code de TV?
-      const params = new URLSearchParams(location.search);
-      const tvCode = params.get('code'); // puede ser null
-
       // 1) Verificar sesión
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        // si había tvCode, lo preservamos en redirect
-        const redirect = tvCode
-          ? encodeURIComponent(`/galeria.html?code=${tvCode}`)
-          : encodeURIComponent('/galeria.html');
+        const redirect = encodeURIComponent('/galeria.html');
         return window.location.href = `login.html?redirect=${redirect}`;
       }
       const user = session.user;
@@ -105,10 +55,16 @@
         };
       }
 
-      // 4) Cargar álbumes del usuario
+      // 4) Cargar galerías CON preview de imágenes
       const { data: galleries, error } = await supabase
         .from('galleries')
-        .select('id, name')
+        .select(`
+          id,
+          name,
+          images (
+            url
+          )
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -121,16 +77,26 @@
         return;
       }
 
-      // 5) Renderizar cada álbum como tarjeta
+      // 5) Renderizar cada álbum
       galleries.forEach(g => {
+        // si trae imágenes, tomamos la primera
+        const thumb = (g.images && g.images.length)
+          ? supabase
+              .storage
+              .from('images')
+              .getPublicUrl(g.images[0].url).data.publicUrl
+          : null;
+
         const li = document.createElement('li');
-        li.innerHTML = `
-          <box-icon name='images' color='white' size='48px'></box-icon>
-          <span>${g.name}</span>
-        `;
-       li.onclick = () => {
-  window.location.href = `/album.html?gallery=${g.id}`;
-};
+
+        li.innerHTML = thumb
+          ? `<img src="${thumb}" class="album-thumb" />`
+          : `<box-icon name='images' color='white' size='48px'></box-icon>`;
+
+        li.innerHTML += `<span>${g.name}</span>`;
+        li.onclick = () => {
+          window.location.href = `/album.html?gallery=${g.id}`;
+        };
         listEl.appendChild(li);
       });
     }
