@@ -12,7 +12,6 @@
   <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
 </head>
 <body>
-  <!-- Sidebar inyectado -->
   <div id="sidebar-container"></div>
   <div class="overlay"></div>
 
@@ -55,16 +54,10 @@
         };
       }
 
-      // 4) Cargar galerías CON preview de imágenes
+      // 4) Cargar galerías
       const { data: galleries, error } = await supabase
         .from('galleries')
-        .select(`
-          id,
-          name,
-          images (
-            url
-          )
-        `)
+        .select('id, name')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -77,28 +70,36 @@
         return;
       }
 
-      // 5) Renderizar cada álbum
-      galleries.forEach(g => {
-        // si trae imágenes, tomamos la primera
-        const thumb = (g.images && g.images.length)
-          ? supabase
-              .storage
-              .from('images')
-              .getPublicUrl(g.images[0].url).data.publicUrl
-          : null;
+      // 5) Por cada galería: traer 1 sola imagen y renderizar
+      for (let g of galleries) {
+        // obtenemos la imagen más reciente
+        const { data: img, error: imgErr } = await supabase
+          .from('images')
+          .select('url')
+          .eq('gallery_id', g.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        let thumbUrl = null;
+        if (img && img.url) {
+          thumbUrl = supabase
+            .storage
+            .from('images')
+            .getPublicUrl(img.url)
+            .data.publicUrl;
+        }
 
         const li = document.createElement('li');
-
-        li.innerHTML = thumb
-          ? `<img src="${thumb}" class="album-thumb" />`
+        li.innerHTML = thumbUrl
+          ? `<img src="${thumbUrl}" class="album-thumb" />`
           : `<box-icon name='images' color='white' size='48px'></box-icon>`;
-
         li.innerHTML += `<span>${g.name}</span>`;
         li.onclick = () => {
           window.location.href = `/album.html?gallery=${g.id}`;
         };
         listEl.appendChild(li);
-      });
+      }
     }
 
     window.addEventListener('sidebarReady', initGaleria);
