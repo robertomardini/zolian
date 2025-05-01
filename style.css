@@ -269,16 +269,14 @@ body.dark .switch::before {
   left: 20px;
 }
 
-/* Main Content (.home) */
 .home {
-  position: absolute;
-  top: 0;
-  left: 88px;
-  height: 100vh;
-  width: calc(100% - 250px);
-  background-color: var(--body-color);
-  transition: var(--tran-05);
-  padding: 20px;
+  position: relative !important;
+  margin-left: 250px !important;
+  width: auto !important;
+  left: auto !important;
+}
+.sidebar.close ~ .home {
+  margin-left: 88px !important;
 }
 
 .home .text {
@@ -380,6 +378,7 @@ body.dark .switch::before {
 }
 
 /* Bloques de álbum */
+/* ————— Bloques de álbum ————— */
 .album-block {
   width: 100%;
   max-width: 600px;
@@ -400,19 +399,20 @@ body.dark .switch::before {
   color: var(--text-color);
 }
 .field-group input,
-.field-group select {
+.field-group select,
+.field-group input[type="file"] {
   padding: 8px 12px;
   border: 1px solid var(--toggle-color);
   border-radius: 6px;
   background: var(--primary-color-light);
   color: var(--text-color);
 }
-
-/* Acción Guardar y Enviar */
-.field-group.actions,
-.field-group.send-group {
-  align-items: center;
+/* Separar "Enviar a pantalla" de thumbnails */
+#images-list {
+  margin-bottom: 16px;
 }
+
+/* Botones primarios unificados */
 .album-block button {
   background: var(--primary-color);
   color: #fff;
@@ -428,6 +428,20 @@ body.dark .switch::before {
 .album-block button:hover {
   background: var(--primary-color-light);
   color: var(--primary-color);
+}
+
+/* Eliminar álbum como texto */
+.delete-link {
+  color: #e74c3c;
+  text-align: center;
+  display: block;
+  cursor: pointer;
+  margin: 32px auto;
+  font-size: 1rem;
+  text-decoration: none;
+}
+.delete-link:hover {
+  text-decoration: underline;
 }
 
 /* Thumbnails grid */
