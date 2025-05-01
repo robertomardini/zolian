@@ -440,8 +440,6 @@ body.dark button {
   position: relative !important;
   left: auto !important;
   width: auto !important;
-  margin-left: 250px !important;
-}
-.sidebar.close ~ .home {
   margin-left: 88px !important;
 }
+
