@@ -58,11 +58,8 @@ body.dark {
   transition: var(--tran-05);
   z-index: 100;
 }
-.sidebar.close {
-  width: 88px;
-}
+.sidebar.close { width: 88px; }
 
-/* ===== Reusable ===== */
 .sidebar li {
   height: 50px;
   list-style: none;
@@ -78,9 +75,7 @@ body.dark {
   min-width: 60px;
   border-radius: 6px;
 }
-.sidebar .icon {
-  font-size: 20px;
-}
+.sidebar .icon { font-size: 20px; }
 .sidebar .text,
 .sidebar .icon {
   color: var(--text-color);
@@ -92,22 +87,12 @@ body.dark {
   white-space: nowrap;
   opacity: 1;
 }
-.sidebar.close .text {
-  opacity: 0;
-}
+.sidebar.close .text { opacity: 0; }
 
 /* Sidebar Header */
-.sidebar header {
-  position: relative;
-}
-.sidebar header .image-text {
-  display: flex;
-  align-items: center;
-}
-.sidebar header .logo-text {
-  display: flex;
-  flex-direction: column;
-}
+.sidebar header { position: relative; }
+.sidebar header .image-text { display: flex; align-items: center; }
+.sidebar header .logo-text { display: flex; flex-direction: column; }
 header .image-text .name {
   margin-top: 2px;
   font-size: 18px;
@@ -120,11 +105,6 @@ header .image-text .profession {
 }
 /* Centrar ligeramente el logo */
 .sidebar header .image {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 60px;
-  border-radius: 6px;
   margin-left: 4px;
 }
 .sidebar header .image img {
@@ -148,17 +128,11 @@ header .image-text .profession {
   cursor: pointer;
   transition: var(--tran-05);
 }
-body.dark .sidebar header .toggle {
-  color: var(--text-color);
-}
-.sidebar.close .toggle {
-  transform: translateY(-50%) rotate(0deg);
-}
+body.dark .sidebar header .toggle { color: var(--text-color); }
+.sidebar.close .toggle { transform: translateY(-50%) rotate(0deg); }
 
 /* Menu */
-.sidebar .menu {
-  margin-top: 40px;
-}
+.sidebar .menu { margin-top: 40px; }
 .sidebar li.search-box {
   border-radius: 6px;
   background-color: var(--primary-color-light);
@@ -187,13 +161,9 @@ body.dark .sidebar header .toggle {
   text-decoration: none;
   transition: var(--tran-03);
 }
-.sidebar li a:hover {
-  background-color: var(--primary-color);
-}
+.sidebar li a:hover { background-color: var(--primary-color); }
 .sidebar li a:hover .icon,
-.sidebar li a:hover .text {
-  color: var(--sidebar-color);
-}
+.sidebar li a:hover .text { color: var(--sidebar-color); }
 body.dark .sidebar li a:hover .icon,
 body.dark .sidebar li a:hover .text {
   color: var(--text-color);
@@ -206,38 +176,29 @@ body.dark .sidebar li a:hover .text {
   justify-content: space-between;
   overflow-y: scroll;
 }
-.menu-bar::-webkit-scrollbar {
-  display: none;
-}
+.menu-bar::-webkit-scrollbar { display: none; }
 .sidebar .menu-bar .mode {
   border-radius: 6px;
   background-color: var(--primary-color-light);
   position: relative;
   transition: var(--tran-05);
 }
-.menu-bar .mode .sun-moon {
-  height: 50px;
-  width: 60px;
-}
-.mode .sun-moon i {
-  position: absolute;
-}
-.mode .sun-moon i.sun {
-  opacity: 0;
-}
-body.dark .mode .sun-moon i.sun {
-  opacity: 1;
-}
-body.dark .mode .sun-moon i.moon {
-  opacity: 0;
-}
-.menu-bar .bottom-content {
+.menu-bar .mode .sun-moon { height: 50px; width: 60px; }
+.mode .sun-moon i { position: absolute; }
+.mode .sun-moon i.sun { opacity: 0; }
+body.dark .mode .sun-moon i.sun { opacity: 1; }
+body.dark .mode .sun-moon i.moon { opacity: 0; }
+
+/* Bottom content */
+.sidebar .menu-bar .bottom-content {
   padding-bottom: 20px;
   margin-top: auto;
   display: flex;
   flex-direction: column;
   align-items: stretch;
 }
+
+/* Toggle switch */
 .menu-bar .bottom-content .toggle-switch {
   position: absolute;
   right: 0;
@@ -269,78 +230,44 @@ body.dark .mode .sun-moon i.moon {
   background-color: var(--sidebar-color);
   transition: var(--tran-04);
 }
-body.dark .switch::before {
-  left: 20px;
-}
+body.dark .switch::before { left: 20px; }
 
-/* Main Content */
+/* Main Content (.home) */
 .home {
-  position: absolute;
+  position: relative !important;
+  margin-left: 88px !important;
   top: 0;
-  left: 250px;
-  height: 100vh;
-  width: calc(100% - 250px);
   background-color: var(--body-color);
   transition: var(--tran-05);
   padding: 20px;
 }
-.sidebar.close ~ .home {
-  left: 78px;
-  width: calc(100% - 78px);
+.sidebar:not(.close) ~ .home {
+  margin-left: 250px !important;
 }
 .home .text {
-  font-size: 20px;
-  font-weight: 500;
+  font-size: 2rem;
+  margin-bottom: 24px;
   color: var(--text-color);
-  padding: 12px 60px;
-}
-body.dark .home,
-body.dark .home .text {
-  color: var(--text-color);
+  text-align: center;
 }
 
-/* Posicionar usuario */
-#user-info {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 14px;
-  color: var(--text-color);
-  z-index: 200;
+/* Overlay */
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.5);
+  z-index: 50;
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+.overlay.active {
+  display: block;
+  opacity: 1;
 }
 
-/* Inputs y botones en dark */
-body.dark input {
-  background-color: var(--sidebar-color);
-  border: 1px solid var(--text-color);
-  color: var(--text-color);
-}
-body.dark button {
-  background-color: var(--primary-color);
-  border: none;
-  color: #fff;
-}
-
-/* Nav-user */
-.sidebar .nav-user {
-  margin-bottom: 8px;
-}
-.sidebar .nav-user .icon {
-  font-size: 20px;
-}
-.sidebar .nav-user .nav-text {
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sidebar.close .nav-user .nav-text {
-  display: inline-block !important;
-}
-
-/* ===== Estilos para pantallas.html ===== */
-
-/* Cards de Pantallas: 1 columna, 16:9, borde en hover y transiciones unificadas */
+/* ================= Pantallas.html ================= */
 #screens-list {
   display: grid;
   grid-template-columns: 1fr;
@@ -349,10 +276,9 @@ body.dark button {
   padding: 0;
   margin-top: 24px;
 }
-
 #screens-list li {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16/9;
   background: var(--primary-color);
   color: #fff;
   border: 2px solid transparent;
@@ -362,47 +288,38 @@ body.dark button {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-sizing: border-box;
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  transition: background .2s, border-color .2s, color .2s;
 }
-
 #screens-list li:hover {
   background: var(--primary-color-light);
   border-color: var(--primary-color);
   color: var(--primary-color);
 }
-
 #screens-list li box-icon,
 #screens-list li box-icon svg,
 #screens-list li box-icon svg path {
-  color: #fff;
+  transition: color .2s, fill .2s;
+  color: #fff !important;
   fill: #fff !important;
-  transition: color 0.2s, fill 0.2s, stroke 0.2s;
 }
-
 #screens-list li:hover box-icon,
 #screens-list li:hover box-icon svg,
 #screens-list li:hover box-icon svg path {
   color: var(--primary-color) !important;
   fill: var(--primary-color) !important;
 }
-
-/* El texto secundario (span) también unificado */
 #screens-list li span {
-  transition: color 0.2s;
+  transition: color .2s;
 }
 #screens-list li:hover span {
   color: var(--primary-color);
 }
-
 #no-screens {
   display: none;
   text-align: center;
   color: var(--text-color);
   margin-top: 40px;
 }
-
-/* Bloque blanco para pantallas.html */
 .pantallas-block {
   width: 100%;
   max-width: 600px;
@@ -417,114 +334,11 @@ body.dark button {
   margin-bottom: 24px;
 }
 
-/* Overlay para el resto de la página */
-.overlay {
-  display: none;
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0,0,0,0.5);
-  z-index: 50;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-.overlay.active {
-  display: block;
-  opacity: 1;
-}
+/* ================= Álbum.html ================= */
+/* Quitar “Usuario:” */
+#user-email { display: none; }
 
-/* ——————— Override para .home ——————— */
-.home {
-  /* Pasamos de absolute a relativo y aplicamos margen */
-  position: relative !important;
-  left: auto !important;
-  width: auto !important;
-  margin-left: 88px !important;
-}
-
-/* Subtítulo dentro del bloque blanco */
-.subtitle {
-  font-size: 14px;
-  color: var(--text-color);
-  text-align: left;
-  margin-bottom: 16px;
-}
-
-/* —————— Estilos para album.html —————— */
-.home {
-  padding: 20px;
-  transition: left .3s, width .3s;
-}
-.home .text {
-  font-size: 2rem;
-  margin-bottom: 24px;
-  color: var(--text-color);
-  text-align: center;
-}
-.section {
-  margin-bottom: 16px;
-}
-.input-group {
-  display: flex;
-  gap: 8px;
-}
-.input-group input,
-.input-group select {
-  flex: 1;
-  padding: 8px;
-  border: none;
-  border-radius: 6px;
-  background: var(--sidebar-color);
-  color: var(--text-color);
-}
-.input-group button {
-  padding: 8px 16px;
-  background: var(--primary-color);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-#images-list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  list-style: none;
-  padding: 0;
-}
-#images-list li {
-  position: relative;
-  border-radius: 6px;
-  overflow: hidden;
-  background: #fff;
-}
-#images-list img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.delete-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(0, 0, 0, .6);
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-}
-button:disabled {
-  opacity: .6;
-  cursor: not-allowed;
-}
-/* Botón Eliminar Álbum */
-#delete-album {
-  background: #e74c3c;
-}
-/* —————— Bloques de álbum: más orden, inputs gris claro, botones primarios con Boxicons —————— */
+/* Bloques de álbum */
 .album-block {
   width: 100%;
   max-width: 600px;
@@ -552,8 +366,10 @@ button:disabled {
   background: var(--primary-color-light);
   color: var(--text-color);
 }
+
+/* Acción Guardar y Enviar */
 .field-group.actions,
-.field-group:last-of-type {
+.field-group.send-group {
   align-items: center;
 }
 .album-block button {
@@ -576,107 +392,37 @@ button:disabled {
 /* Thumbnails grid */
 #images-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px,1fr));
   gap: 16px;
   list-style: none;
   padding: 0;
+  margin-bottom: 16px; /* separa el bloque de Enviar */
 }
-
-/* Eliminar álbum como texto */
-.delete-link {
-  color: #e74c3c;
-  text-align: center;
-  display: block;
-  cursor: pointer;
-  margin: 24px auto;
-  font-size: 1rem;
-  text-decoration: none;
-}
-.delete-link:hover {
-  text-decoration: underline;
-}
-
-.album-block .section {
-  margin-bottom: 16px;
-}
-
-/* Eliminar “Usuario:” */
-#user-email,
-p:has(#user-email) {
-  display: none;
-}
-
-/* Botón Eliminar álbum como texto */
-.delete-link {
-  color: #e74c3c;
-  text-align: center;
-  display: block;
-  cursor: pointer;
-  margin: 24px auto;
-  font-size: 1rem;
-  text-decoration: none;
-}
-
-/* —————— Bloques de álbum: inputs gris, botones unificados —————— */
-.album-block {
-  width: 100%;
-  max-width: 600px;
-  margin: 20px auto;
-  padding: 24px;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-.field-group {
-  margin-bottom: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.field-group label {
-  font-weight: 500;
-  color: var(--text-color);
-}
-.field-group input,
-.field-group select {
-  padding: 8px 12px;
-  border: 1px solid var(--toggle-color);
+#images-list li {
+  position: relative;
   border-radius: 6px;
-  background: var(--primary-color-light);
-  color: var(--text-color);
+  overflow: hidden;
+  background: #fff;
 }
-.field-group.actions,
-.field-group.send-group {
-  align-items: center;
+#images-list img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
-#images-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 16px;
-  list-style: none;
-  padding: 0;
-  margin-bottom: 16px; /* separa “Enviar a pantalla” */
-}
-
-/* Botones primarios con Boxicons */
-.album-block button {
-  background: var(--primary-color);
+.delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0,0,0,.6);
   color: #fff;
   border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
-  transition: var(--tran-04);
-}
-.album-block button:hover {
-  background: var(--primary-color-light);
-  color: var(--primary-color);
 }
 
-/* Eliminar álbum como texto con margen */
+/* Texto “Eliminar álbum” */
 .delete-link {
   color: #e74c3c;
   text-align: center;
