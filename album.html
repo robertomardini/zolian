@@ -10,74 +10,67 @@
 </head>
 <body>
   <div id="sidebar-container"></div>
+  <div class="overlay"></div>
 
   <section class="home">
+    <!-- Título principal (mismo estilo que pantallas.html) -->
     <div class="text">Administrar Álbum</div>
 
-    <!-- Mostrar email del usuario -->
-    <p>Usuario: <strong id="user-email"></strong></p>
-
-    <!-- Nombre del álbum -->
-    <div class="section">
-      <label for="album-name">Nombre del álbum</label>
-      <div class="input-group">
-        <input type="text" id="album-name" placeholder="Mi álbum de fotos"/>
+    <!-- Bloque 1: ajustes del álbum -->
+    <div class="album-block">
+      <div class="section">
+        <label for="album-name">Nombre del álbum</label>
+        <div class="input-group">
+          <input type="text" id="album-name" placeholder="Mi álbum de fotos"/>
+        </div>
       </div>
-    </div>
-
-    <!-- Duración por imagen -->
-    <div class="section">
-      <label for="duration">Duración por imagen (s)</label>
-      <input type="number" id="duration" min="1" value="5"/>
-    </div>
-
-    <!-- Tipo de slideshow -->
-    <div class="section">
-      <label for="slideshow-type">Tipo de slideshow</label>
-      <select id="slideshow-type">
-        <option value="fade">Fade</option>
-        <option value="slide">Slide Horizontal</option>
-        <option value="vertical">Slide Vertical</option>
-        <option value="zoom">Zoom</option>
-        <option value="kenburns">Ken Burns</option>
-      </select>
-    </div>
-
-    <!-- Guardar ajustes -->
-    <div class="section">
-      <button id="save-settings">💾 Guardar cambios</button>
-    </div>
-
-    <!-- Subir imágenes optimizadas -->
-    <div class="section">
-      <label for="file-input">Cargar imágenes</label>
-      <div class="input-group">
-        <input type="file" id="file-input" multiple accept="image/*"/>
-        <button id="upload-btn">⬆️ Subir</button>
-        <span id="upload-status"></span>
+      <div class="section">
+        <label for="duration">Duración por imagen (s)</label>
+        <input type="number" id="duration" min="1" value="5"/>
       </div>
-    </div>
-
-    <!-- Lista de miniaturas -->
-    <div class="section">
-      <ul id="images-list"></ul>
-    </div>
-
-    <!-- Enviar a pantalla -->
-    <div class="section">
-      <label for="tv-select">Enviar a pantalla</label>
-      <div class="input-group">
-        <select id="tv-select">
-          <option value="">— Selecciona pantalla —</option>
+      <div class="section">
+        <label for="slideshow-type">Tipo de slideshow</label>
+        <select id="slideshow-type">
+          <option value="fade">Fade</option>
+          <option value="slide">Slide Horizontal</option>
+          <option value="vertical">Slide Vertical</option>
+          <option value="zoom">Zoom</option>
+          <option value="kenburns">Ken Burns</option>
         </select>
-        <button id="send-btn">▶️ Enviar</button>
+      </div>
+      <div class="section" style="text-align:center;">
+        <button id="save-settings">💾 Guardar cambios</button>
       </div>
     </div>
 
-    <!-- Eliminar álbum -->
-    <div class="section">
-      <button id="delete-album">🗑 Eliminar álbum</button>
+    <!-- Bloque 2: imágenes y envío -->
+    <div class="album-block">
+      <div class="section">
+        <label for="file-input">Cargar imágenes</label>
+        <div class="input-group">
+          <input type="file" id="file-input" multiple accept="image/*"/>
+          <button id="upload-btn">⬆️ Subir</button>
+          <span id="upload-status"></span>
+        </div>
+      </div>
+
+      <div class="section">
+        <ul id="images-list"></ul>
+      </div>
+
+      <div class="section">
+        <label for="tv-select">Enviar a pantalla</label>
+        <div class="input-group">
+          <select id="tv-select">
+            <option value="">— Selecciona pantalla —</option>
+          </select>
+          <button id="send-btn">▶️ Enviar</button>
+        </div>
+      </div>
     </div>
+
+    <!-- Texto “botón” Eliminar álbum -->
+    <p id="delete-album" class="delete-link">🗑 Eliminar álbum</p>
   </section>
 
   <script src="/script.js"></script>
@@ -99,9 +92,7 @@
         return window.location.href = `login.html?redirect=${r}`;
       }
 
-      // Mostrar email
-      const elEmail = document.getElementById('user-email');
-      if (elEmail) elEmail.innerText = session.user.email;
+      // Inyectar email en el sidebar
       const sidebarUser = document.getElementById('sidebar-user');
       if (sidebarUser) sidebarUser.innerText = session.user.email;
 
@@ -133,7 +124,7 @@
         else       alert('Cambios guardados correctamente.');
       };
 
-      // Subir imágenes (optimizado)
+      // Subir imágenes optimizado
       document.getElementById('upload-btn').onclick = async () => {
         const inp  = document.getElementById('file-input');
         const stat = document.getElementById('upload-status');
@@ -196,7 +187,7 @@
       }
       loadImages();
 
-      // Listar pantallas disponibles
+      // Listar pantallas
       const { data: tvs } = await supabase
         .from('tv')
         .select('code,nombre')
