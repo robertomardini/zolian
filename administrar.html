@@ -79,39 +79,66 @@
     document.getElementById('screenName').innerText = tv.nombre;
 
     // 3) Listar álbumes
-    const { data: galleries } = await supabase
-      .from('galleries')
-      .select('id,name,duration,slideshow_type')
-      .eq('user_id', session.user.id)
-      .order('created_at',{ ascending:false });
-    const gl = document.getElementById('galleryList');
-    gl.innerHTML = '';
-    const typeLabels = {
-      fade:     'Fade',
-      slide:    'Slide Horizontal',
-      vertical: 'Slide Vertical',
-      zoom:     'Zoom',
-      kenburns: 'Ken Burns'
-    };
-    galleries.forEach(g => {
-      const li = document.createElement('li');
-      const meta = `${typeLabels[g.slideshow_type]||g.slideshow_type} • ${g.duration}s`;
-      li.innerHTML = `<span>${g.name}</span><span class="meta">${meta}</span>`;
-      li.onclick = async () => {
-        await supabase
-          .from('tv')
-          .update({
-            gallery_id:     g.id,
-            duration:       g.duration,
-            slideshow_type: g.slideshow_type,
-            play:           true,
-            video_url:      null
-          })
-          .eq('code', code);
-        alert('Álbum asignado.');
-      };
-      gl.appendChild(li);
-    });
+const { data: galleries } = await supabase
+  .from('galleries')
+  .select('id,name,duration,slideshow_type')
+  .eq('user_id', session.user.id)
+  .order('created_at',{ ascending:false });
+
+const gl = document.getElementById('galleryList');
+gl.innerHTML = '';
+const typeLabels = {
+  fade:     'Fade',
+  slide:    'Slide Horizontal',
+  vertical: 'Slide Vertical',
+  zoom:     'Zoom',
+  kenburns: 'Ken Burns'
+};
+
+for (let g of galleries) {
+  // 3.1) obtener thumbnail de la primera imagen
+  const { data: img } = await supabase
+    .from('images')
+    .select('url')
+    .eq('gallery_id', g.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let thumbUrl = null;
+  if (img && img.url) {
+    thumbUrl = supabase
+      .storage
+      .from('images')
+      .getPublicUrl(img.url)
+      .data.publicUrl;
+  }
+
+  // 3.2) crear elemento li con thumbnail + info
+  const li = document.createElement('li');
+  li.innerHTML = `
+    <img class="thumb" src="${thumbUrl || '/default-thumb.png'}" alt="Miniatura"/>
+    <div class="info-block">
+      <span class="album-name">${g.name}</span>
+      <span class="meta">${typeLabels[g.slideshow_type]||g.slideshow_type} • ${g.duration}s</span>
+    </div>
+  `;
+  li.onclick = async () => {
+    await supabase
+      .from('tv')
+      .update({
+        gallery_id:     g.id,
+        duration:       g.duration,
+        slideshow_type: g.slideshow_type,
+        play:           true,
+        video_url:      null
+      })
+      .eq('code', code);
+    alert('Álbum asignado.');
+  };
+  gl.appendChild(li);
+}
+
 
     // 4) Listar vídeos
     const { data: vids } = await supabase
