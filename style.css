@@ -271,7 +271,7 @@ body.dark .switch::before {
 
 /* Main Content (.home) */
 .home {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 88px;
   height: 100vh;
