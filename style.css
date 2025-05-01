@@ -616,9 +616,7 @@ p:has(#user-email) {
   font-size: 1rem;
   text-decoration: none;
 }
-.delete-link:hover {
-  text-decoration: underline;
-}
+
 /* —————— Bloques de álbum: inputs gris, botones unificados —————— */
 .album-block {
   width: 100%;
