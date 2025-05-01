@@ -10,7 +10,7 @@
   <!-- Boxicons -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
-  <!-- Supabase y sidebar -->
+  <!-- Supabase y script para inyectar el sidebar -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <script src="/script.js"></script>
@@ -50,32 +50,32 @@
     </div>
 
     <!-- Desvincular pantalla -->
-    <p id="unlink">🔗 Desvincular esta pantalla</p>
+    <p id="unlink"> Desvincular esta pantalla</p>
   </section>
 
   <script>
   (async () => {
     const code = new URLSearchParams(location.search).get('code');
-    if (!code) return window.location.href = 'pantallas.html';
+    if (!code) {
+      window.location.href = 'pantallas.html';
+      return;
+    }
 
     // 1) Sesión
     const { data:{ session } } = await supabase.auth.getSession();
     if (!session) {
       const r = encodeURIComponent(location.pathname + location.search);
-      return window.location.href = `login.html?redirect=${r}`;
+      window.location.href = `login.html?redirect=${r}`;
+      return;
     }
 
     // 2) Datos de la TV
     const { data: tv } = await supabase
-      .from('tv')
-      .select('nombre,user_id')
-      .eq('code', code)
-      .maybeSingle();
+      .from('tv').select('nombre,user_id').eq('code', code).maybeSingle();
     if (!tv || tv.user_id !== session.user.id) {
-      return window.location.href = 'pantallas.html';
+      window.location.href = 'pantallas.html';
+      return;
     }
-
-    // Pintamos el nombre en la tarjeta
     document.getElementById('screenName').innerText = tv.nombre;
 
     // 3) Listar álbumes
@@ -152,7 +152,7 @@
         .from('tv')
         .update({ user_id:null, gallery_id:null, video_url:null, play:false })
         .eq('code', code);
-      alert('Desvinculada.');
+      alert('Pantalla desvinculada.');
       window.location.href = 'pantallas.html';
     };
   })();
