@@ -681,7 +681,7 @@ body.dark .switch::before {
 }
 #galleryList li .meta {
   font-size: 0.875rem;
-  color: var(--text-color);
+  color: var(--primary-color);
   margin-top: 4px;
 }
 
