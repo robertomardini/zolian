@@ -492,12 +492,9 @@ body.dark .switch::before {
 /* ————— Override global para desplazar .home ————— */
 .home {
   position: relative !important;
-  margin-left: 250px !important;
+  margin-left: 88px !important;
   width: auto !important;
   left: auto !important;
-}
-.sidebar.close ~ .home {
-  margin-left: 88px !important;
 }
 
 .gallery-block {
