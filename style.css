@@ -619,3 +619,75 @@ p:has(#user-email) {
 .delete-link:hover {
   text-decoration: underline;
 }
+/* —————— Bloques de álbum: inputs gris, botones unificados —————— */
+.album-block {
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 24px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.field-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.field-group label {
+  font-weight: 500;
+  color: var(--text-color);
+}
+.field-group input,
+.field-group select {
+  padding: 8px 12px;
+  border: 1px solid var(--toggle-color);
+  border-radius: 6px;
+  background: var(--primary-color-light);
+  color: var(--text-color);
+}
+.field-group.actions,
+.field-group.send-group {
+  align-items: center;
+}
+#images-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+  margin-bottom: 16px; /* separa “Enviar a pantalla” */
+}
+
+/* Botones primarios con Boxicons */
+.album-block button {
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: var(--tran-04);
+}
+.album-block button:hover {
+  background: var(--primary-color-light);
+  color: var(--primary-color);
+}
+
+/* Eliminar álbum como texto con margen */
+.delete-link {
+  color: #e74c3c;
+  text-align: center;
+  display: block;
+  cursor: pointer;
+  margin: 32px auto;
+  font-size: 1rem;
+  text-decoration: none;
+}
+.delete-link:hover {
+  text-decoration: underline;
+}
