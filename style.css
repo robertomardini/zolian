@@ -445,8 +445,8 @@ body.dark button {
 
 /* Subtítulo dentro del bloque blanco */
 .subtitle {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-color);
-  text-align: center;
+  text-align: left;
   margin-bottom: 16px;
 }
