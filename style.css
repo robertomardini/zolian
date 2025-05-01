@@ -271,12 +271,9 @@ body.dark .switch::before {
 
 .home {
   position: relative !important;
-  margin-left: 250px !important;
+  margin-left: 88px !important;
   width: auto !important;
   left: auto !important;
-}
-.sidebar.close ~ .home {
-  margin-left: 88px !important;
 }
 
 .home .text {
