@@ -74,12 +74,13 @@
       for (let g of galleries) {
         // obtenemos la imagen más reciente
         const { data: img, error: imgErr } = await supabase
-          .from('images')
-          .select('url')
-          .eq('gallery_id', g.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+    .from('images')
+    .select('url')
+    .eq('gallery_id', g.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();   // <-- acá
+
 
         let thumbUrl = null;
         if (img && img.url) {
