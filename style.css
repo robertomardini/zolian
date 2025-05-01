@@ -604,11 +604,9 @@ body.dark .switch::before {
   align-items: center;
   justify-content: center;
   width: 160px;
-  box-sizing: border-box;
   margin-bottom: 24px;
 }
-.screen-card box-icon,
-.screen-card svg {
+.screen-card box-icon, .screen-card svg {
   color: #fff;
 }
 .screen-card span {
@@ -625,18 +623,75 @@ body.dark .switch::before {
   margin-bottom: 24px;
 }
 .admin-block h2 {
-  margin: 0 0 16px;
+  margin-bottom: 16px;
   font-size: 1.25rem;
   color: var(--text-color);
 }
 
-/* Listas de selección */
-.item-list {
+/* Lista de álbumes */
+#galleryList {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-.item-list li {
+#galleryList li {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#galleryList li:hover {
+  background: var(--primary-color-light);
+}
+#galleryList li:last-child {
+  border-bottom: none;
+}
+/* Contenedor de miniatura */
+#galleryList li .thumb-container {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#galleryList li .thumb-container .thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+/* Si es box-icon fallback */
+#galleryList li .thumb-container box-icon {
+  color: var(--text-color);
+}
+
+/* Bloque de texto */
+#galleryList li .info-block {
+  display: flex;
+  flex-direction: column;
+}
+#galleryList li .album-name {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 1rem;
+}
+#galleryList li .meta {
+  font-size: 0.875rem;
+  color: var(--text-color);
+  margin-top: 4px;
+}
+
+/* Lista de vídeos (igual que antes) */
+#videoList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+#videoList li {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -645,17 +700,17 @@ body.dark .switch::before {
   cursor: pointer;
   transition: background 0.2s;
 }
-.item-list li:hover {
+#videoList li:hover {
   background: var(--primary-color-light);
 }
-.item-list li:last-child {
+#videoList li:last-child {
   border-bottom: none;
 }
-.item-list li span {
+#videoList li span {
   color: var(--text-color);
   font-size: 1rem;
 }
-.item-list li .meta {
+#videoList li .meta {
   color: var(--text-color);
   font-size: 0.875rem;
 }
@@ -688,37 +743,4 @@ body.dark .switch::before {
   color: #e74c3c;
   cursor: pointer;
   margin-top: 40px;
-}
-/* Miniatura + datos en la lista de álbumes */
-#galleryList li {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-#galleryList li:hover {
-  background: var(--primary-color-light);
-}
-#galleryList li .thumb {
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-  border-radius: 6px;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-#galleryList li .info-block {
-  display: flex;
-  flex-direction: column;
-}
-#galleryList li .album-name {
-  font-weight: 600;
-  color: var(--text-color);
-  font-size: 1rem;
-}
-#galleryList li .meta {
-  font-size: 0.875rem;
-  color: var(--text-color);
-  margin-top: 4px;
 }
