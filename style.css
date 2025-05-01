@@ -500,7 +500,6 @@ body.dark .switch::before {
   margin-left: 88px !important;
 }
 
-/* ————— Bloque blanco para galería ————— */
 .gallery-block {
   width: 100%;
   max-width: 600px;
@@ -547,7 +546,7 @@ body.dark .switch::before {
   background: var(--primary-color-light);
 }
 
-/* thumbnail de album */
+/* thumbnail de álbum */
 .album-thumb {
   position: absolute;
   top: 0; left: 0;
@@ -556,6 +555,8 @@ body.dark .switch::before {
   object-fit: cover;
   opacity: 0.6;
 }
+
+/* nombre del álbum */
 #gallery-list li span {
   position: relative;
   z-index: 1;
@@ -564,7 +565,7 @@ body.dark .switch::before {
   text-align: center;
 }
 
-/* Icono fallback */
+/* icono fallback */
 #gallery-list li box-icon {
   position: relative;
   z-index: 1;
@@ -572,7 +573,7 @@ body.dark .switch::before {
   margin-bottom: 8px;
 }
 
-/* Texto "no galleries" */
+/* Texto “sin galerías” */
 #no-galleries {
   text-align: center;
   color: var(--text-color);
