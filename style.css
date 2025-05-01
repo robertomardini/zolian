@@ -676,12 +676,12 @@ body.dark .switch::before {
 }
 #galleryList li .album-name {
   font-weight: 600;
-  color: var(--text-color);
+  color: var(--primary-color);
   font-size: 1rem;
 }
 #galleryList li .meta {
   font-size: 0.875rem;
-  color: var(--primary-color);
+  color: var(--text-color);
   margin-top: 4px;
 }
 
