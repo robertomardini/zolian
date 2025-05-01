@@ -107,7 +107,7 @@ body.dark {
 }
 header .image-text .name {
   margin-top: 2px;
-  font-size: 12px;
+  font-size: 18px;
   font-weight: 600;
 }
 header .image-text .profession {
@@ -278,7 +278,7 @@ body.dark .switch::before {
 }
 
 .home .text {
-  font-size: 2rem;
+  font-size: 3rem;
   margin-bottom: 24px;
   color: var(--text-color);
   text-align: center;
