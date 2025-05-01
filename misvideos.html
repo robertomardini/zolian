@@ -4,28 +4,46 @@
   <meta charset="UTF-8"/>
   <title>Mis Vídeos – Zolian App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <!-- Tu CSS principal -->
   <link rel="stylesheet" href="/style.css"/>
+  <!-- Boxicons -->
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
+
+  <!-- Supabase y sidebar injector -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
-  <style>
-    /* ... (mismos estilos) ... */
-  </style>
+  <script src="/script.js"></script>
 </head>
 <body>
+  <!-- Sidebar -->
   <div id="sidebar-container"></div>
+  <div class="overlay"></div>
+
   <section class="home">
-    <p>Usuario: <strong id="user-email"></strong></p>
-    <h2>Mis Vídeos</h2>
-    <div class="section">
-      <label for="video-file">Selecciona vídeo</label>
-      <input type="file" id="video-file" accept="video/*"/>
-      <button id="upload-video">Subir Vídeo</button>
-      <span id="video-status"></span>
+    <h1>Mis Vídeos</h1>
+
+    <!-- Bloque de subida -->
+    <div class="admin-block">
+      <div class="section">
+        <label for="video-file">Selecciona vídeo</label>
+        <div class="input-group">
+          <input type="file" id="video-file" accept="video/*"/>
+          <button id="upload-video">
+            <box-icon name="cloud-upload" ></box-icon>
+            Subir vídeo
+          </button>
+        </div>
+        <span id="video-status"></span>
+      </div>
     </div>
-    <div class="section">
-      <span id="list-status"></span>
+
+    <!-- Bloque de lista -->
+    <div class="admin-block">
+      <h2>Tus vídeos cargados</h2>
+      <p id="list-status"></p>
+      <ul id="videos-list" class="item-list"></ul>
     </div>
-    <ul id="videos-list"></ul>
   </section>
 
   <script>
@@ -33,20 +51,22 @@
       const { data:{ session }, error: sessErr } = await supabase.auth.getSession();
       if (sessErr || !session) {
         const redirect = encodeURIComponent(location.pathname + location.search);
-        return window.location.href = `login.html?redirect=${redirect}`;
+        window.location.href = `login.html?redirect=${redirect}`;
+        return;
       }
-      document.getElementById('user-email').innerText = session.user.email;
 
       async function loadVideos() {
         const status = document.getElementById('list-status');
         const ul     = document.getElementById('videos-list');
         status.innerText = 'Cargando vídeos…';
         ul.innerHTML     = '';
+
         const { data: vids, error } = await supabase
           .from('videos')
           .select('id, url, title')
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false });
+
         if (error) {
           status.innerText = 'Error cargando vídeos.';
           return;
@@ -57,23 +77,22 @@
         }
         status.innerText = '';
         for (let v of vids) {
-          const { data:{ publicUrl } } = supabase
+          const publicUrl = supabase
             .storage.from('videos')
-            .getPublicUrl(v.url);
+            .getPublicUrl(v.url)
+            .data.publicUrl;
+
           const li = document.createElement('li');
           li.innerHTML = `
             <span>${v.title || v.url.split('/').pop()}</span>
-            <div>
-              <button class="play">▶</button>
-              <button class="del">🗑</button>
+            <div class="video-actions">
+              <button class="play" title="Reproducir"><box-icon name="play-circle" ></box-icon></button>
+              <button class="del" title="Borrar"><box-icon name="trash" ></box-icon></button>
             </div>
           `;
-          li.querySelector('.play').onclick = () => {
-            window.open(publicUrl, '_blank');
-          };
+          li.querySelector('.play').onclick = () => window.open(publicUrl, '_blank');
           li.querySelector('.del').onclick = async () => {
             if (!confirm('¿Borrar este vídeo?')) return;
-            // 1) Borrar archivo en Storage
             const { error: rmErr } = await supabase
               .storage
               .from('videos')
@@ -82,11 +101,7 @@
               alert('Error borrando el archivo: ' + rmErr.message);
               return;
             }
-            // 2) Borrar metadato
-            await supabase
-              .from('videos')
-              .delete()
-              .eq('id', v.id);
+            await supabase.from('videos').delete().eq('id', v.id);
             await loadVideos();
           };
           ul.appendChild(li);
