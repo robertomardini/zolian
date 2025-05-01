@@ -524,55 +524,67 @@ body.dark .switch::before {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+/* Tarjeta de álbum */
 #gallery-list li {
   position: relative;
   background: var(--primary-color);
   color: #fff;
   border-radius: 12px;
-  height: 160px;
+  height: 200px; /* un poco más alto para el texto */
   overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   cursor: pointer;
   transition: transform 0.2s, background 0.2s;
 }
 #gallery-list li:hover {
-  transform: scale(1.05);
+  transform: scale(1.03);
   background: var(--primary-color-light);
 }
 
-/* thumbnail de álbum */
+/* Thumbnail */
 .album-thumb {
   position: absolute;
   top: 0; left: 0;
   width: 100%;
-  height: 100%;
+  height: 70%;
   object-fit: cover;
   opacity: 0.6;
 }
 
-/* nombre del álbum */
-#gallery-list li span {
+/* Contenedor de texto */
+.album-info {
   position: relative;
   z-index: 1;
-  padding: 0 12px;
-  font-weight: 500;
+  margin-top: auto;
+  padding: 12px;
   text-align: center;
+  background: rgba(0,0,0,0.3); /* sutil fondo para legibilidad */
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* icono fallback */
+/* Nombre */
+.album-name {
+  display: block;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #fff;
+}
+
+/* Meta (tipo + duración) */
+.album-meta {
+  display: block;
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.85);
+  margin-top: 4px;
+}
+
+/* Icono fallback */
 #gallery-list li box-icon {
   position: relative;
   z-index: 1;
   font-size: 48px;
-  margin-bottom: 8px;
-}
-
-/* Texto “sin galerías” */
-#no-galleries {
-  text-align: center;
-  color: var(--text-color);
-  margin-top: 40px;
+  margin-top: 20px;
 }
