@@ -79,7 +79,8 @@
       window.location.href = 'pantallas.html';
       return;
     }
-
+ document.getElementById('screenName').innerText = tv.nombre;
+    
 // ejemplo dentro de tu administrar-pantalla.js
 const { data, error } = await supabase
   .from('tv')
@@ -92,8 +93,6 @@ if (error) {
   return
 }
 alert('Álbum asignado correctamente.')
-    
-    document.getElementById('screenName').innerText = tv.nombre;
 
     // 3) Listar álbumes con thumbnail o icono fallback
     const { data: galleries } = await supabase
