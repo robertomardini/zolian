@@ -492,7 +492,7 @@ body.dark .switch::before {
 /* ————— Override global para desplazar .home ————— */
 .home {
   position: relative !important;
-  margin-left: 88px !important;
+  margin-left: 48px !important;  /*88px*/
   width: auto !important;
   left: auto !important;
 }
