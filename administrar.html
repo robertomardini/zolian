@@ -50,7 +50,7 @@
     </div>
 
     <!-- Desvincular pantalla -->
-    <p id="unlink">🔗 Desvincular esta pantalla</p>
+    <p id="unlink"> Desvincular esta pantalla</p>
   </section>
 
   <script>
@@ -79,6 +79,20 @@
       window.location.href = 'pantallas.html';
       return;
     }
+
+// ejemplo dentro de tu administrar-pantalla.js
+const { data, error } = await supabase
+  .from('tv')
+  .update({ gallery_id: g.id, /* ... */ })
+  .eq('code', code)
+
+if (error) {
+  console.error('Error asignando álbum:', error)
+  alert('No se pudo asignar el álbum: ' + error.message)
+  return
+}
+alert('Álbum asignado correctamente.')
+    
     document.getElementById('screenName').innerText = tv.nombre;
 
     // 3) Listar álbumes con thumbnail o icono fallback
