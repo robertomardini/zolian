@@ -489,13 +489,10 @@ body.dark .switch::before {
 .delete-link:hover {
   text-decoration: underline;
 }
-/* ————— Override global para desplazar .home ————— 
-.home {
-  position: relative !important;
-  margin-left: 48px !important;  /*88px*/
-  width: auto !important;
-  left: auto !important;
-}*/
+
+
+
+
 
 .gallery-block {
   width: 100%;
