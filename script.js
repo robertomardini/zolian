@@ -1,8 +1,8 @@
 /* script.js */
 
 /**
- * Inyecta header y footer, maneja sesión para usuario,
- * estilo del icono en header y navegación del footer.
+ * Inyecta header y footer, gestiona sesión para usuario,
+ * aplica estilo al icono de usuario y navega con el footer.
  */
 window.addEventListener('DOMContentLoaded', () => {
   // Inyectar header
@@ -26,37 +26,34 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Cuando el header ya está en el DOM
 window.addEventListener('headerReady', async () => {
-  let session;
+  let session = null;
   try {
-    ({ data: { session } } = await supabase.auth.getSession());
+    // Obtener sesión
+    const { data: { session: ses } } = await supabase.auth.getSession();
+    session = ses;
   } catch (e) {
     console.error('No se pudo obtener sesión:', e);
   }
 
-  // Mostrar email y avatar si hay sesión
-  if (session) {
-    const emailEl  = document.getElementById('header-user-email');
-    const avatarEl = document.getElementById('header-user-avatar');
-    if (emailEl)  emailEl.innerText = session.user.email;
-    if (avatarEl && session.user.user_metadata?.avatar_url) {
-      avatarEl.src = session.user.user_metadata.avatar_url;
-    }
+  // Si hay elemento para el email, lo rellenamos
+  const emailEl = document.getElementById('header-user-email');
+  if (session && emailEl) {
+    emailEl.innerText = session.user.email;
   }
 
-  // Ajustar color del icono de usuario
+  // Gestionar color de icono y clase en el botón
+  const userBtn  = document.getElementById('header-user-btn');
   const userIcon = document.getElementById('header-user-icon');
-  if (userIcon) {
+  if (userBtn && userIcon) {
     if (session) {
-      userIcon.style.color = 'inherit';
+      // Sesión activa: gris (por defecto)
+      userBtn.classList.remove('no-session');
     } else {
-      userIcon.style.color = '#e74c3c';
+      // Sin sesión: rojo
+      userBtn.classList.add('no-session');
     }
-  }
 
-  // Click en el botón/avatar de usuario
-  const userBtn = document.getElementById('header-user-btn') ||
-                  document.getElementById('header-user-avatar');
-  if (userBtn) {
+    // Click abre perfil o avisa si no hay sesión
     userBtn.addEventListener('click', () => {
       if (session) {
         window.location.href = '/usuario.html';
