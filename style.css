@@ -26,7 +26,7 @@ body {
   background-color: var(--body-color);
   color: var(--text-color);
   transition: var(--tran);
-  /* dejamos espacio arriba y abajo para header/footer */
+  /* Deja espacio para header/footer */
   padding-top: 56px;
   padding-bottom: 56px;
 }
@@ -58,11 +58,9 @@ body {
   align-items: center;
   gap: 8px;
 }
-
 .app-header .logo img {
   height: 32px;
 }
-
 .app-header .user-icon {
   width: 32px;
   height: 32px;
@@ -82,14 +80,12 @@ body {
   box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
   z-index: 200;
 }
-
 .tab-bar {
   height: 100%;
   display: flex;
   justify-content: space-around;
   align-items: center;
 }
-
 .tab-bar button {
   background: none;
   border: none;
@@ -101,13 +97,11 @@ body {
   transition: var(--tran);
   cursor: pointer;
 }
-
 .tab-bar button i,
 .tab-bar button svg {
   font-size: 1.5rem;
   margin-bottom: 4px;
 }
-
 .tab-bar button.active {
   color: var(--primary-color);
 }
@@ -118,14 +112,11 @@ body {
   max-width: 800px;
   margin: 0 auto;
 }
-
-/* Ajustes generales de títulos */
 .home h1 {
   font-size: 1.5rem;
   margin-bottom: 16px;
   text-align: center;
 }
-
 .home h2 {
   font-size: 1.25rem;
   margin-bottom: 12px;
@@ -144,7 +135,6 @@ button.primary {
   cursor: pointer;
   transition: var(--tran);
 }
-
 button.primary:hover {
   background: var(--primary-color-light);
   color: var(--primary-color);
@@ -156,7 +146,6 @@ button.primary:hover {
   gap: 8px;
   margin-bottom: 16px;
 }
-
 .input-group input,
 .input-group select {
   flex: 1;
@@ -173,7 +162,6 @@ button.primary:hover {
   padding: 0;
   margin: 0;
 }
-
 .item-list li {
   display: flex;
   align-items: center;
@@ -182,15 +170,12 @@ button.primary:hover {
   cursor: pointer;
   transition: background 0.2s;
 }
-
 .item-list li:hover {
   background: var(--primary-color-light);
 }
-
 .item-list li:last-child {
   border-bottom: none;
 }
-
 .item-list li .thumb {
   width: 48px;
   height: 48px;
@@ -198,18 +183,15 @@ button.primary:hover {
   border-radius: 6px;
   margin-right: 12px;
 }
-
 .item-list li .info {
   display: flex;
   flex-direction: column;
 }
-
 .item-list li .info .name {
   font-weight: 600;
   font-size: 1rem;
   color: var(--text-color);
 }
-
 .item-list li .info .meta {
   font-size: 0.85rem;
   color: #999;
@@ -234,7 +216,71 @@ button.primary:hover {
   margin-top: 24px;
   text-decoration: none;
 }
-
 .text-link:hover {
   text-decoration: underline;
+}
+
+/* =============================================== */
+/*                 SECCIÓN PANTALLAS              */
+/* =============================================== */
+
+/* Contenedor blanco centrado */
+.pantallas-block {
+  width: 100%;
+  max-width: 600px;
+  margin: 40px auto;           /* centrado horizontal y separación vertical */
+  padding: 32px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Título dentro del bloque */
+.pantallas-block .text {
+  text-align: center;
+  margin-bottom: 24px;
+  font-size: 1.25rem;
+  color: var(--text-color);
+}
+
+/* Lista de tarjetas */
+#screens-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Cada tarjeta */
+#screens-list li {
+  aspect-ratio: 16 / 9;
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, color .2s;
+}
+#screens-list li:hover {
+  background: var(--primary-color-light);
+  border: 2px solid var(--primary-color);
+  color: var(--primary-color);
+}
+#screens-list li span {
+  margin-top: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* Mensaje cuando no hay pantallas */
+#no-screens {
+  display: none;
+  text-align: center;
+  color: var(--text-color);
+  margin-top: 40px;
 }
