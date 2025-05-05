@@ -50,11 +50,12 @@
     </div>
 
     <!-- Desvincular pantalla -->
-    <p id="unlink"> Desvincular esta pantalla</p>
+    <p id="unlink">Desvincular esta pantalla</p>
   </section>
 
   <script>
   (async () => {
+    // 0) Obtener el código de la pantalla
     const code = new URLSearchParams(location.search).get('code');
     if (!code) {
       window.location.href = 'pantallas.html';
@@ -62,14 +63,14 @@
     }
 
     // 1) Sesión
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      const r = encodeURIComponent(location.pathname + location.search);
-      window.location.href = `login.html?redirect=${r}`;
+    const { data: { session }, error: sessErr } = await supabase.auth.getSession();
+    if (sessErr || !session) {
+      const redirect = encodeURIComponent(location.pathname + location.search);
+      window.location.href = `login.html?redirect=${redirect}`;
       return;
     }
 
-    // 2) Datos de la TV
+    // 2) Cargar y mostrar datos de la TV
     const { data: tv, error: tvErr } = await supabase
       .from('tv')
       .select('nombre,user_id')
@@ -81,7 +82,7 @@
     }
     document.getElementById('screenName').innerText = tv.nombre;
 
-    // Etiquetas legibles para los tipos de slideshow
+    // Map de etiquetas legibles
     const typeLabels = {
       fade:     'Fade',
       slide:    'Slide Horizontal',
@@ -90,7 +91,7 @@
       kenburns: 'Ken Burns'
     };
 
-    // 3) Listar álbumes con thumbnail o icono fallback
+    // 3) Listar álbumes
     const { data: galleries, error: galErr } = await supabase
       .from('galleries')
       .select('id,name,duration,slideshow_type')
@@ -102,7 +103,7 @@
     const gl = document.getElementById('galleryList');
     gl.innerHTML = '';
     for (let g of galleries || []) {
-      // obtener la imagen más reciente (si existe)
+      // Obtener miniatura si existe
       const { data: imgData } = await supabase
         .from('images')
         .select('url')
@@ -119,6 +120,7 @@
         thumbHtml = `<img class="thumb" src="${publicUrl}" alt="Miniatura"/>`;
       }
 
+      // Construir el <li>
       const li = document.createElement('li');
       const meta = `${typeLabels[g.slideshow_type] || g.slideshow_type} • ${g.duration}s`;
       li.innerHTML = `
@@ -181,7 +183,7 @@
       vl.appendChild(li);
     }
 
-    // 5) Botones crear
+    // 5) Botones para crear nuevos
     document.getElementById('createAlbum').onclick = () =>
       location.href = `crear-album.html?code=${code}`;
     document.getElementById('createVideo').onclick = () =>
@@ -192,7 +194,7 @@
       if (!confirm('¿Desvincular pantalla?')) return;
       const { error } = await supabase
         .from('tv')
-        .update({ user_id:null, gallery_id:null, video_url:null, play:false })
+        .update({ user_id: null, gallery_id: null, video_url: null, play: false })
         .eq('code', code);
       if (error) {
         alert('Error al desvincular: ' + error.message);
