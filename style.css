@@ -63,6 +63,19 @@ body {
   overflow: hidden;
   cursor: pointer;
 }
+/* Asegúrate de que el botón centrado y sin fondo */
+.user-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+/* El icono hereda el color del texto */
+.user-btn box-icon {
+  color: var(--text-color);
+}
 
 /* ===== Footer (Bottom Tab Bar) ===== */
 .app-footer {
