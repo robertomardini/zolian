@@ -545,7 +545,7 @@ button.primary:hover {
 .text-link:hover {
   text-decoration: underline;
 }
-/* ===== Botón de usuario en el header ===== */
+/* Botón de usuario en el header */
 .user-btn {
   background: none;
   border: none;
@@ -556,15 +556,15 @@ button.primary:hover {
   justify-content: center;
 }
 
-.user-btn box-icon,
-.user-btn svg {
+/* Icono usuario por defecto (hereda color de texto) */
+.user-btn i {
   font-size: 1.5rem;
   color: var(--text-color);
   transition: color var(--tran);
 }
 
-/* Cuando no hay sesión, añadimos la clase .no-session al botón */
-.user-btn.no-session box-icon,
-.user-btn.no-session svg {
+/* Si no hay sesión, pintamos de rojo */
+.user-btn.no-session i {
   color: #e74c3c !important;
 }
+
