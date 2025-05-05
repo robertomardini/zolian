@@ -1,10 +1,9 @@
 /* script.js */
 
 /**
- * Inyecta el header y el footer en cada página y despacha eventos cuando estén listos.
- * Además, tras cargar el header, inserta el email del usuario conectado.
+ * Inyecta header y footer, maneja sesión para usuario,
+ * estilo del icono en header y navegación del footer.
  */
-
 window.addEventListener('DOMContentLoaded', () => {
   // Inyectar header
   fetch('/header.html')
@@ -25,64 +24,52 @@ window.addEventListener('DOMContentLoaded', () => {
     .catch(err => console.error('Error cargando footer:', err));
 });
 
-// Cuando el header ya está en el DOM, rellenamos el email del usuario
+// Cuando el header ya está en el DOM
 window.addEventListener('headerReady', async () => {
+  let session;
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const emailEl = document.getElementById('header-user-email');
-      if (emailEl) emailEl.innerText = session.user.email;
-      const avatarEl = document.getElementById('header-user-avatar');
-      if (avatarEl && session.user.user_metadata?.avatar_url) {
-        avatarEl.src = session.user.user_metadata.avatar_url;
-      }
-    }
+    ({ data: { session } } = await supabase.auth.getSession());
   } catch (e) {
     console.error('No se pudo obtener sesión:', e);
   }
-});
-window.addEventListener('headerReady', async () => {
-  const icon = document.getElementById('header-user-icon');
-  if (!icon) return;
 
-  try {
-    const { data:{ session } } = await supabase.auth.getSession();
-    if (session) {
-      // Usuario activo: color por defecto (hereda de --text-color)
-      icon.style.color = 'inherit';
-    } else {
-      // Sin sesión: color rojo
-      icon.style.color = '#e74c3c';
+  // Mostrar email y avatar si hay sesión
+  if (session) {
+    const emailEl  = document.getElementById('header-user-email');
+    const avatarEl = document.getElementById('header-user-avatar');
+    if (emailEl)  emailEl.innerText = session.user.email;
+    if (avatarEl && session.user.user_metadata?.avatar_url) {
+      avatarEl.src = session.user.user_metadata.avatar_url;
     }
-  } catch (e) {
-    // En caso de error, también lo ponemos en rojo
-    icon.style.color = '#e74c3c';
-    console.error('Error comprobando sesión:', e);
   }
 
-  // Opcional: clic abre perfil
-  document.getElementById('header-user-btn').onclick = () => {
-    if (supabase.auth.getSession()) {
-      window.location.href = '/usuario.html';
+  // Ajustar color del icono de usuario
+  const userIcon = document.getElementById('header-user-icon');
+  if (userIcon) {
+    if (session) {
+      userIcon.style.color = 'inherit';
     } else {
-      alert('No hay usuario activo.');
+      userIcon.style.color = '#e74c3c';
     }
-  };
-});
+  }
 
-// Opcional: escuchar clicks en el avatar para ir a la página de perfil
-window.addEventListener('headerReady', () => {
-  const avatarWrapper = document.getElementById('header-user-wrapper');
-  if (avatarWrapper) {
-    avatarWrapper.addEventListener('click', () => {
-      window.location.href = '/usuario.html';
+  // Click en el botón/avatar de usuario
+  const userBtn = document.getElementById('header-user-btn') ||
+                  document.getElementById('header-user-avatar');
+  if (userBtn) {
+    userBtn.addEventListener('click', () => {
+      if (session) {
+        window.location.href = '/usuario.html';
+      } else {
+        alert('No hay usuario activo.');
+      }
     });
   }
 });
 
-// Opcional: controlar navegación del footer (bottom tab bar)
+// Navegación de la bottom tab bar
 window.addEventListener('footerReady', () => {
-  document.querySelectorAll('.tab-bar button').forEach(btn => {
+  document.querySelectorAll('.tab-bar button[data-target]').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.getAttribute('data-target');
       if (target) window.location.href = target;
