@@ -10,32 +10,29 @@
   <!-- Boxicons -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
-  <!-- Supabase y sidebar injector -->
+  <!-- Supabase y script de header/footer -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <script src="/script.js"></script>
 </head>
 <body>
-  <!-- Sidebar -->
-  <div id="sidebar-container"></div>
-  <div class="overlay"></div>
+  <!-- Cabecera inyectada -->
+  <div id="header-container"></div>
 
   <section class="home">
     <h1>Mis Vídeos</h1>
 
     <!-- Bloque de subida -->
     <div class="admin-block">
-      <div class="section">
-        <label for="video-file">Selecciona vídeo</label>
-        <div class="input-group">
-          <input type="file" id="video-file" accept="video/*"/>
-          <button id="upload-video">
-            <box-icon name="cloud-upload" ></box-icon>
-            Subir vídeo
-          </button>
-        </div>
-        <span id="video-status"></span>
+      <label for="video-file">Selecciona vídeo</label>
+      <div class="input-group">
+        <input type="file" id="video-file" accept="video/*"/>
+        <button id="upload-video" class="primary">
+          <box-icon name="cloud-upload"></box-icon>
+          Subir vídeo
+        </button>
       </div>
+      <span id="video-status"></span>
     </div>
 
     <!-- Bloque de lista -->
@@ -46,13 +43,15 @@
     </div>
   </section>
 
+  <!-- Pie inyectado -->
+  <div id="footer-container"></div>
+
   <script>
     async function initMisVideos() {
       const { data:{ session }, error: sessErr } = await supabase.auth.getSession();
       if (sessErr || !session) {
         const redirect = encodeURIComponent(location.pathname + location.search);
-        window.location.href = `login.html?redirect=${redirect}`;
-        return;
+        return window.location.href = `login.html?redirect=${redirect}`;
       }
 
       async function loadVideos() {
@@ -86,8 +85,12 @@
           li.innerHTML = `
             <span>${v.title || v.url.split('/').pop()}</span>
             <div class="video-actions">
-              <button class="play" title="Reproducir"><box-icon name="play-circle" ></box-icon></button>
-              <button class="del" title="Borrar"><box-icon name="trash" ></box-icon></button>
+              <button class="play" title="Reproducir">
+                <box-icon name="play-circle"></box-icon>
+              </button>
+              <button class="del" title="Borrar">
+                <box-icon name="trash"></box-icon>
+              </button>
             </div>
           `;
           li.querySelector('.play').onclick = () => window.open(publicUrl, '_blank');
@@ -138,8 +141,8 @@
       await loadVideos();
     }
 
-    document.addEventListener('DOMContentLoaded', initMisVideos);
-    window.addEventListener('sidebarReady', initMisVideos);
+    // Arrancamos justo después de que el header esté inyectado
+    window.addEventListener('headerReady', initMisVideos);
   </script>
 </body>
 </html>
