@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Mi Cuenta – Zolian App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <!-- CSS principal -->
+  <link rel="stylesheet" href="/style.css"/>
+  <!-- Boxicons -->
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
+
+  <!-- Supabase y utilidades de header/footer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <script src="/script.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <div id="header-container"></div>
+
+  <section class="home">
+    <h1>Mi Cuenta</h1>
+
+    <div class="block">
+      <!-- Email -->
+      <div class="field-group">
+        <label>Email</label>
+        <div id="user-email" class="info-text">cargando…</div>
+      </div>
+
+      <!-- Suscripción -->
+      <div class="field-group">
+        <label>Suscripción</label>
+        <div id="user-subscription" class="info-text">cargando…</div>
+      </div>
+
+      <!-- Cerrar sesión -->
+      <button id="logout-btn" class="primary">
+        <box-icon name="log-out" ></box-icon>
+        Cerrar sesión
+      </button>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <div id="footer-container"></div>
+
+  <script>
+    // Cuando header y supabase estén listos:
+    window.addEventListener('headerReady', async () => {
+      try {
+        const { data:{ session } } = await supabase.auth.getSession();
+        if (!session) {
+          // No hay sesión activa
+          return window.location.href = 'login.html?redirect=' + encodeURIComponent(location.pathname);
+        }
+
+        // Mostrar email
+        document.getElementById('user-email').innerText = session.user.email;
+
+        // Obtener estado de suscripción (suponiendo un campo 'subscription_status' en tabla 'profiles')
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('subscription_status')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        const subEl = document.getElementById('user-subscription');
+        if (profile && profile.subscription_status) {
+          // Mapea valores a texto amigable
+          const estados = {
+            free: 'Gratuita',
+            trial: 'Prueba',
+            active: 'Activa',
+            canceled: 'Cancelada'
+          };
+          subEl.innerText = estados[profile.subscription_status] || profile.subscription_status;
+        } else {
+          subEl.innerText = 'No registrada';
+        }
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+          await supabase.auth.signOut();
+          window.location.href = 'login.html';
+        });
+
+      } catch (err) {
+        console.error('Error cargando datos de usuario:', err);
+      }
+    });
+  </script>
+</body>
+</html>
