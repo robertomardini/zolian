@@ -9,27 +9,31 @@
   <!-- Estilos y Boxicons -->
   <link rel="stylesheet" href="/style.css" />
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
-  <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
+
+  <!-- Supabase y script genérico (header/footer) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <script src="/script.js"></script>
 </head>
 <body>
-  <div id="sidebar-container"></div>
-  <div class="overlay"></div>
+  <!-- Header inyectado -->
+  <div id="header-container"></div>
 
+  <!-- Contenido principal -->
   <section class="home">
     <div class="gallery-block">
       <div class="text">Mis Álbumes</div>
       <ul id="gallery-list"></ul>
-      <p id="no-galleries" style="display:none;">
+      <p id="no-galleries" style="display:none; color: var(--text-color);">
         No tienes álbumes creados.<br>
         Crea uno desde “Administrar Pantalla”.
       </p>
     </div>
   </section>
 
-  <!-- Supabase y scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
-  <script src="/script.js"></script>
+  <!-- Footer inyectado -->
+  <div id="footer-container"></div>
+
   <script>
     async function initGaleria() {
       // 1) Verificar sesión
@@ -40,18 +44,18 @@
       }
       const user = session.user;
 
-      // 2) Inyectar email en sidebar
-      const sidebarUserEl = document.getElementById('sidebar-user');
-      if (sidebarUserEl) sidebarUserEl.innerText = user.email;
+      // 2) Mostrar email en el header
+      const emailEl = document.getElementById('header-user-email');
+      if (emailEl) emailEl.innerText = user.email;
 
-      // 3) Logout
-      const logoutBtn = document.getElementById('logout');
+      // 3) Logout desde el header
+      const logoutBtn = document.getElementById('logout-btn');
       if (logoutBtn) {
-        logoutBtn.onclick = async (e) => {
+        logoutBtn.addEventListener('click', async e => {
           e.preventDefault();
           await supabase.auth.signOut();
           window.location.href = 'login.html';
-        };
+        });
       }
 
       // 4) Cargar galerías con duración y tipo
@@ -66,11 +70,10 @@
       listEl.innerHTML = '';
 
       if (error || !galleries || galleries.length === 0) {
-        if (noEl) noEl.style.display = 'block';
+        noEl.style.display = 'block';
         return;
       }
 
-      // Mapa para traducir los tipos
       const typeMap = {
         fade:      'Fade',
         slide:     'Slide Horizontal',
@@ -89,13 +92,12 @@
           .limit(1)
           .maybeSingle();
 
-        let thumbUrl = null;
+        let thumbHtml = `<box-icon name="images" color="white" size="48px"></box-icon>`;
         if (img && img.url) {
-          thumbUrl = supabase
-            .storage
-            .from('images')
-            .getPublicUrl(img.url)
-            .data.publicUrl;
+          const { data: { publicUrl } } = supabase
+            .storage.from('images')
+            .getPublicUrl(img.url);
+          thumbHtml = `<img src="${publicUrl}" class="album-thumb" alt="Miniatura" />`;
         }
 
         const typeLabel = typeMap[g.slideshow_type] || g.slideshow_type;
@@ -103,23 +105,21 @@
 
         const li = document.createElement('li');
         li.innerHTML = `
-          ${thumbUrl
-            ? `<img src="${thumbUrl}" class="album-thumb" />`
-            : `<box-icon name='images' color='white' size='48px'></box-icon>`
-          }
+          <div class="thumb-container">${thumbHtml}</div>
           <div class="album-info">
             <span class="album-name">${g.name}</span>
             <span class="album-meta">${metaText}</span>
           </div>
         `;
-        li.onclick = () => {
+        li.addEventListener('click', () => {
           window.location.href = `/album.html?gallery=${g.id}`;
-        };
+        });
         listEl.appendChild(li);
       }
     }
 
-    window.addEventListener('sidebarReady', initGaleria);
+    // Arrancamos al inyectar el header
+    window.addEventListener('headerReady', initGaleria);
   </script>
 </body>
 </html>
