@@ -41,6 +41,34 @@ window.addEventListener('headerReady', async () => {
     console.error('No se pudo obtener sesión:', e);
   }
 });
+window.addEventListener('headerReady', async () => {
+  const icon = document.getElementById('header-user-icon');
+  if (!icon) return;
+
+  try {
+    const { data:{ session } } = await supabase.auth.getSession();
+    if (session) {
+      // Usuario activo: color por defecto (hereda de --text-color)
+      icon.style.color = 'inherit';
+    } else {
+      // Sin sesión: color rojo
+      icon.style.color = '#e74c3c';
+    }
+  } catch (e) {
+    // En caso de error, también lo ponemos en rojo
+    icon.style.color = '#e74c3c';
+    console.error('Error comprobando sesión:', e);
+  }
+
+  // Opcional: clic abre perfil
+  document.getElementById('header-user-btn').onclick = () => {
+    if (supabase.auth.getSession()) {
+      window.location.href = '/usuario.html';
+    } else {
+      alert('No hay usuario activo.');
+    }
+  };
+});
 
 // Opcional: escuchar clicks en el avatar para ir a la página de perfil
 window.addEventListener('headerReady', () => {
