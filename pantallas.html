@@ -7,58 +7,58 @@
   <title>Mis Pantallas – Zolian App</title>
 
   <!-- Estilos y Boxicons -->
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="/style.css" />
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
-  <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
+
+  <!-- Supabase y scripts base -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <script src="/script.js"></script>
 </head>
 <body>
-  <!-- Sidebar inyectado -->
-  <div id="sidebar-container"></div>
-
-  <!-- Overlay para oscurecer -->
-  <div class="overlay"></div>
+  <!-- Header inyectado -->
+  <div id="header-container"></div>
 
   <!-- Contenido principal -->
   <section class="home">
-    <!-- Título fuera del bloque blanco -->
-    <div class="text" style="text-align: center;">Mis Pantallas</div>
-
     <div class="pantallas-block">
-      <!-- Nuevo subtítulo dentro del bloque -->
-      <div class="subtitle">Selecciona para editar</div>
-
+      <div class="text">Mis Pantallas</div>
       <ul id="screens-list"></ul>
-      <p id="no-screens">
+      <p id="no-screens" style="display:none;">
         No tienes pantallas vinculadas.<br>
         Escanea un QR para agregar una.
       </p>
     </div>
   </section>
 
-  <!-- Supabase y scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="supabaseClient.js"></script>
-  <script src="script.js"></script>
+  <!-- Footer inyectado -->
+  <div id="footer-container"></div>
 
   <script>
     async function initPantallas() {
+      // 1) Verificar sesión
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        window.location.href = `login.html?redirect=${encodeURIComponent('/pantallas')}`;
-        return;
+        // Redirigir al login y luego a esta página
+        const redirect = encodeURIComponent('/pantallas.html');
+        return window.location.href = `login.html?redirect=${redirect}`;
       }
-      const userEmailEl = document.getElementById('sidebar-user');
-      if (userEmailEl) userEmailEl.innerText = session.user.email;
 
-      const logoutBtn = document.getElementById('logout');
+      // 2) Mostrar email en el header
+      const emailEl = document.getElementById('header-user-email');
+      if (emailEl) emailEl.innerText = session.user.email;
+
+      // 3) Logout en el header
+      const logoutBtn = document.getElementById('logout-btn');
       if (logoutBtn) {
-        logoutBtn.onclick = async (e) => {
+        logoutBtn.addEventListener('click', async (e) => {
           e.preventDefault();
           await supabase.auth.signOut();
           window.location.href = 'login.html';
-        };
+        });
       }
 
+      // 4) Cargar pantallas del usuario
       const { data: screens, error } = await supabase
         .from('tv')
         .select('code, nombre')
@@ -70,14 +70,15 @@
       listEl.innerHTML = '';
 
       if (error || !screens || screens.length === 0) {
-        if (noEl) noEl.style.display = 'block';
+        noEl.style.display = 'block';
         return;
       }
 
+      // 5) Renderizar tarjetas
       screens.forEach(p => {
         const li = document.createElement('li');
         li.innerHTML = `
-          <box-icon name='tv' size='48px'></box-icon>
+          <box-icon name="tv" size="48px"></box-icon>
           <span>${p.nombre || p.code}</span>
         `;
         li.onclick = () => {
@@ -87,7 +88,8 @@
       });
     }
 
-    window.addEventListener('sidebarReady', initPantallas);
+    // Esperar a que el header esté inyectado para inicializar
+    window.addEventListener('headerReady', initPantallas);
   </script>
 </body>
 </html>
