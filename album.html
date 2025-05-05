@@ -4,21 +4,27 @@
   <meta charset="UTF-8"/>
   <title>Administrar Álbum – Zolian App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- Tu CSS principal -->
   <link rel="stylesheet" href="/style.css"/>
+  <!-- Boxicons -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
+  <!-- Compresión de imágenes -->
   <script src="https://unpkg.com/browser-image-compression/dist/browser-image-compression.js"></script>
+  <!-- Supabase y tus utilidades de header/footer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <script src="/script.js"></script>
 </head>
 <body>
-  <!-- Sidebar inyectado -->
-  <div id="sidebar-container"></div>
-  <div class="overlay"></div>
+  <!-- Header inyectado -->
+  <div id="header-container"></div>
 
   <section class="home">
     <!-- Título -->
     <div class="text">Administrar Álbum</div>
 
-    <!-- Bloque 1: Ajustes -->
-    <div class="album-block">
+    <!-- Bloque 1: Ajustes del álbum -->
+    <div class="block album-block">
       <div class="field-group">
         <label for="album-name">Nombre del álbum</label>
         <input type="text" id="album-name" placeholder="Mi álbum de fotos"/>
@@ -38,22 +44,24 @@
         </select>
       </div>
       <div class="field-group actions">
-        <button id="save-settings">
-          <box-icon name='save' type='solid' size='20px'></box-icon>
+        <button id="save-settings" class="primary">
+          <box-icon name="save" type="solid" size="20px"></box-icon>
           Guardar cambios
         </button>
       </div>
     </div>
 
-    <!-- Bloque 2: Imágenes y envío -->
-    <div class="album-block">
+    <!-- Bloque 2: Imágenes y envío a pantalla -->
+    <div class="block album-block">
       <div class="field-group">
         <label for="file-input">Cargar imágenes</label>
-        <input type="file" id="file-input" multiple accept="image/*"/>
-        <button id="upload-btn">
-          <box-icon name='upload' type='solid' size='20px'></box-icon>
-          Subir
-        </button>
+        <div class="input-group">
+          <input type="file" id="file-input" multiple accept="image/*"/>
+          <button id="upload-btn" class="primary">
+            <box-icon name="upload" type="solid" size="20px"></box-icon>
+            Subir
+          </button>
+        </div>
         <span id="upload-status"></span>
       </div>
 
@@ -61,183 +69,185 @@
 
       <div class="field-group send-group">
         <label for="tv-select">Enviar a pantalla</label>
-        <select id="tv-select">
-          <option value="">— Selecciona pantalla —</option>
-        </select>
-        <button id="send-btn">
-          <box-icon name='play' type='solid' size='20px'></box-icon>
-          Enviar
-        </button>
+        <div class="input-group">
+          <select id="tv-select">
+            <option value="">— Selecciona pantalla —</option>
+          </select>
+          <button id="send-btn" class="primary">
+            <box-icon name="play" type="solid" size="20px"></box-icon>
+            Enviar
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Texto Eliminar álbum -->
-    <p id="delete-album" class="delete-link"> Eliminar álbum</p>
+    <!-- Enlace de texto para eliminar -->
+    <a id="delete-album" class="text-link">Eliminar álbum</a>
   </section>
 
-  <script src="/script.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
+  <!-- Footer inyectado -->
+  <div id="footer-container"></div>
+
   <script>
-    async function initAlbum() {
-      const params    = new URLSearchParams(location.search);
-      const galleryId = params.get('gallery');
-      if (!galleryId) {
-        alert('Falta parámetro gallery.');
-        return window.location.href = 'galeria.html';
-      }
+    // Esperamos a que el header esté cargado para inicializar la lógica
+    window.addEventListener('headerReady', () => {
+      async function initAlbum() {
+        const params    = new URLSearchParams(location.search);
+        const galleryId = params.get('gallery');
+        if (!galleryId) {
+          alert('Falta parámetro gallery.');
+          return window.location.href = 'galeria.html';
+        }
 
-      const { data:{ session } } = await supabase.auth.getSession();
-      if (!session) {
-        const r = encodeURIComponent(location.pathname + location.search);
-        return window.location.href = `login.html?redirect=${r}`;
-      }
+        const { data:{ session } } = await supabase.auth.getSession();
+        if (!session) {
+          const r = encodeURIComponent(location.pathname + location.search);
+          return window.location.href = `login.html?redirect=${r}`;
+        }
 
-      // Inyectar email en sidebar (si existe)
-      const sidebarUser = document.getElementById('sidebar-user');
-      if (sidebarUser) sidebarUser.innerText = session.user.email;
-
-      // Cargar datos del álbum
-      const { data: alb, error: albErr } = await supabase
-        .from('galleries')
-        .select('name,duration,slideshow_type')
-        .eq('id', galleryId)
-        .maybeSingle();
-      if (albErr || !alb) {
-        alert('No se pudo cargar el álbum.');
-        return;
-      }
-      document.getElementById('album-name').value     = alb.name;
-      document.getElementById('duration').value       = alb.duration;
-      document.getElementById('slideshow-type').value = alb.slideshow_type;
-
-      // Guardar ajustes
-      document.getElementById('save-settings').onclick = async () => {
-        const name = document.getElementById('album-name').value.trim();
-        const dur  = parseInt(document.getElementById('duration').value) || 5;
-        const type = document.getElementById('slideshow-type').value;
-        if (!name) return alert('Escribe un nombre.');
-        const { error } = await supabase
+        // Cargar datos del álbum
+        const { data: alb, error: albErr } = await supabase
           .from('galleries')
-          .update({ name, duration: dur, slideshow_type: type })
-          .eq('id', galleryId);
-        if (error) alert('Error guardando: ' + error.message);
-        else       alert('Cambios guardados correctamente.');
-      };
-
-      // Subir imágenes
-      document.getElementById('upload-btn').onclick = async () => {
-        const inp  = document.getElementById('file-input');
-        const stat = document.getElementById('upload-status');
-        if (!inp.files.length) return alert('Selecciona alguna imagen');
-        inp.disabled   = true;
-        stat.innerText = 'Procesando...';
-        for (let file of inp.files) {
-          let compressed;
-          try {
-            compressed = await imageCompression(file, {
-              maxWidthOrHeight: 3840,
-              maxSizeMB:        1,
-              fileType:         'image/webp',
-              useWebWorker:     true
-            });
-          } catch {
-            compressed = file;
-          }
-          const newName = file.name.replace(/\.\w+$/, '.webp');
-          const path    = `${galleryId}/${Date.now()}_${newName}`;
-          const { error: upErr } = await supabase
-            .storage.from('images').upload(path, compressed, { contentType: 'image/webp' });
-          if (upErr) {
-            console.error(upErr);
-            alert(`Error subiendo ${newName}: ${upErr.message}`);
-            continue;
-          }
-          await supabase.from('images').insert({ gallery_id: galleryId, url: path });
+          .select('name,duration,slideshow_type')
+          .eq('id', galleryId)
+          .maybeSingle();
+        if (albErr || !alb) {
+          alert('No se pudo cargar el álbum.');
+          return;
         }
-        inp.value      = '';
-        inp.disabled   = false;
-        stat.innerText = '';
+        document.getElementById('album-name').value     = alb.name;
+        document.getElementById('duration').value       = alb.duration;
+        document.getElementById('slideshow-type').value = alb.slideshow_type;
+
+        // Guardar ajustes
+        document.getElementById('save-settings').onclick = async () => {
+          const name = document.getElementById('album-name').value.trim();
+          const dur  = parseInt(document.getElementById('duration').value) || 5;
+          const type = document.getElementById('slideshow-type').value;
+          if (!name) return alert('Escribe un nombre.');
+          const { error } = await supabase
+            .from('galleries')
+            .update({ name, duration: dur, slideshow_type: type })
+            .eq('id', galleryId);
+          if (error) alert('Error guardando: ' + error.message);
+          else       alert('Cambios guardados correctamente.');
+        };
+
+        // Subir imágenes
+        document.getElementById('upload-btn').onclick = async () => {
+          const inp  = document.getElementById('file-input');
+          const stat = document.getElementById('upload-status');
+          if (!inp.files.length) return alert('Selecciona alguna imagen');
+          inp.disabled   = true;
+          stat.innerText = 'Procesando...';
+          for (let file of inp.files) {
+            let compressed;
+            try {
+              compressed = await imageCompression(file, {
+                maxWidthOrHeight: 3840,
+                maxSizeMB:        1,
+                fileType:         'image/webp',
+                useWebWorker:     true
+              });
+            } catch {
+              compressed = file;
+            }
+            const newName = file.name.replace(/\.\w+$/, '.webp');
+            const path    = `${galleryId}/${Date.now()}_${newName}`;
+            const { error: upErr } = await supabase
+              .storage.from('images').upload(path, compressed, { contentType: 'image/webp' });
+            if (upErr) {
+              console.error(upErr);
+              alert(`Error subiendo ${newName}: ${upErr.message}`);
+              continue;
+            }
+            await supabase.from('images').insert({ gallery_id: galleryId, url: path });
+          }
+          inp.value      = '';
+          inp.disabled   = false;
+          stat.innerText = '';
+          loadImages();
+        };
+
+        // Cargar miniaturas
+        async function loadImages() {
+          const { data: imgs } = await supabase
+            .from('images')
+            .select('id,url')
+            .eq('gallery_id', galleryId)
+            .order('created_at',{ ascending:false });
+          const ul = document.getElementById('images-list');
+          ul.innerHTML = '';
+          for (let img of imgs) {
+            const publicUrl = supabase.storage.from('images')
+              .getPublicUrl(img.url).data.publicUrl;
+            const li = document.createElement('li');
+            li.innerHTML = `
+              <img src="${publicUrl}">
+              <button class="delete-btn">×</button>
+            `;
+            li.querySelector('button').onclick = async () => {
+              if (!confirm('Borrar imagen?')) return;
+              await supabase.from('images').delete().eq('id', img.id);
+              await supabase.storage.from('images').remove([img.url]);
+              loadImages();
+            };
+            ul.appendChild(li);
+          }
+        }
         loadImages();
-      };
 
-      // Cargar miniaturas
-      async function loadImages() {
-        const { data: imgs } = await supabase
-          .from('images')
-          .select('id,url')
-          .eq('gallery_id', galleryId)
-          .order('created_at',{ ascending:false });
-        const ul = document.getElementById('images-list');
-        ul.innerHTML = '';
-        for (let img of imgs) {
-          const publicUrl = supabase.storage.from('images').getPublicUrl(img.url).data.publicUrl;
-          const li = document.createElement('li');
-          li.innerHTML = `
-            <img src="${publicUrl}">
-            <button class="delete-btn">×</button>
-          `;
-          li.querySelector('button').onclick = async () => {
-            if (!confirm('Borrar imagen?')) return;
-            await supabase.from('images').delete().eq('id', img.id);
-            await supabase.storage.from('images').remove([img.url]);
-            loadImages();
-          };
-          ul.appendChild(li);
-        }
-      }
-      loadImages();
-
-      // Listar pantallas
-      const { data: tvs } = await supabase
-        .from('tv')
-        .select('code,nombre')
-        .eq('user_id', session.user.id);
-      const sel = document.getElementById('tv-select');
-      sel.innerHTML = '<option value="">— Selecciona pantalla —</option>';
-      tvs.forEach(t => {
-        const o = document.createElement('option');
-        o.value       = t.code;
-        o.textContent = t.nombre || t.code;
-        sel.appendChild(o);
-      });
-
-      // Enviar a TV
-      document.getElementById('send-btn').onclick = async () => {
-        const code = sel.value;
-        if (!code) return alert('Selecciona una pantalla');
-        const dur  = parseInt(document.getElementById('duration').value) || 5;
-        const type = document.getElementById('slideshow-type').value;
-        const { error } = await supabase
+        // Listar pantallas disponibles
+        const { data: tvs } = await supabase
           .from('tv')
-          .update({
-            gallery_id:     galleryId,
-            duration:       dur,
-            slideshow_type: type,
-            play:           true,
-            video_url:      null
-          })
-          .eq('code', code);
-        if (error) alert('Error al enviar: ' + error.message);
-        else       alert('¡Listo! La TV mostrará este álbum.');
-      };
+          .select('code,nombre')
+          .eq('user_id', session.user.id);
+        const sel = document.getElementById('tv-select');
+        sel.innerHTML = '<option value="">— Selecciona pantalla —</option>';
+        tvs.forEach(t => {
+          const o = document.createElement('option');
+          o.value       = t.code;
+          o.textContent = t.nombre || t.code;
+          sel.appendChild(o);
+        });
 
-      // Eliminar álbum
-      document.getElementById('delete-album').onclick = async () => {
-        if (!confirm('Eliminar álbum y todas sus imágenes?')) return;
-        const { data: imgs } = await supabase.from('images').select('url').eq('gallery_id', galleryId);
-        const paths = imgs.map(i => i.url);
-        if (paths.length) {
-          await supabase.storage.from('images').remove(paths);
-        }
-        await supabase.from('images').delete().eq('gallery_id', galleryId);
-        await supabase.from('galleries').delete().eq('id', galleryId);
-        window.location.href = 'galeria.html';
-      };
-    }
+        // Enviar a TV
+        document.getElementById('send-btn').onclick = async () => {
+          const code = sel.value;
+          if (!code) return alert('Selecciona una pantalla');
+          const dur  = parseInt(document.getElementById('duration').value) || 5;
+          const type = document.getElementById('slideshow-type').value;
+          const { error } = await supabase
+            .from('tv')
+            .update({
+              gallery_id:     galleryId,
+              duration:       dur,
+              slideshow_type: type,
+              play:           true,
+              video_url:      null
+            })
+            .eq('code', code);
+          if (error) alert('Error al enviar: ' + error.message);
+          else       alert('¡Listo! La TV mostrará este álbum.');
+        };
 
-    document.addEventListener('DOMContentLoaded', initAlbum);
-    window.addEventListener('sidebarReady', initAlbum);
+        // Eliminar álbum
+        document.getElementById('delete-album').onclick = async () => {
+          if (!confirm('Eliminar álbum y todas sus imágenes?')) return;
+          const { data: imgs } = await supabase.from('images')
+            .select('url').eq('gallery_id', galleryId);
+          const paths = imgs.map(i => i.url);
+          if (paths.length) {
+            await supabase.storage.from('images').remove(paths);
+          }
+          await supabase.from('images').delete().eq('gallery_id', galleryId);
+          await supabase.from('galleries').delete().eq('id', galleryId);
+          window.location.href = 'galeria.html';
+        };
+      }
+
+      initAlbum();
+    });
   </script>
 </body>
 </html>
