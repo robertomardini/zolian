@@ -11,13 +11,12 @@
 }
 
 :root {
-  /* ===== Colors ===== */
+  /* ===== Colores ===== */
   --body-color: #E4E9F7;
   --primary-color: #695CFE;
   --primary-color-light: #F6F5FF;
   --text-color: #707070;
-
-  /* ===== Transitions ===== */
+  /* ===== Transiciones ===== */
   --tran: all 0.3s ease;
 }
 
@@ -26,7 +25,7 @@ body {
   background-color: var(--body-color);
   color: var(--text-color);
   transition: var(--tran);
-  /* Deja espacio para header/footer */
+  /* espacio para header y footer */
   padding-top: 56px;
   padding-bottom: 56px;
 }
@@ -40,10 +39,8 @@ body {
 /* ===== Header ===== */
 .app-header {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 56px;
+  top: 0; left: 0;
+  width: 100%; height: 56px;
   background: #fff;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   display: flex;
@@ -52,7 +49,6 @@ body {
   padding: 0 16px;
   z-index: 200;
 }
-
 .app-header .logo {
   display: flex;
   align-items: center;
@@ -62,8 +58,7 @@ body {
   height: 32px;
 }
 .app-header .user-icon {
-  width: 32px;
-  height: 32px;
+  width: 32px; height: 32px;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
@@ -72,10 +67,8 @@ body {
 /* ===== Footer (Bottom Tab Bar) ===== */
 .app-footer {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 56px;
+  bottom: 0; left: 0;
+  width: 100%; height: 56px;
   background: #fff;
   box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
   z-index: 200;
@@ -168,7 +161,7 @@ button.primary:hover {
   padding: 12px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background .2s;
 }
 .item-list li:hover {
   background: var(--primary-color-light);
@@ -177,8 +170,7 @@ button.primary:hover {
   border-bottom: none;
 }
 .item-list li .thumb {
-  width: 48px;
-  height: 48px;
+  width: 48px; height: 48px;
   object-fit: cover;
   border-radius: 6px;
   margin-right: 12px;
@@ -193,12 +185,12 @@ button.primary:hover {
   color: var(--text-color);
 }
 .item-list li .info .meta {
-  font-size: 0.85rem;
+  font-size: .85rem;
   color: #999;
   margin-top: 4px;
 }
 
-/* ===== Bloques blancos ===== */
+/* ===== Bloques blancos genéricos ===== */
 .block {
   background: #fff;
   border-radius: 12px;
@@ -220,22 +212,17 @@ button.primary:hover {
   text-decoration: underline;
 }
 
-/* =============================================== */
-/*                 SECCIÓN PANTALLAS              */
-/* =============================================== */
-
-/* Contenedor blanco centrado */
+/* ================= Pantallas.html ================= */
+/* Tarjeta envolvente */
 .pantallas-block {
   width: 100%;
   max-width: 600px;
-  margin: 40px auto;           /* centrado horizontal y separación vertical */
+  margin: 40px auto;
   padding: 32px;
-  background-color: #fff;
+  background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
-
-/* Título dentro del bloque */
 .pantallas-block .text {
   text-align: center;
   margin-bottom: 24px;
@@ -243,44 +230,61 @@ button.primary:hover {
   color: var(--text-color);
 }
 
-/* Lista de tarjetas */
+/* Lista de pantallas */
 #screens-list {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
   list-style: none;
   padding: 0;
   margin: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
 }
-
-/* Cada tarjeta */
+@media(min-width: 600px) {
+  #screens-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 #screens-list li {
-  aspect-ratio: 16 / 9;
   background: var(--primary-color);
   color: #fff;
   border-radius: 12px;
+  aspect-ratio: 16/9;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background .2s, border-color .2s, color .2s;
+  transition: var(--tran);
 }
 #screens-list li:hover {
   background: var(--primary-color-light);
-  border: 2px solid var(--primary-color);
   color: var(--primary-color);
+}
+#screens-list li box-icon,
+#screens-list li box-icon svg,
+#screens-list li box-icon svg path {
+  transition: color .2s, fill .2s;
+  color: #fff !important;
+  fill: #fff !important;
+}
+#screens-list li:hover box-icon,
+#screens-list li:hover box-icon svg,
+#screens-list li:hover box-icon svg path {
+  color: var(--primary-color) !important;
+  fill: var(--primary-color) !important;
 }
 #screens-list li span {
   margin-top: 8px;
-  font-size: 1rem;
   font-weight: 500;
+  transition: color .2s;
+}
+#screens-list li:hover span {
+  color: var(--primary-color);
 }
 
-/* Mensaje cuando no hay pantallas */
+/* Mensaje “sin pantallas” */
 #no-screens {
-  display: none;
+  margin-top: 24px;
   text-align: center;
   color: var(--text-color);
-  margin-top: 40px;
 }
