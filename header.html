@@ -1,16 +1,15 @@
 <!-- header.html -->
 <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
-<script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
 
 <header class="app-header">
   <div class="logo">
-    <!-- Reemplaza logo.png por la ruta de tu logo -->
     <img src="/logo.png" alt="Zolian App Logo"/>
     <span class="logo-text">Zolian App</span>
   </div>
 
   <!-- Botón de usuario -->
   <button id="header-user-btn" class="user-btn no-session" title="Mi Perfil">
-    <box-icon id="header-user-icon" name="user-circle" type="solid" ></box-icon>
+    <!-- Usamos <i> en lugar de <box-icon> -->
+    <i id="header-user-icon" class="bx bx-user-circle"></i>
   </button>
 </header>
