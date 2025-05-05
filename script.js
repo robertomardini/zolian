@@ -1,114 +1,63 @@
 /* script.js */
 
 /**
- * Inicializa los listeners del sidebar (toggle, búsqueda, logout y compartir),
- * controla el overlay para oscurecer la página,
- * y fuerza que .home ocupe siempre todo el ancho.
+ * Inyecta el header y el footer en cada página y despacha eventos cuando estén listos.
+ * Además, tras cargar el header, inserta el email del usuario conectado.
  */
-function initSidebar() {
-  const body    = document.querySelector('body');
-  const sidebar = body.querySelector('nav.sidebar');
-  const home    = body.querySelector('.home');
-  const overlay = document.querySelector('.overlay');
-  if (!sidebar) return;
 
-  // -- Compartir --
-  const shareBtn = sidebar.querySelector('#share-btn');
-  if (shareBtn) {
-    shareBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const shareData = {
-        title: 'Zolian App',
-        text: 'Échale un vistazo a Zolian App para compartir galerías',
-        url: window.location.origin
-      };
-      try {
-        if (navigator.share) {
-          await navigator.share(shareData);
-        } else {
-          await navigator.clipboard.writeText(shareData.url);
-          alert('Enlace copiado al portapapeles: ' + shareData.url);
-        }
-      } catch (err) {
-        console.error('Error compartiendo:', err);
-      }
-    });
-  }
-
-  // -- Elementos del sidebar --
-  const toggle    = sidebar.querySelector('.toggle');
-  const searchBtn = sidebar.querySelector('.search-box');
-  const logoutBtn = sidebar.querySelector('#logout');
-
-  // -- Función para forzar que .home ocupe todo el ancho --
-  function ajustarHomeFull() {
-    if (!home) return;
-    home.style.left  = '0';
-    home.style.width = '100%';
-  }
-
-  // -- Toggle sidebar + overlay --
-  toggle.addEventListener('click', () => {
-    const cerrado = sidebar.classList.toggle('close');
-    if (cerrado) overlay.classList.remove('active');
-    else         overlay.classList.add('active');
-    ajustarHomeFull();
-  });
-
-  // -- Clic en overlay cierra sidebar --
-  overlay.addEventListener('click', () => {
-    sidebar.classList.add('close');
-    overlay.classList.remove('active');
-    ajustarHomeFull();
-  });
-
-  // -- Abrir sidebar desde búsqueda --
-  if (searchBtn) {
-    searchBtn.addEventListener('click', () => {
-      sidebar.classList.remove('close');
-      overlay.classList.add('active');
-      ajustarHomeFull();
-    });
-  }
-
-  // -- Logout --
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      await supabase.auth.signOut();
-      window.location.href = 'login.html';
-    });
-  }
-
-  // Ajuste inicial
-  ajustarHomeFull();
-}
-
-// Inyecta el sidebar y el overlay, luego lanza initSidebar
 window.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('sidebar-container');
+  // Inyectar header
+  fetch('/header.html')
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById('header-container').innerHTML = html;
+      window.dispatchEvent(new Event('headerReady'));
+    })
+    .catch(err => console.error('Error cargando header:', err));
 
-  function crearOverlay() {
-    if (!document.querySelector('.overlay')) {
-      const ov = document.createElement('div');
-      ov.classList.add('overlay');
-      document.body.appendChild(ov);
+  // Inyectar footer
+  fetch('/footer.html')
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById('footer-container').innerHTML = html;
+      window.dispatchEvent(new Event('footerReady'));
+    })
+    .catch(err => console.error('Error cargando footer:', err));
+});
+
+// Cuando el header ya está en el DOM, rellenamos el email del usuario
+window.addEventListener('headerReady', async () => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const emailEl = document.getElementById('header-user-email');
+      if (emailEl) emailEl.innerText = session.user.email;
+      const avatarEl = document.getElementById('header-user-avatar');
+      if (avatarEl && session.user.user_metadata?.avatar_url) {
+        avatarEl.src = session.user.user_metadata.avatar_url;
+      }
     }
+  } catch (e) {
+    console.error('No se pudo obtener sesión:', e);
   }
+});
 
-  if (container) {
-    fetch('/sidebar.html')
-      .then(res => res.text())
-      .then(html => {
-        container.innerHTML = html;
-        crearOverlay();
-        initSidebar();
-        window.dispatchEvent(new Event('sidebarReady'));
-      })
-      .catch(err => console.error('Error cargando sidebar:', err));
-  } else {
-    crearOverlay();
-    initSidebar();
-    window.dispatchEvent(new Event('sidebarReady'));
+// Opcional: escuchar clicks en el avatar para ir a la página de perfil
+window.addEventListener('headerReady', () => {
+  const avatarWrapper = document.getElementById('header-user-wrapper');
+  if (avatarWrapper) {
+    avatarWrapper.addEventListener('click', () => {
+      window.location.href = '/usuario.html';
+    });
   }
+});
+
+// Opcional: controlar navegación del footer (bottom tab bar)
+window.addEventListener('footerReady', () => {
+  document.querySelectorAll('.tab-bar button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-target');
+      if (target) window.location.href = target;
+    });
+  });
 });
