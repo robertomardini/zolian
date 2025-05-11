@@ -4,7 +4,6 @@
   <meta charset="UTF-8"/>
   <title>Zolian TV</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-
   <style>
     html, body {
       margin: 0;
@@ -81,49 +80,49 @@
   <script>
   (()=>{
     const params = new URLSearchParams(location.search);
-  const code   = params.get('code') || (() => {
-    const uuid = crypto.randomUUID();
-    history.replaceState(null, '', `?code=${uuid}`);
-    return uuid;
+    let code = params.get('code');
+    if (!code) {
+      code = crypto.randomUUID();
+      history.replaceState(null, '', ?code=${code});
+    }
+
+    // Generar el QR
+    new QRCode('qr', {
+      text: ${location.origin}/vincular.html?code=${code},
+      width: 260,
+      height: 260
+    });
+
+    // Botón fullscreen
+    document.getElementById('fs-btn').onclick = async () => {
+      await document.documentElement.requestFullscreen();
+    };
+
+    // Muestra el player/slideshow en el iframe
+    function showInIframe(path) {
+      document.getElementById('controls').style.display = 'none';
+      const frame = document.getElementById('viewer-frame');
+      frame.src = path;
+      frame.style.display = 'block';
+    }
+
+    // Escuchar cambios en la tabla tv
+    supabase
+      .channel(tv_updates_${code})
+      .on('postgres_changes', {
+         event: 'UPDATE', schema: 'public', table: 'tv',
+         filter: code=eq.${code}
+      }, ({ new: tv }) => {
+        if (tv.gallery_id) {
+          showInIframe(/slideshow.html?code=${code});
+        } else if (tv.video_url) {
+          showInIframe(/player.html?code=${code});
+        }
+      })
+      .subscribe();
   })();
-
-  // Generar el QR
-  new QRCode('qr', { text:`${location.origin}/vincular.html?code=${code}`, width:260, height:260 });
-
-  // Fullscreen
-  document.getElementById('fs-btn').onclick = () =>
-    document.documentElement.requestFullscreen();
-
-  // Mostrar en iframe
-  function showInIframe(path) {
-    document.getElementById('controls').style.display = 'none';
-    const frame = document.getElementById('viewer-frame');
-    frame.src           = path;
-    frame.style.display = 'block';
-  }
-
-  // Creamos el canal y nos suscribimos
-  const channel = supabase
-    .channel(`tv_updates_${code}`)
-    .on('postgres_changes', {
-       event:  'UPDATE',
-       schema: 'public',
-       table:  'tv',
-       filter: `code=eq.${code}`
-    }, ({ new: tv }) => {
-      console.log('📣 Realtime:', tv);
-      if (tv.gallery_id)    showInIframe(`/slideshow.html?code=${code}`);
-      else if (tv.video_url) showInIframe(`/player.html?code=${code}`);
-    })
-    .subscribe();  // <— sin argumentos
-
-  // Ahora enganchamos los eventos de estado del canal
-  channel.on('open', ()  => console.log('✅ Suscripción abierta'));
-  channel.on('error', e => console.error('❌ Error suscripción:', e));
-  channel.on('close', () => console.log('⚠️ Suscripción cerrada'));
-})();
   </script>
-    <!-- Boxicons (para el icono fullscreen) -->
-  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>  
+  <!-- Boxicons (para el icono fullscreen) -->
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 </body>
 </html>
