@@ -56,22 +56,21 @@
   <div id="footer-container"></div>
 
   <script>
-    // Definimos la función de inicialización
+    // Función principal
     async function initAdmin() {
       const code = new URLSearchParams(location.search).get('code');
       if (!code) {
-        // Sin código, volvemos a la lista de pantallas
         return window.location.href = 'pantallas.html';
       }
 
-      // 1) Verificar sesión
-      const { data:{ session }, error: sessErr } = await supabase.auth.getSession();
+      // 1) Sesión
+      const { data: { session }, error: sessErr } = await supabase.auth.getSession();
       if (sessErr || !session) {
         const redirect = encodeURIComponent(location.pathname + location.search);
         return window.location.href = `login.html?redirect=${redirect}`;
       }
 
-      // 2) Cargar datos de la TV
+      // 2) Datos de la TV
       const { data: tv, error: tvErr } = await supabase
         .from('tv')
         .select('nombre,user_id')
@@ -82,7 +81,7 @@
       }
       document.getElementById('screenName').innerText = tv.nombre;
 
-      // Mapa de etiquetas legibles
+      // Mapa de etiquetas
       const typeLabels = {
         fade:     'Fade',
         slide:    'Slide Horizontal',
@@ -96,13 +95,13 @@
         .from('galleries')
         .select('id,name,duration,slideshow_type')
         .eq('user_id', session.user.id)
-        .order('created_at',{ ascending:false });
+        .order('created_at', { ascending:false });
       if (galErr) console.error('Error cargando galerías:', galErr);
 
       const gl = document.getElementById('galleryList');
       gl.innerHTML = '';
       for (let g of galleries || []) {
-        // Thumbnail o icono fallback
+        // miniatura o icono
         const { data: imgData } = await supabase
           .from('images')
           .select('url')
@@ -139,7 +138,7 @@
               video_url:      null
             })
             .eq('code', code);
-          alert(error ? 'Error asignando álbum: ' + error.message : 'Álbum asignado.');
+          alert(error ? `Error: ${error.message}` : 'Álbum asignado.');
         };
         gl.appendChild(li);
       }
@@ -157,7 +156,10 @@
       for (let v of vids || []) {
         const title = v.title || v.url.split('/').pop();
         const li = document.createElement('li');
-        li.innerHTML = `<span>${title}</span><span class="meta">Vídeo</span>`;
+        li.innerHTML = `
+          <span>${title}</span>
+          <span class="meta">Vídeo</span>
+        `;
         li.onclick = async () => {
           const { error } = await supabase
             .from('tv')
@@ -167,32 +169,32 @@
               gallery_id: null
             })
             .eq('code', code);
-          alert(error ? 'Error asignando vídeo: ' + error.message : 'Vídeo asignado.');
+          alert(error ? `Error: ${error.message}` : 'Vídeo asignado.');
         };
         vl.appendChild(li);
       }
 
-      // 5) Crear nuevos
+      // 5) Crear nuevos con template literals correctos
       document.getElementById('createAlbum').onclick = () =>
-        location.href = 'crear-album.html?code=${code}';
-      document.getElementById('createVideo').onclick = () =>
-        location.href = 'misvideos.html?code=${code}';
+        location.href = `crear-album.html?code=${code}`;
 
-      // 6) Desvincular pantalla
+      document.getElementById('createVideo').onclick = () =>
+        location.href = `misvideos.html?code=${code}`;
+
+      // 6) Desvincular
       document.getElementById('unlink').onclick = async () => {
         if (!confirm('¿Desvincular pantalla?')) return;
         const { error } = await supabase
           .from('tv')
           .update({ user_id:null, gallery_id:null, video_url:null, play:false })
           .eq('code', code);
-        alert(error ? 'Error al desvincular: ' + error.message : 'Pantalla desvinculada.');
+        alert(error ? `Error: ${error.message}` : 'Pantalla desvinculada.');
         if (!error) window.location.href = 'pantallas.html';
       };
     }
 
-    // Ejecutamos initAdmin tanto al cargar el DOM como cuando el header esté listo
-    window.addEventListener('DOMContentLoaded', initAdmin);
-    window.addEventListener('headerReady',       initAdmin);
+    // Sólo arrancamos al tener header inyectado
+    window.addEventListener('headerReady', initAdmin);
   </script>
 </body>
 </html>
