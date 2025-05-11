@@ -7,16 +7,20 @@
 
   <!-- CSS principal -->
   <link rel="stylesheet" href="/style.css"/>
-  <!-- Boxicons -->
-  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
-  <!-- Supabase y utilidades de header/footer -->
+  <!-- Boxicons: estilos y script para los custom elements -->
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
+  <script src="https://unpkg.com/boxicons@2.1.1/dist/boxicons.js"></script>
+
+  <!-- Supabase JS desde CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <!-- Tu cliente de Supabase -->
   <script src="/supabaseClient.js"></script>
+  <!-- Script común que inyecta header/footer y despacha headerReady/footerReady -->
   <script src="/script.js"></script>
 </head>
 <body>
-  <!-- Header -->
+  <!-- Header inyectado -->
   <div id="header-container"></div>
 
   <section class="home">
@@ -37,29 +41,31 @@
 
       <!-- Cerrar sesión -->
       <button id="logout-btn" class="primary">
-        <box-icon name="log-out" ></box-icon>
+        <box-icon name="log-out"></box-icon>
         Cerrar sesión
       </button>
     </div>
   </section>
 
-  <!-- Footer -->
+  <!-- Footer inyectado -->
   <div id="footer-container"></div>
 
   <script>
-    // Cuando header y supabase estén listos:
+    // Cuando el header ya esté en el DOM y listo:
     window.addEventListener('headerReady', async () => {
       try {
-        const { data:{ session } } = await supabase.auth.getSession();
+        // 1) Obtener sesión
+        const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          // No hay sesión activa
-          return window.location.href = 'login.html?redirect=' + encodeURIComponent(location.pathname);
+          // Si no hay sesión, redirige a login
+          const redirect = encodeURIComponent(location.pathname);
+          return window.location.href = `login.html?redirect=${redirect}`;
         }
 
-        // Mostrar email
+        // 2) Mostrar email
         document.getElementById('user-email').innerText = session.user.email;
 
-        // Obtener estado de suscripción (suponiendo un campo 'subscription_status' en tabla 'profiles')
+        // 3) Leer perfil (supongo que tienes tabla "profiles")
         const { data: profile } = await supabase
           .from('profiles')
           .select('subscription_status')
@@ -68,19 +74,19 @@
 
         const subEl = document.getElementById('user-subscription');
         if (profile && profile.subscription_status) {
-          // Mapea valores a texto amigable
           const estados = {
-            free: 'Gratuita',
-            trial: 'Prueba',
-            active: 'Activa',
+            free:     'Gratuita',
+            trial:    'Prueba',
+            active:   'Activa',
             canceled: 'Cancelada'
           };
-          subEl.innerText = estados[profile.subscription_status] || profile.subscription_status;
+          subEl.innerText = estados[profile.subscription_status] 
+            || profile.subscription_status;
         } else {
           subEl.innerText = 'No registrada';
         }
 
-        // Logout
+        // 4) Logout desde el botón
         document.getElementById('logout-btn').addEventListener('click', async () => {
           await supabase.auth.signOut();
           window.location.href = 'login.html';
