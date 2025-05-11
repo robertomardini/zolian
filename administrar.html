@@ -56,125 +56,143 @@
   <div id="footer-container"></div>
 
   <script>
-    // Esperamos a que el header se haya cargado
-    window.addEventListener('headerReady', () => {
-      (async function initAdmin() {
-        const code = new URLSearchParams(location.search).get('code');
-        if (!code) return window.location.href = 'pantallas.html';
+    // Definimos la función de inicialización
+    async function initAdmin() {
+      const code = new URLSearchParams(location.search).get('code');
+      if (!code) {
+        // Sin código, volvemos a la lista de pantallas
+        return window.location.href = 'pantallas.html';
+      }
 
-        // 1) Sesión
-        const { data:{ session }, error: sessErr } = await supabase.auth.getSession();
-        if (sessErr || !session) {
-          const redirect = encodeURIComponent(location.pathname + location.search);
-          return window.location.href = `login.html?redirect=${redirect}`;
+      // 1) Verificar sesión
+      const { data:{ session }, error: sessErr } = await supabase.auth.getSession();
+      if (sessErr || !session) {
+        const redirect = encodeURIComponent(location.pathname + location.search);
+        return window.location.href = `login.html?redirect=${redirect}`;
+      }
+
+      // 2) Cargar datos de la TV
+      const { data: tv, error: tvErr } = await supabase
+        .from('tv')
+        .select('nombre,user_id')
+        .eq('code', code)
+        .maybeSingle();
+      if (tvErr || !tv || tv.user_id !== session.user.id) {
+        return window.location.href = 'pantallas.html';
+      }
+      document.getElementById('screenName').innerText = tv.nombre;
+
+      // Mapa de etiquetas legibles
+      const typeLabels = {
+        fade:     'Fade',
+        slide:    'Slide Horizontal',
+        vertical: 'Slide Vertical',
+        zoom:     'Zoom',
+        kenburns: 'Ken Burns'
+      };
+
+      // 3) Listar álbumes
+      const { data: galleries, error: galErr } = await supabase
+        .from('galleries')
+        .select('id,name,duration,slideshow_type')
+        .eq('user_id', session.user.id)
+        .order('created_at',{ ascending:false });
+      if (galErr) console.error('Error cargando galerías:', galErr);
+
+      const gl = document.getElementById('galleryList');
+      gl.innerHTML = '';
+      for (let g of galleries || []) {
+        // Thumbnail o icono fallback
+        const { data: imgData } = await supabase
+          .from('images')
+          .select('url')
+          .eq('gallery_id', g.id)
+          .order('created_at',{ ascending:false })
+          .limit(1)
+          .maybeSingle();
+
+        let thumbHtml = `<box-icon name="image-alt" size="32px"></box-icon>`;
+        if (imgData?.url) {
+          const { data:{ publicUrl } } = supabase
+            .storage.from('images')
+            .getPublicUrl(imgData.url);
+          thumbHtml = `<img class="thumb" src="${publicUrl}" alt="Miniatura"/>`;
         }
 
-        // 2) Datos de la TV
-        const { data: tv } = await supabase
-          .from('tv').select('nombre,user_id').eq('code', code).maybeSingle();
-        if (!tv || tv.user_id !== session.user.id) {
-          return window.location.href = 'pantallas.html';
-        }
-        document.getElementById('screenName').innerText = tv.nombre;
-
-        // Mapa de etiquetas
-        const typeLabels = {
-          fade:     'Fade',
-          slide:    'Slide Horizontal',
-          vertical: 'Slide Vertical',
-          zoom:     'Zoom',
-          kenburns: 'Ken Burns'
-        };
-
-        // 3) Listar álbumes
-        const { data: galleries } = await supabase
-          .from('galleries')
-          .select('id,name,duration,slideshow_type')
-          .eq('user_id', session.user.id)
-          .order('created_at',{ ascending:false });
-        const gl = document.getElementById('galleryList');
-        gl.innerHTML = '';
-        for (let g of galleries || []) {
-          const { data: imgData } = await supabase
-            .from('images')
-            .select('url')
-            .eq('gallery_id', g.id)
-            .order('created_at',{ ascending:false })
-            .limit(1)
-            .maybeSingle();
-
-          let thumbHtml = `<box-icon name="image-alt" size="32px"></box-icon>`;
-          if (imgData && imgData.url) {
-            const { data:{ publicUrl } } = supabase
-              .storage.from('images').getPublicUrl(imgData.url);
-            thumbHtml = `<img class="thumb" src="${publicUrl}" alt="Miniatura"/>`;
-          }
-
-          const li = document.createElement('li');
-          const meta = `${typeLabels[g.slideshow_type]||g.slideshow_type} • ${g.duration}s`;
-          li.innerHTML = `
-            <div class="thumb-container">${thumbHtml}</div>
-            <div class="info-block">
-              <span class="name">${g.name}</span>
-              <span class="meta">${meta}</span>
-            </div>
-          `;
-          li.onclick = async () => {
-            const { error } = await supabase
-              .from('tv')
-              .update({
-                gallery_id:     g.id,
-                duration:       g.duration,
-                slideshow_type: g.slideshow_type,
-                play:           true,
-                video_url:      null
-              })
-              .eq('code', code);
-            alert(error ? 'Error asignando álbum: ' + error.message : 'Álbum asignado.');
-          };
-          gl.appendChild(li);
-        }
-
-        // 4) Listar vídeos
-        const { data: vids } = await supabase
-          .from('videos')
-          .select('id,url,title')
-          .eq('user_id', session.user.id)
-          .order('created_at',{ ascending:false });
-        const vl = document.getElementById('videoList');
-        vl.innerHTML = '';
-        for (let v of vids || []) {
-          const title = v.title || v.url.split('/').pop();
-          const li = document.createElement('li');
-          li.innerHTML = `<span>${title}</span><span class="meta">Vídeo</span>`;
-          li.onclick = async () => {
-            const { error } = await supabase
-              .from('tv')
-              .update({ video_url: v.url, play: true, gallery_id: null })
-              .eq('code', code);
-            alert(error ? 'Error asignando vídeo: ' + error.message : 'Vídeo asignado.');
-          };
-          vl.appendChild(li);
-        }
-
-        // 5) Crear nuevos
-        document.getElementById('createAlbum').onclick = () =>
-          location.href = `crear-album.html?code=${code}`;
-        document.getElementById('createVideo').onclick = () =>
-          location.href = `misvideos.html`;
-
-        // 6) Desvincular pantalla
-        document.getElementById('unlink').onclick = async () => {
-          if (!confirm('¿Desvincular pantalla?')) return;
+        const li = document.createElement('li');
+        const meta = `${typeLabels[g.slideshow_type]||g.slideshow_type} • ${g.duration}s`;
+        li.innerHTML = `
+          <div class="thumb-container">${thumbHtml}</div>
+          <div class="info-block">
+            <span class="name">${g.name}</span>
+            <span class="meta">${meta}</span>
+          </div>
+        `;
+        li.onclick = async () => {
           const { error } = await supabase
             .from('tv')
-            .update({ user_id:null, gallery_id:null, video_url:null, play:false })
+            .update({
+              gallery_id:     g.id,
+              duration:       g.duration,
+              slideshow_type: g.slideshow_type,
+              play:           true,
+              video_url:      null
+            })
             .eq('code', code);
-          alert(error ? 'Error al desvincular: ' + error.message : 'Pantalla desvinculada.');
-          if (!error) window.location.href = 'pantallas.html';
+          alert(error ? 'Error asignando álbum: ' + error.message : 'Álbum asignado.');
         };
-      })();
-    });
+        gl.appendChild(li);
+      }
+
+      // 4) Listar vídeos
+      const { data: vids, error: vidErr } = await supabase
+        .from('videos')
+        .select('id,url,title')
+        .eq('user_id', session.user.id)
+        .order('created_at',{ ascending:false });
+      if (vidErr) console.error('Error cargando vídeos:', vidErr);
+
+      const vl = document.getElementById('videoList');
+      vl.innerHTML = '';
+      for (let v of vids || []) {
+        const title = v.title || v.url.split('/').pop();
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${title}</span><span class="meta">Vídeo</span>`;
+        li.onclick = async () => {
+          const { error } = await supabase
+            .from('tv')
+            .update({
+              video_url:  v.url,
+              play:       true,
+              gallery_id: null
+            })
+            .eq('code', code);
+          alert(error ? 'Error asignando vídeo: ' + error.message : 'Vídeo asignado.');
+        };
+        vl.appendChild(li);
+      }
+
+      // 5) Crear nuevos
+      document.getElementById('createAlbum').onclick = () =>
+        location.href = `crear-album.html?code=${code}`;
+      document.getElementById('createVideo').onclick = () =>
+        location.href = `misvideos.html?code=${code}`;
+
+      // 6) Desvincular pantalla
+      document.getElementById('unlink').onclick = async () => {
+        if (!confirm('¿Desvincular pantalla?')) return;
+        const { error } = await supabase
+          .from('tv')
+          .update({ user_id:null, gallery_id:null, video_url:null, play:false })
+          .eq('code', code);
+        alert(error ? 'Error al desvincular: ' + error.message : 'Pantalla desvinculada.');
+        if (!error) window.location.href = 'pantallas.html';
+      };
+    }
+
+    // Ejecutamos initAdmin tanto al cargar el DOM como cuando el header esté listo
+    window.addEventListener('DOMContentLoaded', initAdmin);
+    window.addEventListener('headerReady',       initAdmin);
   </script>
 </body>
 </html>
