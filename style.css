@@ -57,11 +57,13 @@ body {
 .app-header .logo img {
   height: 32px;
 }
-.app-header .user-icon {
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  overflow: hidden;
-  cursor: pointer;
+.app-header .user-btn i {
+  font-size: 1.5rem;
+  color: var(--text-color);
+  transition: color var(--tran);
+}
+.app-header .user-btn.no-session i {
+  color: #e74c3c !important;
 }
 
 /* ===== Footer (Bottom Tab Bar) ===== */
@@ -149,47 +151,6 @@ button.primary:hover {
   color: var(--text-color);
 }
 
-/* ===== Listas (álbumes, vídeos) ===== */
-.item-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.item-list li {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-  transition: background .2s;
-}
-.item-list li:hover {
-  background: var(--primary-color-light);
-}
-.item-list li:last-child {
-  border-bottom: none;
-}
-.item-list li .thumb {
-  width: 48px; height: 48px;
-  object-fit: cover;
-  border-radius: 6px;
-  margin-right: 12px;
-}
-.item-list li .info {
-  display: flex;
-  flex-direction: column;
-}
-.item-list li .info .name {
-  font-weight: 600;
-  font-size: 1rem;
-  color: var(--text-color);
-}
-.item-list li .info .meta {
-  font-size: .85rem;
-  color: #999;
-  margin-top: 4px;
-}
-
 /* ===== Bloques blancos genéricos ===== */
 .block {
   background: #fff;
@@ -213,7 +174,6 @@ button.primary:hover {
 }
 
 /* ================= Pantallas.html ================= */
-/* Tarjeta envolvente */
 .pantallas-block {
   width: 100%;
   max-width: 600px;
@@ -230,7 +190,7 @@ button.primary:hover {
   color: var(--text-color);
 }
 
-/* Lista de pantallas */
+/* ===== Lista de pantallas ===== */
 #screens-list {
   list-style: none;
   padding: 0;
@@ -281,38 +241,38 @@ button.primary:hover {
 #screens-list li:hover span {
   color: var(--primary-color);
 }
-
-/* Mensaje “sin pantallas” */
 #no-screens {
   margin-top: 24px;
   text-align: center;
   color: var(--text-color);
 }
-/* ============ Galería de Álbumes ============ */
 
-/* Grid de tarjetas */
+/* ============ Galería de Álbumes ============ */
 .gallery-block {
-  /* Opcional: centra y limita ancho */
   max-width: 900px;
   margin: 0 auto;
+  /* aplicamos bloque blanco */
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
+/* grid de tarjetas */
 #gallery-list {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
   gap: 24px;
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-/* Cada tarjeta */
 #gallery-list li {
   display: flex;
   flex-direction: column;
   background: var(--primary-color);
   border-radius: 12px;
-  height: 160px;
   overflow: hidden;
   cursor: pointer;
   transition: transform .2s, background .2s;
@@ -322,20 +282,20 @@ button.primary:hover {
   background: var(--primary-color-light);
 }
 
-/* Contenedor de la miniatura */
-.thumb-container {
+/* miniatura grande sólo en galería */
+.gallery-block .thumb-container {
   width: 100%;
-  height: 240px;         /* altura fija */
+  height: 240px;
   overflow: hidden;
-  background: #000;      /* para que no se vea hueco */
+  background: #000;
 }
-.thumb-container img {
+.gallery-block .thumb-container img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-/* Información (nombre + meta) */
+/* información (nombre + meta) */
 .album-info {
   padding: 16px;
   background: var(--primary-color);
@@ -351,9 +311,8 @@ button.primary:hover {
   color: #fff;
   margin-top: 4px;
 }
-/* ======== album.html ======== */
 
-/* Bloques de administrador de álbum */
+/* ======== album.html ======== */
 .album-block {
   background: #fff;
   border-radius: 12px;
@@ -361,29 +320,16 @@ button.primary:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   margin-bottom: 24px;
 }
-
-/* Grupos de campos */
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-/* Botones de acción */
+.field-group { margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
 .actions button,
-.send-group button {
-  width: 100%;
-}
-
-/* Lista de miniaturas */
+.send-group button { width: 100%; }
 #images-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 16px;
   display: grid;
   grid-template-columns: repeat(auto-fill,minmax(120px,1fr));
   gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
 }
 #images-list li {
   position: relative;
@@ -391,37 +337,14 @@ button.primary:hover {
   border-radius: 6px;
   background: #f0f0f0;
 }
-#images-list img {
+#images-list li img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.delete-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  background: rgba(0,0,0,0.6);
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-}
+.delete-btn { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; }
 
-/* Separar formulario de envío */
-.send-group .input-group {
-  margin-top: 8px;
-}
-
-/* Enlace para eliminar álbum */
-.text-link.delete-link {
-  font-size: 1rem;
-  margin-top: 32px;
-}
-/* ====== administrar.html ====== */
-
-/* Pantalla card */
+/* =========== administrar.html =========== */
 .screen-card {
   background: var(--primary-color);
   border-radius: 12px;
@@ -434,16 +357,6 @@ button.primary:hover {
   width: 160px;
   margin: 0 auto 24px;
 }
-.screen-card box-icon,
-.screen-card svg {
-  color: #fff;
-}
-.screen-card span {
-  margin-top: 8px;
-  font-weight: 500;
-}
-
-/* Bloques blancos */
 .admin-block {
   background: #fff;
   border-radius: 12px;
@@ -456,30 +369,8 @@ button.primary:hover {
   font-size: 1.25rem;
   color: var(--text-color);
 }
-
-/* Lista de ítems (álbumes y vídeos) */
-.item-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.item-list li {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.item-list li:hover {
-  background: var(--primary-color-light);
-}
-.item-list li:last-child {
-  border-bottom: none;
-}
-
-/* Miniatura */
-.thumb-container {
+/* miniaturas pequeñas sólo en administrador */
+.admin-block .thumb-container {
   width: 48px;
   height: 48px;
   flex-shrink: 0;
@@ -488,83 +379,27 @@ button.primary:hover {
   align-items: center;
   justify-content: center;
 }
-.thumb-container img.thumb {
+.admin-block .thumb-container img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 6px;
 }
 
-/* Bloque de info */
-.info-block {
+/* listas de items */
+.item-list { list-style: none; padding: 0; margin: 0; }
+.item-list li {
   display: flex;
-  flex-direction: column;
-}
-.info-block .name {
-  font-weight: 600;
-  font-size: 1rem;
-  color: var(--text-color);
-}
-.info-block .meta {
-  font-size: 0.875rem;
-  color: #999;
-  margin-top: 4px;
-}
-
-/* Botones primarios */
-button.primary {
-  margin-top: 16px;
-  width: 100%;
-  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
   padding: 12px;
-  background: var(--primary-color);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
+  border-bottom: 1px solid #eee;
   cursor: pointer;
-  transition: var(--tran);
+  transition: background .2s;
 }
-button.primary:hover {
-  background: var(--primary-color-light);
-  color: var(--primary-color);
-}
+.item-list li:hover { background: var(--primary-color-light); }
+.item-list li:last-child { border-bottom: none; }
+.info-block { display: flex; flex-direction: column; }
+.info-block .name { font-weight: 600; font-size: 1rem; color: var(--text-color); }
+.info-block .meta { font-size: .875rem; color: #999; margin-top: 4px; }
 
-/* Enlace de texto (desvincular) */
-.text-link {
-  display: block;
-  text-align: center;
-  color: #e74c3c;
-  margin-top: 24px;
-  text-decoration: none;
-  font-size: 1rem;
-  cursor: pointer;
-}
-.text-link:hover {
-  text-decoration: underline;
-}
-/* Botón de usuario en el header */
-.user-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Icono usuario por defecto (hereda color de texto) */
-.user-btn i {
-  font-size: 1.5rem;
-  color: var(--text-color);
-  transition: color var(--tran);
-}
-
-/* Si no hay sesión, pintamos de rojo */
-.user-btn.no-session i {
-  color: #e74c3c !important;
-}
+/* estilos generales ya definidos arriba */
