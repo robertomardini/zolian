@@ -1,110 +1,75 @@
 /* script.js */
 
 /**
- * Inicializa los listeners del sidebar (toggle, búsqueda, dark mode, logout,
- * compartir y escanear QR) y ajusta la posición/ancho de la sección .home.
+ * Inyecta header y footer, gestiona sesión para usuario,
+ * aplica estilo al icono de usuario y navega con el footer.
  */
-function initSidebar() {
-  const body    = document.querySelector('body');
-  const sidebar = body.querySelector('nav.sidebar');
-  const home    = body.querySelector('.home');
-  if (!sidebar) return;
+window.addEventListener('DOMContentLoaded', () => {
+  // Inyectar header
+  fetch('/header.html')
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById('header-container').innerHTML = html;
+      window.dispatchEvent(new Event('headerReady'));
+    })
+    .catch(err => console.error('Error cargando header:', err));
 
-  // --- Botón Compartir ---
-  const shareBtn = sidebar.querySelector('#share-btn');
-  if (shareBtn) {
-    shareBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const shareData = {
-        title: 'Zolian App',
-        text: 'Échale un vistazo a Zolian App para compartir galerías',
-        url: window.location.origin
-      };
-      try {
-        if (navigator.share) {
-          await navigator.share(shareData);
-        } else {
-          await navigator.clipboard.writeText(shareData.url);
-          alert('Enlace copiado al portapapeles: ' + shareData.url);
-        }
-      } catch (err) {
-        console.error('Error compartiendo:', err);
+  // Inyectar footer
+  fetch('/footer.html')
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById('footer-container').innerHTML = html;
+      window.dispatchEvent(new Event('footerReady'));
+    })
+    .catch(err => console.error('Error cargando footer:', err));
+});
+
+// Cuando el header ya está en el DOM
+window.addEventListener('headerReady', async () => {
+  let session = null;
+  try {
+    // Obtener sesión
+    const { data: { session: ses } } = await supabase.auth.getSession();
+    session = ses;
+  } catch (e) {
+    console.error('No se pudo obtener sesión:', e);
+  }
+
+  // Si hay elemento para el email, lo rellenamos
+  const emailEl = document.getElementById('header-user-email');
+  if (session && emailEl) {
+    emailEl.innerText = session.user.email;
+  }
+
+  // Gestionar color de icono y clase en el botón
+  const userBtn  = document.getElementById('header-user-btn');
+  const userIcon = document.getElementById('header-user-icon');
+  if (userBtn && userIcon) {
+    if (session) {
+      // Sesión activa: gris (por defecto)
+      userBtn.classList.remove('no-session');
+    } else {
+      // Sin sesión: rojo
+      userBtn.classList.add('no-session');
+    }
+
+    // Click abre perfil o avisa si no hay sesión
+    userBtn.addEventListener('click', () => {
+      if (session) {
+        window.location.href = '/usuario.html';
+      } else {
+        alert('No hay usuario activo.');
       }
     });
   }
+});
 
-  // --- Toggle, búsqueda, dark mode y logout ---
-  const toggle     = sidebar.querySelector('.toggle');
-  const searchBtn  = sidebar.querySelector('.search-box');
-  const modeSwitch = sidebar.querySelector('.toggle-switch');
-  const modeText   = sidebar.querySelector('.mode-text');
-  const logoutBtn  = sidebar.querySelector('#logout');
-
-  function adjustHome() {
-    if (!home) return;
-    if (sidebar.classList.contains('close')) {
-      home.style.left  = '78px';
-      home.style.width = 'calc(100% - 78px)';
-    } else {
-      home.style.left  = '250px';
-      home.style.width = 'calc(100% - 250px)';
-    }
-  }
-
-  toggle.addEventListener('click', () => {
-    sidebar.classList.toggle('close');
-    adjustHome();
+// Navegación de la bottom tab bar
+window.addEventListener('footerReady', () => {
+  document.querySelectorAll('.tab-bar button[data-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-target');
+      if (target) window.location.href = target;
+    });
   });
-
-  if (searchBtn) {
-    searchBtn.addEventListener('click', () => {
-      sidebar.classList.remove('close');
-      adjustHome();
-    });
-  }
-
-  if (modeSwitch) {
-    modeSwitch.addEventListener('click', () => {
-      body.classList.toggle('dark');
-      modeText.innerText = body.classList.contains('dark') ? 'Light mode' : 'Dark mode';
-    });
-  }
-
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      await supabase.auth.signOut();
-      window.location.href = 'login.html';
-    });
-  }
-
-  // --- Botón Escanear QR ---
-  const scanBtn = sidebar.querySelector('#scan-qr-btn');
-  if (scanBtn) {
-    scanBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      startQrScanner();
-    });
-  }
-
-  // Ajuste inicial de .home
-  adjustHome();
-}
-
-// Inyecta el sidebar y lanza initSidebar
-window.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('sidebar-container');
-  if (container) {
-    fetch('/sidebar.html')
-      .then(res => res.text())
-      .then(html => {
-        container.innerHTML = html;
-        initSidebar();
-        window.dispatchEvent(new Event('sidebarReady'));
-      })
-      .catch(err => console.error('Error cargando sidebar:', err));
-  } else {
-    initSidebar();
-    window.dispatchEvent(new Event('sidebarReady'));
-  }
 });
