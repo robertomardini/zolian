@@ -299,7 +299,7 @@ button.primary:hover {
 
 #gallery-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 24px;
   list-style: none;
   padding: 0;
