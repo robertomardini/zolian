@@ -324,7 +324,7 @@ button.primary:hover {
 /* Contenedor de la miniatura */
 .thumb-container {
   width: 100%;
-  height: 100%;         /* altura fija 140px */
+  height: 300px;         /* altura fija */
   overflow: hidden;
   background: #000;      /* para que no se vea hueco */
 }
