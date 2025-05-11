@@ -5,7 +5,7 @@
   <title>Zolian TV</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 
-  <!-- Boxicons para el icono fullscreen -->
+  <!-- Boxicons para el icono de fullscreen -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
@@ -63,26 +63,23 @@
   <script src="/qrcode.min.js"></script>
   <script>
   (async () => {
+    // 1) Inicialización y QR
     const params = new URLSearchParams(location.search);
     let code = params.get('code');
     if (!code) {
       code = crypto.randomUUID();
       history.replaceState(null, '', `?code=${code}`);
     }
-
-    // Generar el QR
     new QRCode('qr', {
       text: `${location.origin}/vincular.html?code=${code}`,
-      width: 260,
-      height: 260
+      width: 260, height: 260
     });
 
-    // Fullscreen
-    document.getElementById('fs-btn').onclick = async () => {
-      await document.documentElement.requestFullscreen();
-    };
+    // 2) Fullscreen
+    document.getElementById('fs-btn').onclick = () =>
+      document.documentElement.requestFullscreen();
 
-    // Función para mostrar iframe
+    // 3) Función para mostrar iframe
     function showInIframe(path) {
       console.log('[TV] showInIframe →', path);
       document.getElementById('controls').style.display = 'none';
@@ -91,34 +88,36 @@
       frame.style.display = 'block';
     }
 
-    // 1) Estado inicial: si ya hay gallery_id o video_url, lo mostramos sin esperar update
+    // 4) Estado inicial
     try {
-      const { data: tv, error: initErr } = await supabase
+      const { data: tv, error } = await supabase
         .from('tv')
         .select('gallery_id,video_url')
         .eq('code', code)
         .maybeSingle();
-      if (initErr) console.error('[TV] Error init:', initErr);
-      else if (tv) {
-        if (tv.gallery_id) {
-          showInIframe(`/slideshow.html?code=${code}`);
-        } else if (tv.video_url) {
-          showInIframe(`/player.html?code=${code}`);
-        }
+      if (!error && tv) {
+        if (tv.gallery_id)       showInIframe(`/slideshow.html?code=${code}`);
+        else if (tv.video_url)   showInIframe(`/player.html?code=${code}`);
       }
     } catch (e) {
-      console.error('[TV] Init fetch falla:', e);
+      console.error('[TV] init fetch:', e);
     }
 
-    // 2) Suscripción a cambios: recarga completa al recibir un UPDATE
-    supabase
-      .from(`tv:code=eq.${code}`)
-      .on('UPDATE', payload => {
+    // 5) Suscripción Realtime con CHANNEL
+    const channel = supabase
+      .channel(`tv_updates_${code}`)
+      .on('postgres_changes', {
+        event:  'UPDATE',
+        schema: 'public',
+        table:  'tv',
+        filter: `code=eq.${code}`
+      }, payload => {
         console.log('[TV] Realtime payload:', payload);
-        // forzamos un reload para refrescar todo automáticamente
+        // Forzamos recarga completa para re-ejecutar la lógica inicial
         window.location.reload();
       })
       .subscribe();
+
   })();
   </script>
 </body>
