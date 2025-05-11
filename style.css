@@ -312,6 +312,7 @@ button.primary:hover {
   flex-direction: column;
   background: var(--primary-color);
   border-radius: 12px;
+  height: 160px;
   overflow: hidden;
   cursor: pointer;
   transition: transform .2s, background .2s;
