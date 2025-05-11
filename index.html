@@ -81,50 +81,46 @@
   <script>
   (()=>{
     const params = new URLSearchParams(location.search);
-    let code = params.get('code');
-    if (!code) {
-      code = crypto.randomUUID();
-      history.replaceState(null, '', `?code=${code}`);
-    }
+  const code   = params.get('code') || (() => {
+    const uuid = crypto.randomUUID();
+    history.replaceState(null, '', `?code=${uuid}`);
+    return uuid;
+  })();
 
-    // Generar el QR
-    new QRCode('qr', {
-      text: `${location.origin}/vincular.html?code=${code}`,
-      width: 260,
-      height: 260
-    });
+  // Generar el QR
+  new QRCode('qr', { text:`${location.origin}/vincular.html?code=${code}`, width:260, height:260 });
 
-    // Botón fullscreen
-    document.getElementById('fs-btn').onclick = async () => {
-      await document.documentElement.requestFullscreen();
-    };
+  // Fullscreen
+  document.getElementById('fs-btn').onclick = () =>
+    document.documentElement.requestFullscreen();
 
-    // Muestra el player/slideshow en el iframe
-    function showInIframe(path) {
-      document.getElementById('controls').style.display = 'none';
-      const frame = document.getElementById('viewer-frame');
-      frame.src = path;
-      frame.style.display = 'block';
-    }
+  // Mostrar en iframe
+  function showInIframe(path) {
+    document.getElementById('controls').style.display = 'none';
+    const frame = document.getElementById('viewer-frame');
+    frame.src           = path;
+    frame.style.display = 'block';
+  }
 
-    // Escuchar cambios en la tabla tv
-    supabase
-      .channel(`tv_updates_${code}`)
-      .on('postgres_changes', {
-         event: 'UPDATE', schema: 'public', table: 'tv',
-         filter: `code=eq.${code}`
-      }, ({ new: tv }) => {
-        if (tv.gallery_id) {
-          showInIframe(`/slideshow.html?code=${code}`);
-        } else if (tv.video_url) {
-          showInIframe(`/player.html?code=${code}`);
-        }
-      })
-.subscribe({
-      onOpen:    () => console.log('✅ Suscripción abierta'),
-      onError:   (err) => console.error('❌ Error suscripción:', err),
-      onClose:   () => console.log('⚠️ Suscripción cerrada'),
-    });
+  // Creamos el canal y nos suscribimos
+  const channel = supabase
+    .channel(`tv_updates_${code}`)
+    .on('postgres_changes', {
+       event:  'UPDATE',
+       schema: 'public',
+       table:  'tv',
+       filter: `code=eq.${code}`
+    }, ({ new: tv }) => {
+      console.log('📣 Realtime:', tv);
+      if (tv.gallery_id)    showInIframe(`/slideshow.html?code=${code}`);
+      else if (tv.video_url) showInIframe(`/player.html?code=${code}`);
+    })
+    .subscribe();  // <— sin argumentos
+
+  // Ahora enganchamos los eventos de estado del canal
+  channel.on('open', ()  => console.log('✅ Suscripción abierta'));
+  channel.on('error', e => console.error('❌ Error suscripción:', e));
+  channel.on('close', () => console.log('⚠️ Suscripción cerrada'));
 })();
   </script>
     <!-- Boxicons (para el icono fullscreen) -->
