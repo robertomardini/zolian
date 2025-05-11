@@ -94,7 +94,7 @@
           .limit(1)
           .maybeSingle();
 
-        let thumbHtml = `<box-icon name="images" color="white" size="48px"></box-icon>`;
+        let thumbHtml = `<box-icon name="images" color="white" size="300px"></box-icon>`;
         if (img && img.url) {
           const { data: { publicUrl } } = supabase
             .storage.from('images')
