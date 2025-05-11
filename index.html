@@ -83,12 +83,12 @@
     let code = params.get('code');
     if (!code) {
       code = crypto.randomUUID();
-      history.replaceState(null, '', ?code=${code});
+      history.replaceState(null, '', `?code=${code}`);
     }
 
     // Generar el QR
     new QRCode('qr', {
-      text: ${location.origin}/vincular.html?code=${code},
+      text: `${location.origin}/vincular.html?code=${code}`,
       width: 260,
       height: 260
     });
@@ -108,15 +108,15 @@
 
     // Escuchar cambios en la tabla tv
     supabase
-      .channel(tv_updates_${code})
+      .channel(`tv_updates_${code}`)
       .on('postgres_changes', {
          event: 'UPDATE', schema: 'public', table: 'tv',
-         filter: code=eq.${code}
+         filter: `code=eq.${code}`
       }, ({ new: tv }) => {
         if (tv.gallery_id) {
-          showInIframe(/slideshow.html?code=${code});
+          showInIframe(`/slideshow.html?code=${code}`);
         } else if (tv.video_url) {
-          showInIframe(/player.html?code=${code});
+          showInIframe(`/player.html?code=${code}`);
         }
       })
       .subscribe();
