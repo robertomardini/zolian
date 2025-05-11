@@ -120,8 +120,12 @@
           showInIframe(`/player.html?code=${code}`);
         }
       })
-      .subscribe();
-  })();
+.subscribe({
+      onOpen:    () => console.log('✅ Suscripción abierta'),
+      onError:   (err) => console.error('❌ Error suscripción:', err),
+      onClose:   () => console.log('⚠️ Suscripción cerrada'),
+    });
+})();
   </script>
     <!-- Boxicons (para el icono fullscreen) -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>  
