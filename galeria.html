@@ -21,10 +21,13 @@
 
   <!-- Contenido principal -->
   <section class="home">
-    <div class="gallery-block">
+    <!-- Añadimos la clase "block" para el fondo blanco y sombra -->
+    <div class="gallery-block block">
       <div class="text">Mis Álbumes</div>
+
       <ul id="gallery-list"></ul>
-      <p id="no-galleries" style="display:none; color: var(--text-color);">
+
+      <p id="no-galleries" style="display:none; text-align:center; color: var(--text-color);">
         No tienes álbumes creados.<br>
         Crea uno desde “Administrar Pantalla”.
       </p>
@@ -42,11 +45,10 @@
         const redirect = encodeURIComponent('/galeria.html');
         return window.location.href = `login.html?redirect=${redirect}`;
       }
-      const user = session.user;
 
       // 2) Mostrar email en el header
       const emailEl = document.getElementById('header-user-email');
-      if (emailEl) emailEl.innerText = user.email;
+      if (emailEl) emailEl.innerText = session.user.email;
 
       // 3) Logout desde el header
       const logoutBtn = document.getElementById('logout-btn');
@@ -62,7 +64,7 @@
       const { data: galleries, error } = await supabase
         .from('galleries')
         .select('id, name, duration, slideshow_type')
-        .eq('user_id', user.id)
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       const listEl = document.getElementById('gallery-list');
@@ -97,7 +99,7 @@
           const { data: { publicUrl } } = supabase
             .storage.from('images')
             .getPublicUrl(img.url);
-          thumbHtml = `<img src="${publicUrl}" class="album-thumb" alt="Miniatura" />`;
+          thumbHtml = `<img src="${publicUrl}" alt="Miniatura" />`;
         }
 
         const typeLabel = typeMap[g.slideshow_type] || g.slideshow_type;
