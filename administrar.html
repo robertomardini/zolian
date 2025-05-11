@@ -1,115 +1,200 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <title>Administrar Pantalla – Zolian App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+  <!-- Tu CSS principal -->
+  <link rel="stylesheet" href="/style.css"/>
+  <!-- Boxicons -->
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
+
+  <!-- Supabase y utilidades de header/footer -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
-  <style>
-    
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    h1, h2 { margin-bottom: 12px; }
-    ul { list-style: none; padding: 0; margin-bottom: 16px; }
-    li { padding: 8px; border: 1px solid #ccc; margin-bottom: 4px; cursor: pointer; }
-    li:hover { background: #f0f0f0; }
-
-//
-    
-  </style>
+  <script src="/script.js"></script>
 </head>
 <body>
-  <h1>Administrar Pantalla</h1>
-  <p>Pantalla: <strong id="screenName"></strong></p>
-  <p>Usuario: <strong id="userEmail"></strong></p>
+  <!-- Header inyectado -->
+  <div id="header-container"></div>
 
-  <h2 id="albumsTitle">Selecciona un álbum:</h2>
-  <ul id="galleryList"></ul>
+  <section class="home">
+    <h1>Editar Pantalla</h1>
 
-  <button id="createAlbum">Crear nuevo álbum</button>
-  <p id="unlink">Desvincular esta pantalla</p>
+    <!-- Tarjeta de la pantalla -->
+    <div id="screenCard" class="screen-card">
+      <box-icon name="tv" size="48px"></box-icon>
+      <span id="screenName">Pantalla</span>
+    </div>
+
+    <!-- Bloque de álbumes -->
+    <div class="block admin-block">
+      <h2>Selecciona un álbum</h2>
+      <ul id="galleryList" class="item-list"></ul>
+      <button id="createAlbum" class="primary">
+        <box-icon name="plus"></box-icon>
+        Crear nuevo álbum
+      </button>
+    </div>
+
+    <!-- Bloque de vídeos -->
+    <div class="block admin-block">
+      <h2>Selecciona un vídeo</h2>
+      <ul id="videoList" class="item-list"></ul>
+      <button id="createVideo" class="primary">
+        <box-icon name="video-plus"></box-icon>
+        Subir nuevo vídeo
+      </button>
+    </div>
+
+    <!-- Desvincular pantalla -->
+    <a id="unlink" class="text-link">Desvincular esta pantalla</a>
+  </section>
+
+  <!-- Footer inyectado -->
+  <div id="footer-container"></div>
 
   <script>
-    (async () => {
+    // Función principal
+    async function initAdmin() {
       const code = new URLSearchParams(location.search).get('code');
       if (!code) {
-        alert('Falta el parámetro code de TV. Volviendo a Mis Pantallas.');
-        location.href = 'pantallas.html';
-        return;
+        return window.location.href = 'pantallas.html';
       }
 
       // 1) Sesión
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        const redirect = encodeURIComponent(`/administrar.html?code=${code}`);
-        location.href = `login.html?redirect=${redirect}`;
-        return;
+      const { data: { session }, error: sessErr } = await supabase.auth.getSession();
+      if (sessErr || !session) {
+        const redirect = encodeURIComponent(location.pathname + location.search);
+        return window.location.href = `login.html?redirect=${redirect}`;
       }
-      document.getElementById('userEmail').innerText = session.user.email;
 
-      // 2) Leer datos de la pantalla
+      // 2) Datos de la TV
       const { data: tv, error: tvErr } = await supabase
         .from('tv')
         .select('nombre,user_id')
         .eq('code', code)
         .maybeSingle();
       if (tvErr || !tv || tv.user_id !== session.user.id) {
-        alert('Pantalla no válida o sin permisos. Volviendo a Mis Pantallas.');
-        location.href = 'pantallas.html';
-        return;
+        return window.location.href = 'pantallas.html';
       }
       document.getElementById('screenName').innerText = tv.nombre;
 
-      // 3) Cargar álbumes del usuario
-      const { data: galleries, error } = await supabase
+      // Mapa de etiquetas
+      const typeLabels = {
+        fade:     'Fade',
+        slide:    'Slide Horizontal',
+        vertical: 'Slide Vertical',
+        zoom:     'Zoom',
+        kenburns: 'Ken Burns'
+      };
+
+      // 3) Listar álbumes
+      const { data: galleries, error: galErr } = await supabase
         .from('galleries')
-        .select('id,name')
+        .select('id,name,duration,slideshow_type')
         .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-      if (error) {
-        document.getElementById('albumsTitle').innerText = 'Error cargando álbumes';
-      }
-      const ul = document.getElementById('galleryList');
-      galleries.forEach(g => {
-        const li = document.createElement('li');
-        li.textContent = g.name;
-        li.onclick = async () => {
-          // Actualizar TV: asignar álbum y disparar slideshow
-          const { error: updateErr } = await supabase
-            .from('tv')
-            .update({ gallery_id: g.id, play: true })
-            .eq('code', code);
-          if (updateErr) {
-            alert('Error al asignar álbum: ' + updateErr.message);
-          } else {
-            alert('¡Listo! La TV arrancará el slideshow.');
-          }
-        };
-        ul.appendChild(li);
-      });
+        .order('created_at', { ascending:false });
+      if (galErr) console.error('Error cargando galerías:', galErr);
 
-      // 4) Botón "Crear nuevo álbum"
-      document.getElementById('createAlbum').onclick = () => {
-        // Redirige a la página de creación, pasando el código de la pantalla
-        location.href = `crear-album.html`;
-      };
+      const gl = document.getElementById('galleryList');
+      gl.innerHTML = '';
+      for (let g of galleries || []) {
+        // miniatura o icono
+        const { data: imgData } = await supabase
+          .from('images')
+          .select('url')
+          .eq('gallery_id', g.id)
+          .order('created_at',{ ascending:false })
+          .limit(1)
+          .maybeSingle();
 
-      // 5) Desvincular pantalla
-      document.getElementById('unlink').onclick = async () => {
-        if (!confirm('¿Estás seguro de desvincular esta pantalla?')) return;
-        // Quitamos la vinculación al usuario (y álbum)
-        const { error: unlinkErr } = await supabase
-          .from('tv')
-          .update({ user_id: null, gallery_id: null, play: false })
-          .eq('code', code);
-        if (unlinkErr) {
-          alert('Error al desvincular: ' + unlinkErr.message);
-        } else {
-          alert('Pantalla desvinculada correctamente.');
-          location.href = 'pantallas.html';
+        let thumbHtml = `<box-icon name="image-alt" size="32px"></box-icon>`;
+        if (imgData?.url) {
+          const { data:{ publicUrl } } = supabase
+            .storage.from('images')
+            .getPublicUrl(imgData.url);
+          thumbHtml = `<img class="thumb" src="${publicUrl}" alt="Miniatura"/>`;
         }
+
+        const li = document.createElement('li');
+        const meta = `${typeLabels[g.slideshow_type]||g.slideshow_type} • ${g.duration}s`;
+        li.innerHTML = `
+          <div class="thumb-container">${thumbHtml}</div>
+          <div class="info-block">
+            <span class="name">${g.name}</span>
+            <span class="meta">${meta}</span>
+          </div>
+        `;
+        li.onclick = async () => {
+          const { error } = await supabase
+            .from('tv')
+            .update({
+              gallery_id:     g.id,
+              duration:       g.duration,
+              slideshow_type: g.slideshow_type,
+              play:           true,
+              video_url:      null
+            })
+            .eq('code', code);
+          alert(error ? `Error: ${error.message}` : 'Álbum asignado.');
+        };
+        gl.appendChild(li);
+      }
+
+      // 4) Listar vídeos
+      const { data: vids, error: vidErr } = await supabase
+        .from('videos')
+        .select('id,url,title')
+        .eq('user_id', session.user.id)
+        .order('created_at',{ ascending:false });
+      if (vidErr) console.error('Error cargando vídeos:', vidErr);
+
+      const vl = document.getElementById('videoList');
+      vl.innerHTML = '';
+      for (let v of vids || []) {
+        const title = v.title || v.url.split('/').pop();
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span>${title}</span>
+          <span class="meta">Vídeo</span>
+        `;
+        li.onclick = async () => {
+          const { error } = await supabase
+            .from('tv')
+            .update({
+              video_url:  v.url,
+              play:       true,
+              gallery_id: null
+            })
+            .eq('code', code);
+          alert(error ? `Error: ${error.message}` : 'Vídeo asignado.');
+        };
+        vl.appendChild(li);
+      }
+
+      // 5) Crear nuevos con template literals correctos
+      document.getElementById('createAlbum').onclick = () =>
+        location.href = `crear-album.html?code=${code}`;
+
+      document.getElementById('createVideo').onclick = () =>
+        location.href = `misvideos.html?code=${code}`;
+
+      // 6) Desvincular
+      document.getElementById('unlink').onclick = async () => {
+        if (!confirm('¿Desvincular pantalla?')) return;
+        const { error } = await supabase
+          .from('tv')
+          .update({ user_id:null, gallery_id:null, video_url:null, play:false })
+          .eq('code', code);
+        alert(error ? `Error: ${error.message}` : 'Pantalla desvinculada.');
+        if (!error) window.location.href = 'pantallas.html';
       };
-    })();
+    }
+
+    // Sólo arrancamos al tener header inyectado
+    window.addEventListener('headerReady', initAdmin);
   </script>
 </body>
 </html>
