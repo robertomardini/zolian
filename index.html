@@ -1,123 +1,116 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8"/>
-  <title>Zolian TV</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <title>Vincular TV – Zolian App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Boxicons para el icono de fullscreen -->
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <!-- QR Code -->
+  <script src="/qrcode.min.js"></script>
+  <!-- Boxicons para el icono fullscreen -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
     html, body {
-      margin: 0; padding: 0;
-      height: 100%; overflow: hidden;
-      background: url('/Zolian-BG.png') center/cover no-repeat;
-      color: #fff;
-    }
-    #controls {
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      z-index: 10; text-align: center;
+      margin:0; padding:0;
+      width:100%; height:100%;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      background:#000; color:#fff;
+      font-family:Arial,sans-serif;
+      position: relative; /* para posicionar absolute hijos */
     }
     #qr {
-      background: #fff; padding: 8px;
-      border-radius: 8px; margin-bottom: 12px;
+      background:#fff;
+      padding:12px;
+      border-radius:8px;
     }
-    #controls p {
-      margin: 0; font-size: 1.2rem;
+    .qr-instruction {
+      color: #fff;
+      margin-top: 8px;
+      font-size: 0.9rem;
+      text-align: center;
     }
-    #fs-btn {
-      position: absolute; top: 10px; right: 10px;
+    /* Botón de iniciar con solo icono, esquina superior derecha */
+    #startBtn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
       background: rgba(255,255,255,0.8);
-      border: none; border-radius: 4px;
-      padding: 6px; cursor: pointer; z-index: 11;
+      border: none;
+      border-radius: 4px;
+      padding: 6px;
+      cursor: pointer;
     }
-    #fs-btn i {
-      font-size: 1.5rem; color: #000;
+    #startBtn i {
+      font-size: 3rem;
+      color: #000;
     }
-    #viewer-frame {
-      display: none; position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      border: none; z-index: 0;
-    }
-    /* Ocultar cursor/botón en fullscreen */
-    :fullscreen body, :-webkit-full-screen body { cursor: none; }
-    :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { display: none !important; }
   </style>
 </head>
 <body>
-  <div id="controls">
-    <div id="qr"></div>
-    <p>Escanea el QR para administrar esta pantalla</p>
-    <button id="fs-btn"><i class="bx bx-fullscreen"></i></button>
-  </div>
-  <iframe id="viewer-frame"></iframe>
+  <div id="qr"></div>
+  <p class="qr-instruction">Escanea con tu móvil para administrar esta pantalla</p>
 
-  <!-- Supabase y QR -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
-  <script src="/qrcode.min.js"></script>
+  <button id="startBtn">
+    <i class="bx bx-fullscreen"></i>
+  </button>
+
   <script>
-  (async () => {
-    // 1) Inicialización y QR
+  (()=>{
+    // 1) Leer o generar el code de esta TV
     const params = new URLSearchParams(location.search);
     let code = params.get('code');
     if (!code) {
       code = crypto.randomUUID();
       history.replaceState(null, '', `?code=${code}`);
     }
+
+    // 2) Mostrar QR para vincular desde el teléfono
     new QRCode('qr', {
       text: `${location.origin}/vincular.html?code=${code}`,
-      width: 260, height: 260
+      width: 260,
+      height: 260
     });
 
-    // 2) Fullscreen
-    document.getElementById('fs-btn').onclick = () =>
-      document.documentElement.requestFullscreen();
-
-    // 3) Función para mostrar iframe
-    function showInIframe(path) {
-      console.log('[TV] showInIframe →', path);
-      document.getElementById('controls').style.display = 'none';
-      const frame = document.getElementById('viewer-frame');
-      frame.src = path;
-      frame.style.display = 'block';
-    }
-
-    // 4) Estado inicial
-    try {
-      const { data: tv, error } = await supabase
-        .from('tv')
-        .select('gallery_id,video_url')
-        .eq('code', code)
-        .maybeSingle();
-      if (!error && tv) {
-        if (tv.gallery_id)       showInIframe(`/slideshow.html?code=${code}`);
-        else if (tv.video_url)   showInIframe(`/player.html?code=${code}`);
-      }
-    } catch (e) {
-      console.error('[TV] init fetch:', e);
-    }
-
-    // 5) Suscripción Realtime con CHANNEL
-    const channel = supabase
-      .channel(`tv_updates_${code}`)
+    // 3) Suscripción automática: en cuanto se defina gallery_id, voy directamente al slideshow
+    supabase
+      .channel(`tv_link_${code}`)
       .on('postgres_changes', {
-        event:  'UPDATE',
-        schema: 'public',
-        table:  'tv',
+        event: 'UPDATE',
+        schema: 'public', table: 'tv',
         filter: `code=eq.${code}`
-      }, payload => {
-        console.log('[TV] Realtime payload:', payload);
-        // Forzamos recarga completa para re-ejecutar la lógica inicial
-        window.location.reload();
+      }, ({ new: tv }) => {
+        if (tv.gallery_id) {
+          location.href = `/slideshow.html?code=${code}`;
+        }
       })
       .subscribe();
 
+    // 4) Al hacer click en el icono fullscreen
+    document.getElementById('startBtn').onclick = async () => {
+      await document.documentElement.requestFullscreen();
+      subscribePlay();
+    };
+
+    function subscribePlay(){
+      supabase
+        .channel(`tv_play_${code}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public', table: 'tv',
+          filter: `code=eq.${code}`
+        }, ({ new: tv }) => {
+          if (tv.play) {
+            location.href = `/slideshow.html?code=${code}`;
+          }
+        })
+        .subscribe();
+    }
   })();
   </script>
 </body>
