@@ -218,8 +218,8 @@ button.primary:hover {
 }
 
 .tv-thumb {
-  width: 100px;
-  height: 100%;
+  width: 100%;
+  height: 150px;
   object-fit: cover;
   border-radius: 6px;
 }
