@@ -22,9 +22,9 @@
   <!-- Contenido principal -->
   <section class="home">
     <div class="pantallas-block">
-      <div class="text">Mis Pantallas</div>
+      <h1 class="pantallas-title">Mis Pantallas</h1>
       <ul id="screens-list"></ul>
-      <p id="no-screens" style="display:none;">
+      <p id="no-screens" class="no-screens">
         No tienes pantallas vinculadas.<br>
         Escanea un QR para agregar una.
       </p>
@@ -36,32 +36,27 @@
 
   <script>
     async function initPantallas() {
-      // 1) Verificar sesión
-      const { data: { session } } = await supabase.auth.getSession();
+      // 1) Sesión
+      const { data:{ session } } = await supabase.auth.getSession();
       if (!session) {
-        // Redirigir al login y luego a esta página
         const redirect = encodeURIComponent('/pantallas.html');
         return window.location.href = `login.html?redirect=${redirect}`;
       }
 
-      // 2) Mostrar email en el header
-      const emailEl = document.getElementById('header-user-email');
-      if (emailEl) emailEl.innerText = session.user.email;
-
-      // 3) Logout en el header
-      const logoutBtn = document.getElementById('logout-btn');
-      if (logoutBtn) {
-        logoutBtn.addEventListener('click', async (e) => {
-          e.preventDefault();
-          await supabase.auth.signOut();
-          window.location.href = 'login.html';
-        });
-      }
-
-      // 4) Cargar pantallas del usuario
+      // 2) Cargar pantallas con datos del álbum
       const { data: screens, error } = await supabase
         .from('tv')
-        .select('code, nombre')
+        .select(`
+          code,
+          nombre,
+          video_url,
+          gallery_id,
+          galleries (
+            name,
+            duration,
+            slideshow_type
+          )
+        `)
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
@@ -74,21 +69,45 @@
         return;
       }
 
-      // 5) Renderizar tarjetas
-      screens.forEach(p => {
+      const typeLabels = {
+        fade:     'Fade',
+        slide:    'Slide Horizontal',
+        vertical: 'Slide Vertical',
+        zoom:     'Zoom',
+        kenburns: 'Ken Burns'
+      };
+
+      // 3) Renderizar cada tarjeta
+      screens.forEach(s => {
+        let content, meta;
+        if (s.gallery_id && s.galleries) {
+          content = s.galleries.name;
+          meta    = `${typeLabels[s.galleries.slideshow_type] || s.galleries.slideshow_type} · ${s.galleries.duration}s`;
+        } else if (s.video_url) {
+          content = 'Vídeo';
+          meta    = ''; // aquí podrías extraer duración real si la guardas
+        } else {
+          content = 'Sin contenido';
+          meta    = '';
+        }
+
         const li = document.createElement('li');
         li.innerHTML = `
-          <box-icon name="tv" size="48px"></box-icon>
-          <span>${p.nombre || p.code}</span>
+          <div class="screen-card">
+            <img src="/tv_thumbnail.png" alt="TV" class="screen-thumb" />
+            <div class="screen-details">
+              <div class="screen-name">${s.nombre}</div>
+              <div class="screen-content">${content}</div>
+              <div class="screen-meta">${meta}</div>
+            </div>
+          </div>
         `;
-        li.onclick = () => {
-          window.location.href = `/administrar.html?code=${p.code}`;
-        };
+        li.onclick = () => window.location.href = `/administrar.html?code=${s.code}`;
         listEl.appendChild(li);
       });
     }
 
-    // Esperar a que el header esté inyectado para inicializar
+    // Inicializar cuando el header ya esté cargado
     window.addEventListener('headerReady', initPantallas);
   </script>
 </body>
