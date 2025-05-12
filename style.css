@@ -216,6 +216,14 @@ button.primary:hover {
   cursor: pointer;
   transition: var(--tran);
 }
+
+.tv-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
 #screens-list li:hover {
   background: var(--primary-color-light);
   color: var(--primary-color);
@@ -240,6 +248,7 @@ button.primary:hover {
 }
 #screens-list li:hover span {
   color: var(--primary-color);
+  
 }
 #no-screens {
   margin-top: 24px;
