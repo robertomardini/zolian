@@ -41,7 +41,7 @@
       if (!session) {
         // Redirigir al login y luego a esta página
         const redirect = encodeURIComponent('/pantallas.html');
-        return window.location.href = login.html?redirect=${redirect};
+        return window.location.href = `login.html?redirect=${redirect}`;
       }
 
       // 2) Mostrar email en el header
@@ -74,15 +74,16 @@
         return;
       }
 
-      // 5) Renderizar tarjetas
+      // 5) Renderizar tarjetas (añadiendo la miniatura)
       screens.forEach(p => {
         const li = document.createElement('li');
-        li.innerHTML = 
+        li.innerHTML = `
+          <img src="/tv_thumbnail.png" alt="TV" class="tv-thumb" />
           <box-icon name="tv" size="48px"></box-icon>
           <span>${p.nombre || p.code}</span>
-        ;
+        `;
         li.onclick = () => {
-          window.location.href = /administrar.html?code=${p.code};
+          window.location.href = `/administrar.html?code=${p.code}`;
         };
         listEl.appendChild(li);
       });
