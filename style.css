@@ -410,3 +410,15 @@ button.primary:hover {
 .info-block { display: flex; flex-direction: column; }
 .info-block .name { font-weight: 600; font-size: 1rem; color: var(--text-color); }
 .info-block .meta { font-size: .875rem; color: #999; margin-top: 4px; }
+
+.footer-icon {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px; /* separa un poco del texto */
+  object-fit: contain;
+}
+.tab-bar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
