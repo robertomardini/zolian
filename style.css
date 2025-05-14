@@ -86,7 +86,11 @@ body {
   padding: 0;
   margin: 0;
 }
-
+.tab-bar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 .app-header .user-btn.no-session i {
   color: #e74c3c !important;
 }
