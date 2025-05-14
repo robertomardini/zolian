@@ -7,13 +7,7 @@
 
   <!-- Tu CSS principal -->
   <link rel="stylesheet" href="/style.css"/>
-  <!-- Boxicons -->
-  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
-
-  <!-- Supabase y script de header/footer -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <script src="/supabaseClient.js"></script>
-  <script src="/script.js"></script>
+  <!-- Ya no necesitamos el CSS de Boxicons aquí -->
 </head>
 <body>
   <!-- Cabecera inyectada -->
@@ -28,7 +22,7 @@
       <div class="input-group">
         <input type="file" id="video-file" accept="video/*"/>
         <button id="upload-video" class="primary">
-          <box-icon name="cloud-upload"></box-icon>
+          <img src="/boxicons/bx-cloud-upload.png" alt="Subir vídeo" class="icon"/>
           Subir vídeo
         </button>
       </div>
@@ -45,6 +39,11 @@
 
   <!-- Pie inyectado -->
   <div id="footer-container"></div>
+
+  <!-- Supabase y script de header/footer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="/supabaseClient.js"></script>
+  <script src="/script.js"></script>
 
   <script>
     async function initMisVideos() {
@@ -86,10 +85,10 @@
             <span>${v.title || v.url.split('/').pop()}</span>
             <div class="video-actions">
               <button class="play" title="Reproducir">
-                <box-icon name="play-circle"></box-icon>
+                <img src="/boxicons/bx-play-circle.png" alt="Reproducir" class="icon"/>
               </button>
               <button class="del" title="Borrar">
-                <box-icon name="trash"></box-icon>
+                <img src="/boxicons/bx-trash-x.png" alt="Borrar" class="icon"/>
               </button>
             </div>
           `;
