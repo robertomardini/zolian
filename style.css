@@ -57,11 +57,20 @@ body {
 .app-header .logo img {
   height: 32px;
 }
-.app-header .user-btn i {
+/*.app-header .user-btn i {
   font-size: 1.5rem;
   color: var(--text-color);
   transition: color var(--tran);
+}*/
+
+.app-header .user-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
 }
+
 .app-header .user-btn.no-session i {
   color: #e74c3c !important;
 }
