@@ -64,13 +64,14 @@ body {
 }
 
 .app-header .user-icon {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
 }*/
 /* Quita cualquier fondo/borde y redondea el <img> del user-btn */
+
 .app-header .user-btn img {
   display: block;      /* elimina espacio blanco extra */
   width: 32px;
@@ -79,6 +80,7 @@ body {
   object-fit: cover;   /* ajusta la imagen dentro del círculo */
   background: none;
   border: none;
+  cursor: pointer;
 }
 .app-header .user-btn {
   background: none;    /* asegúrate de que el botón no pinte fondo */
@@ -86,11 +88,7 @@ body {
   padding: 0;
   margin: 0;
 }
-.tab-bar button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+
 .app-header .user-btn.no-session i {
   color: #e74c3c !important;
 }
