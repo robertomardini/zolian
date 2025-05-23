@@ -23,15 +23,6 @@
   <section class="home">
     <h1>Editar Pantalla</h1>
 
-    <!-- Botón de rotación -->
-<div class="block admin-block">
-  <h2>Opciones de pantalla</h2>
-  <button id="rotateScreen" class="primary">
-    <box-icon name="rotate-right"></box-icon>
-    Rotar pantalla
-  </button>
-</div>
-
     <!-- Tarjeta de la pantalla -->
     <div id="screenCard" class="screen-card">
       <box-icon name="tv" size="48px"></box-icon>
@@ -55,6 +46,15 @@
       <button id="createVideo" class="primary">
         <box-icon name="video-plus"></box-icon>
         Subir nuevo vídeo
+      </button>
+    </div>
+
+    <!-- Opciones de pantalla -->
+    <div class="block admin-block">
+      <h2>Opciones de pantalla</h2>
+      <button id="rotateScreen" class="primary">
+        <box-icon name="rotate-right"></box-icon>
+        Rotar pantalla
       </button>
     </div>
 
@@ -184,10 +184,9 @@
         vl.appendChild(li);
       }
 
-      // 5) Crear nuevos con template literals correctos
+      // 5) Crear nuevos
       document.getElementById('createAlbum').onclick = () =>
         location.href = `crear-album.html?code=${code}`;
-
       document.getElementById('createVideo').onclick = () =>
         location.href = `misvideos.html?code=${code}`;
 
@@ -201,34 +200,29 @@
         alert(error ? `Error: ${error.message}` : 'Pantalla desvinculada.');
         if (!error) window.location.href = 'pantallas.html';
       };
+
+      // 7) Rotar pantalla
+      const btnRotar = document.getElementById('rotateScreen');
+      btnRotar?.addEventListener('click', async () => {
+        const { data: current, error: err } = await supabase
+          .from('tv')
+          .select('orientacion')
+          .eq('code', code)
+          .maybeSingle();
+        if (err) return alert('Error obteniendo orientación');
+
+        const nueva = current?.orientacion === 'vertical' ? 'horizontal' : 'vertical';
+        const { error: updateErr } = await supabase
+          .from('tv')
+          .update({ orientacion: nueva })
+          .eq('code', code);
+
+        alert(updateErr ? `Error: ${updateErr.message}` : `Pantalla girada a: ${nueva}`);
+      });
     }
 
     // Sólo arrancamos al tener header inyectado
     window.addEventListener('headerReady', initAdmin);
-
-          // 7) Rotar pantalla
-      const btnRotar = document.getElementById('rotateScreen');
-      if (btnRotar) {
-        btnRotar.onclick = async () => {
-          const { data: current, error: err } = await supabase
-            .from('tv')
-            .select('orientacion')
-            .eq('code', code)
-            .maybeSingle();
-
-          if (err) return alert('Error obteniendo orientación');
-
-          const nueva = current?.orientacion === 'vertical' ? 'horizontal' : 'vertical';
-
-          const { error: updateErr } = await supabase
-            .from('tv')
-            .update({ orientacion: nueva })
-            .eq('code', code);
-
-          alert(updateErr ? `Error: ${updateErr.message}` : `Pantalla girada a: ${nueva}`);
-        };
-      }
-
   </script>
 </body>
 </html>
