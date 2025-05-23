@@ -149,9 +149,13 @@
       // si no hay imágenes dejamos “Esperando…”
       return;
     }
-    const publicUrls = imgs.map(i =>
-      supabase.storage.from('images').getPublicUrl(i.url).data.publicUrl
-    );
+    const publicUrls = imgs.map(i => {
+   const pu = supabase.storage
+     .from('images')
+     .getPublicUrl(i.url)
+     .data.publicUrl;
+   return pu + '?t=' + Date.now();
+ });
 
     // Precarga todas las imágenes
     await Promise.all(publicUrls.map(url =>
