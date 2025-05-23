@@ -5,12 +5,12 @@
   <title>Slideshow – Zolian TV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Splide CSS (solo para slide) -->
+  <!-- Splide CSS -->
   <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.3/dist/css/splide.min.css"
   >
-  <!-- Boxicons para el icono fullscreen -->
+  <!-- Boxicons fullscreen -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
@@ -19,6 +19,18 @@
       width: 100%; height: 100%;
       overflow: hidden;
       background: url('/Zolian-BG.png') center/cover no-repeat;
+    }
+
+    /* Clase para rotar pantalla vertical */
+    .vertical-display {
+      transform: rotate(90deg);
+      transform-origin: left top;
+      width: 100vh;
+      height: 100vw;
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: hidden;
     }
 
     /* Fullscreen button */
@@ -72,18 +84,6 @@
       backface-visibility: hidden;
       transform: translateZ(0);
     }
-.vertical-display {
-  transform: rotate(90deg);
-  transform-origin: left top;
-  width: 100vh;
-  height: 100vw;
-  position: absolute;
-  top: 0;
-  left: 0;
-  overflow: hidden;
-}
-
-    
   </style>
 </head>
 <body>
@@ -107,6 +107,16 @@
     if (!code) {
       document.getElementById('waiting').innerText = 'Falta parámetro code en la URL';
       return;
+    }
+
+    // --- Aplicar orientación desde Supabase ---
+    const { data: orientData, error: orientErr } = await supabase
+      .from('tv')
+      .select('orientacion')
+      .eq('code', code)
+      .maybeSingle();
+    if (!orientErr && orientData?.orientacion === 'vertical') {
+      document.body.classList.add('vertical-display');
     }
 
     // Fullscreen button
@@ -158,7 +168,6 @@
       .eq('gallery_id', galleryId)
       .order('created_at', { ascending: true });
     if (!imgs?.length) {
-      // si no hay imágenes dejamos “Esperando…”
       return;
     }
     const publicUrls = imgs.map(i =>
@@ -238,18 +247,6 @@
       .subscribe();
 
   })();
-
-    // Obtener orientación desde Supabase y aplicar clase
-const { data: orientData } = await supabase
-  .from('tv')
-  .select('orientacion')
-  .eq('code', code)
-  .maybeSingle();
-
-if (orientData?.orientacion === 'vertical') {
-  document.body.classList.add('vertical-display');
-}
-
   </script>
 </body>
 </html>
