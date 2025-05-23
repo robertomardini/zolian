@@ -8,7 +8,7 @@
   <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
-  <!-- Boxicons fullscreen -->
+  <!-- Boxicons para el icono fullscreen -->
   <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet"/>
 
   <style>
@@ -17,19 +17,6 @@
       background: #000; overflow: hidden;
       width: 100%; height: 100%;
     }
-
-    /* Clase para rotar pantalla vertical */
-    .vertical-display {
-      transform: rotate(90deg);
-      transform-origin: left top;
-      width: 100vh;
-      height: 100vw;
-      position: absolute;
-      top: 0;
-      left: 0;
-      overflow: hidden;
-    }
-
     /* Botón fullscreen */
     #fs-btn {
       position: absolute; top: 10px; right: 10px;
@@ -41,12 +28,10 @@
     #fs-btn i {
       font-size: 1.5rem; color: #000;
     }
-
     video {
       width: 100vw; height: 100vh;
       object-fit: contain; background: #000;
     }
-
     /* En fullscreen ocultar cursor y botón */
     :fullscreen body, :-webkit-full-screen body { cursor: none; }
     :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { display: none !important; }
@@ -65,16 +50,6 @@
       return;
     }
 
-    // --- Aplicar orientación desde Supabase ---
-    const { data: orientData, error: orientErr } = await supabase
-      .from('tv')
-      .select('orientacion')
-      .eq('code', code)
-      .maybeSingle();
-    if (!orientErr && orientData?.orientacion === 'vertical') {
-      document.body.classList.add('vertical-display');
-    }
-
     // 1) Traer registro de TV
     const { data: tv, error: tvErr } = await supabase
       .from('tv')
@@ -87,7 +62,7 @@
       return;
     }
 
-    // 2) Si ya hay un álbum asignado → redirigir
+    // 2) Si ya hay un álbum asignado → redirigir a slideshow
     if (tv.gallery_id) {
       window.location.href = `/slideshow.html?code=${code}`;
       return;
@@ -99,7 +74,7 @@
       return;
     }
 
-    // 4) Obtener URL pública
+    // 4) Obtener URL pública (primera vez)
     const {
       data: { publicUrl },
       error: urlErr

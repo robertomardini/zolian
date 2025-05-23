@@ -57,22 +57,38 @@ body {
 .app-header .logo img {
   height: 32px;
 }
-.app-header .user-btn img {
-  display: block;
+/*.app-header .user-btn i {
+  font-size: 1.5rem;
+  color: var(--text-color);
+  transition: color var(--tran);
+}
+
+.app-header .user-icon {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  object-fit: cover;
+  overflow: hidden;
+  cursor: pointer;
+}*/
+/* Quita cualquier fondo/borde y redondea el <img> del user-btn */
+
+.app-header .user-btn img {
+  display: block;      /* elimina espacio blanco extra */
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;   /* ajusta la imagen dentro del círculo */
   background: none;
   border: none;
   cursor: pointer;
 }
 .app-header .user-btn {
-  background: none;
+  background: none;    /* asegúrate de que el botón no pinte fondo */
   border: none;
   padding: 0;
   margin: 0;
 }
+
 .app-header .user-btn.no-session i {
   color: #e74c3c !important;
 }
@@ -184,6 +200,186 @@ button.primary:hover {
   text-decoration: underline;
 }
 
+/* ================= Pantallas.html ================= */
+.pantallas-block {
+  width: 100%;
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 32px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.pantallas-block .text {
+  text-align: center;
+  margin-bottom: 24px;
+  font-size: 1.25rem;
+  color: var(--text-color);
+}
+
+/* ===== Lista de pantallas ===== */
+#screens-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media(min-width: 600px) {
+  #screens-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+#screens-list li {
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 12px;
+  aspect-ratio: 16/9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--tran);
+}
+
+.tv-thumb {
+  width: 150px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+#screens-list li:hover {
+  background: var(--primary-color-light);
+  color: var(--primary-color);
+}
+#screens-list li box-icon,
+#screens-list li box-icon svg,
+#screens-list li box-icon svg path {
+  transition: color .2s, fill .2s;
+  color: #fff !important;
+  fill: #fff !important;
+}
+#screens-list li:hover box-icon,
+#screens-list li:hover box-icon svg,
+#screens-list li:hover box-icon svg path {
+  color: var(--primary-color) !important;
+  fill: var(--primary-color) !important;
+}
+#screens-list li span {
+  margin-top: 8px;
+  font-weight: 500;
+  transition: color .2s;
+}
+#screens-list li:hover span {
+  color: var(--primary-color);
+  
+}
+#no-screens {
+  margin-top: 24px;
+  text-align: center;
+  color: var(--text-color);
+}
+
+/* ============ Galería de Álbumes ============ */
+.gallery-block {
+  max-width: 900px;
+  margin: 0 auto;
+  /* aplicamos bloque blanco */
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* grid de tarjetas */
+#gallery-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
+  gap: 24px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#gallery-list li {
+  display: flex;
+  flex-direction: column;
+  background: var(--primary-color);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .2s, background .2s;
+}
+#gallery-list li:hover {
+  transform: scale(1.03);
+  background: var(--primary-color-light);
+}
+
+/* miniatura grande sólo en galería */
+.gallery-block .thumb-container {
+  width: 100%;
+  height: 240px;
+  overflow: hidden;
+  background: #000;
+}
+.gallery-block .thumb-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* información (nombre + meta) */
+.album-info {
+  padding: 16px;
+  background: var(--primary-color);
+  text-align: center;
+}
+.album-info .album-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #fff;
+}
+.album-info .album-meta {
+  font-size: 0.85rem;
+  color: #fff;
+  margin-top: 4px;
+}
+
+/* ======== album.html ======== */
+.album-block {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-bottom: 24px;
+}
+.field-group { margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
+.actions button,
+.send-group button { width: 100%; }
+#images-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(120px,1fr));
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+}
+#images-list li {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #f0f0f0;
+}
+#images-list li img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.delete-btn { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; }
+
 /* =========== administrar.html =========== */
 .screen-card {
   background: var(--primary-color);
@@ -209,6 +405,7 @@ button.primary:hover {
   font-size: 1.25rem;
   color: var(--text-color);
 }
+/* miniaturas pequeñas sólo en administrador */
 .admin-block .thumb-container {
   width: 48px;
   height: 48px;
@@ -224,11 +421,9 @@ button.primary:hover {
   object-fit: cover;
   border-radius: 6px;
 }
-.item-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
+
+/* listas de items */
+.item-list { list-style: none; padding: 0; margin: 0; }
 .item-list li {
   display: flex;
   align-items: center;
@@ -237,38 +432,20 @@ button.primary:hover {
   cursor: pointer;
   transition: background .2s;
 }
-.item-list li:hover {
-  background: var(--primary-color-light);
+.item-list li:hover { background: var(--primary-color-light); }
+.item-list li:last-child { border-bottom: none; }
+.info-block { display: flex; flex-direction: column; }
+.info-block .name { font-weight: 600; font-size: 1rem; color: var(--text-color); }
+.info-block .meta { font-size: .875rem; color: #999; margin-top: 4px; }
+
+.footer-icon {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px; /* separa un poco del texto */
+  object-fit: contain;
 }
-.item-list li:last-child {
-  border-bottom: none;
-}
-.info-block {
+.tab-bar button {
   display: flex;
   flex-direction: column;
-}
-.info-block .name {
-  font-weight: 600;
-  font-size: 1rem;
-  color: var(--text-color);
-}
-.info-block .meta {
-  font-size: .875rem;
-  color: #999;
-  margin-top: 4px;
-}
-
-/* ============ Galería de Álbumes ============ */
-/* ... (resto del CSS para pantallas.html, galerías, etc.) ... */
-
-/* ===== Clase para rotar pantalla vertical ===== */
-.vertical-display {
-  transform: rotate(90deg);
-  transform-origin: left top;
-  width: 100vh;
-  height: 100vw;
-  position: absolute;
-  top: 0;
-  left: 0;
-  overflow: hidden;
+  align-items: center;
 }
