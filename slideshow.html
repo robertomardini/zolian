@@ -238,6 +238,18 @@
       .subscribe();
 
   })();
+
+    // Obtener orientación desde Supabase y aplicar clase
+const { data: orientData } = await supabase
+  .from('tv')
+  .select('orientacion')
+  .eq('code', code)
+  .maybeSingle();
+
+if (orientData?.orientacion === 'vertical') {
+  document.body.classList.add('vertical-display');
+}
+
   </script>
 </body>
 </html>
