@@ -160,14 +160,11 @@
           canvas.toBlob(resolve, blob.type)
         );
 
-        // 6) Re-subir al mismo path con upsert y sin caché
+        // 6) Re-subir al mismo path con upsert
         const { error: upErr } = await supabase
           .storage
           .from('images')
-          .upload(storagePath, rotatedBlob, {
-            upsert: true,
-            cacheControl: '0'
-          });
+          .upload(storagePath, rotatedBlob, { upsert: true });
         if (upErr) throw upErr;
       }
 
@@ -261,10 +258,12 @@
           ul.innerHTML = '';
 
           for (let img of imgs) {
+            // URL pública
             const publicUrl = supabase
               .storage.from('images')
               .getPublicUrl(img.url).data.publicUrl;
 
+            // Crear elemento
             const li = document.createElement('li');
             li.innerHTML = `
               <div class="image-container" data-storage-path="${img.url}">
@@ -275,10 +274,10 @@
             `;
             ul.appendChild(li);
 
-            const container   = li.querySelector('.image-container');
-            const imgEl       = container.querySelector('img');
-            const rotateBtn   = container.querySelector('.rotate-btn');
-            const deleteBtn   = container.querySelector('.delete-btn');
+            const container  = li.querySelector('.image-container');
+            const imgEl      = container.querySelector('img');
+            const rotateBtn  = container.querySelector('.rotate-btn');
+            const deleteBtn  = container.querySelector('.delete-btn');
             const storagePath = container.dataset.storagePath;
 
             // Eliminar imagen
@@ -295,7 +294,7 @@
               rotateBtn.disabled = true;
               try {
                 await rotateAndUpload(storagePath);
-                // recarga con bust-cache
+                // recarga bust cache
                 const refreshed = supabase
                   .storage.from('images')
                   .getPublicUrl(storagePath).data.publicUrl;
