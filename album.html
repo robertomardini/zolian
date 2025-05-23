@@ -14,13 +14,54 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="/supabaseClient.js"></script>
   <script src="/script.js"></script>
+
+  <style>
+    /* --- Estilos para el botón de girar y el contenedor --- */
+    .image-container {
+      position: relative;
+      display: inline-block;
+      margin: 8px;
+    }
+    .image-container img {
+      display: block;
+      width: 150px;
+      height: auto;
+      transition: transform 0.2s ease;
+    }
+    .rotate-btn,
+    .delete-btn {
+      position: absolute;
+      background: rgba(255,255,255,0.8);
+      border: none;
+      border-radius: 50%;
+      padding: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .rotate-btn {
+      top: 6px;
+      right: 6px;
+    }
+    .rotate-btn i {
+      font-size: 1.2rem;
+      color: #333;
+    }
+    .delete-btn {
+      top: 6px;
+      left: 6px;
+      font-size: 1rem;
+      color: #e74c3c;
+      line-height: 1;
+    }
+  </style>
 </head>
 <body>
   <!-- Header inyectado -->
   <div id="header-container"></div>
 
   <section class="home">
-    <!-- Título -->
     <div class="text">Administrar Álbum</div>
 
     <!-- Bloque 1: Ajustes del álbum -->
@@ -65,7 +106,7 @@
         <span id="upload-status"></span>
       </div>
 
-      <ul id="images-list"></ul>
+      <ul id="images-list" style="list-style:none; padding:0;"></ul>
 
       <div class="field-group send-group">
         <label for="tv-select">Enviar a pantalla</label>
@@ -89,8 +130,45 @@
   <div id="footer-container"></div>
 
   <script>
-    // Esperamos a que el header esté cargado para inicializar la lógica
     window.addEventListener('headerReady', () => {
+      // ------------- Función para rotar + re-subir -------------
+      async function rotateAndUpload(storagePath) {
+        // 1) Obtener URL pública
+        const { data: { publicUrl }, error: urlErrPublic } =
+          supabase.storage.from('images').getPublicUrl(storagePath);
+        if (urlErrPublic) throw urlErrPublic;
+
+        // 2) Descargar blob original
+        const res  = await fetch(publicUrl);
+        const blob = await res.blob();
+
+        // 3) Crear ImageBitmap para canvas
+        const imgBitmap = await createImageBitmap(blob);
+        // canvas de 90º intercambia ancho/alto
+        const canvas = document.createElement('canvas');
+        canvas.width  = imgBitmap.height;
+        canvas.height = imgBitmap.width;
+        const ctx = canvas.getContext('2d');
+
+        // 4) Rotar 90º
+        ctx.translate(canvas.width/2, canvas.height/2);
+        ctx.rotate(Math.PI/2);
+        ctx.drawImage(imgBitmap, -imgBitmap.width/2, -imgBitmap.height/2);
+
+        // 5) Canvas → Blob
+        const rotatedBlob = await new Promise(resolve =>
+          canvas.toBlob(resolve, blob.type)
+        );
+
+        // 6) Re-subir al mismo path con upsert
+        const { error: upErr } = await supabase
+          .storage
+          .from('images')
+          .upload(storagePath, rotatedBlob, { upsert: true });
+        if (upErr) throw upErr;
+      }
+
+      // ------------- Lógica principal -------------
       async function initAlbum() {
         const params    = new URLSearchParams(location.search);
         const galleryId = params.get('gallery');
@@ -166,7 +244,7 @@
           inp.value      = '';
           inp.disabled   = false;
           stat.innerText = '';
-          loadImages();
+          await loadImages();
         };
 
         // Cargar miniaturas
@@ -178,24 +256,57 @@
             .order('created_at',{ ascending:false });
           const ul = document.getElementById('images-list');
           ul.innerHTML = '';
+
           for (let img of imgs) {
-            const publicUrl = supabase.storage.from('images')
+            // URL pública
+            const publicUrl = supabase
+              .storage.from('images')
               .getPublicUrl(img.url).data.publicUrl;
+
+            // Crear elemento
             const li = document.createElement('li');
             li.innerHTML = `
-              <img src="${publicUrl}">
-              <button class="delete-btn">×</button>
+              <div class="image-container" data-storage-path="${img.url}">
+                <img src="${publicUrl}">
+                <button class="rotate-btn"><i class='bx bx-rotate-right'></i></button>
+                <button class="delete-btn">×</button>
+              </div>
             `;
-            li.querySelector('button').onclick = async () => {
-              if (!confirm('Borrar imagen?')) return;
-              await supabase.from('images').delete().eq('id', img.id);
-              await supabase.storage.from('images').remove([img.url]);
-              loadImages();
-            };
             ul.appendChild(li);
+
+            const container  = li.querySelector('.image-container');
+            const imgEl      = container.querySelector('img');
+            const rotateBtn  = container.querySelector('.rotate-btn');
+            const deleteBtn  = container.querySelector('.delete-btn');
+            const storagePath = container.dataset.storagePath;
+
+            // Eliminar imagen
+            deleteBtn.onclick = async () => {
+              if (!confirm('Borrar imagen?')) return;
+              await supabase.from('images').delete().eq('url', storagePath);
+              await supabase.storage.from('images').remove([storagePath]);
+              await loadImages();
+            };
+
+            // Girar imagen
+            rotateBtn.onclick = async (e) => {
+              e.stopPropagation();
+              rotateBtn.disabled = true;
+              try {
+                await rotateAndUpload(storagePath);
+                // recarga bust cache
+                const refreshed = supabase
+                  .storage.from('images')
+                  .getPublicUrl(storagePath).data.publicUrl;
+                imgEl.src = refreshed + '?t=' + Date.now();
+              } catch (err) {
+                console.error(err);
+                alert('No pude girar la imagen: ' + err.message);
+              }
+              rotateBtn.disabled = false;
+            };
           }
         }
-        loadImages();
 
         // Listar pantallas disponibles
         const { data: tvs } = await supabase
@@ -231,12 +342,12 @@
           else       alert('¡Listo! La TV mostrará este álbum.');
         };
 
-        // Eliminar álbum
+        // Eliminar álbum completo
         document.getElementById('delete-album').onclick = async () => {
           if (!confirm('Eliminar álbum y todas sus imágenes?')) return;
-          const { data: imgs } = await supabase.from('images')
+          const { data: imgsToDel } = await supabase.from('images')
             .select('url').eq('gallery_id', galleryId);
-          const paths = imgs.map(i => i.url);
+          const paths = imgsToDel.map(i => i.url);
           if (paths.length) {
             await supabase.storage.from('images').remove(paths);
           }
@@ -244,6 +355,9 @@
           await supabase.from('galleries').delete().eq('id', galleryId);
           window.location.href = 'galeria.html';
         };
+
+        // Finalmente, carga las imágenes
+        await loadImages();
       }
 
       initAlbum();
